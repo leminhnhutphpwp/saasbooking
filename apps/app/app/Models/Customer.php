@@ -7,11 +7,13 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 
 class Customer extends Model
 {
     use Auditable;
+    use Notifiable;
 
     protected $fillable = ['tenant_id', 'phone', 'name', 'email'];
 
@@ -32,5 +34,15 @@ class Customer extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function routeNotificationForZaloZns(): ?string
+    {
+        return $this->phone;
+    }
+
+    public function routeNotificationForMail(): ?string
+    {
+        return $this->email;
     }
 }
