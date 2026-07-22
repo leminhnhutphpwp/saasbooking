@@ -1,7 +1,9 @@
 # AGENTS.md — SÂN Agent Rulebook
 
 **Project:** SÂN — booking SaaS for pickleball/badminton courts in Vietnam: per-tenant booking page + VietQR deposit against no-shows + Zalo reminders. Stack: Laravel 13 + Inertia 2 + React 18 + **PostgreSQL**, Horizon queue, shadcn/ui + Tailwind. Solo dev.
-**Status:** DESIGN complete, **no code yet**. The spec lives in `docs/` (Vietnamese); agent-facing config (`CLAUDE.md`, this file, `.claude/`) is English.
+**Status:** BUILD phase — M0–M3 done (see `worklogs/`). The spec lives in `docs/` (Vietnamese); agent-facing config (`CLAUDE.md`, this file, `.claude/`) is English.
+
+**Repo layout (monorepo):** the Laravel + Inertia app is in **`apps/app/`**. Run `artisan` / `composer` / `npm` / tests from there (`cd apps/app`, or `docker compose exec app …`). Root holds `docs/`, `.claude/`, `worklogs/`, and `docker-compose.yml`.
 
 **FIRST ACTION in any session:** read [`CLAUDE.md`](CLAUDE.md) (invariants) and [`docs/README.md`](docs/README.md) (doc map). Propose or write nothing before that.
 

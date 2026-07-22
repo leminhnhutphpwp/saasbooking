@@ -9,6 +9,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    # The Laravel app lives in apps/app/ (monorepo layout) — run everything from there.
+    defaults:
+      run:
+        working-directory: apps/app
+
     # Real PostgreSQL — the anti-double-book exclusion constraint + RLS are Postgres-only.
     services:
       postgres:

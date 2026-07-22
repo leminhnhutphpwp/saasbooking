@@ -2,7 +2,9 @@
 
 Booking SaaS for **pickleball / badminton courts** in Vietnam: every court owner gets their **own booking page** + **VietQR deposit to fight no-shows** + **Zalo reminders**. Solo dev, Vietnam market.
 
-**Status:** DESIGN phase, no code yet. The full spec lives in `docs/` — **start at [`docs/README.md`](docs/README.md)** (5 parts: Direction → UI → Architecture → Risk → Delivery). Docs are written in Vietnamese. The detailed agent rulebook (navigation, coding conventions, workflow, hand-off) is [`AGENTS.md`](AGENTS.md).
+**Status:** BUILD phase (M0–M3 done — see `worklogs/`). The full spec lives in `docs/` — **start at [`docs/README.md`](docs/README.md)** (5 parts: Direction → UI → Architecture → Risk → Delivery). Docs are Vietnamese. The detailed agent rulebook is [`AGENTS.md`](AGENTS.md).
+
+**Repo layout (monorepo):** the Laravel + Inertia app is in **`apps/app/`** — run `artisan` / `composer` / `npm` / tests from there (`cd apps/app` or `docker compose exec app …`). The repo root holds project-level `docs/`, `.claude/`, `worklogs/`, `CLAUDE.md`, `AGENTS.md`, and `docker-compose.yml`.
 
 ## Stack (mirrors the template project `/Users/nhut/Documents/appdhv`)
 
