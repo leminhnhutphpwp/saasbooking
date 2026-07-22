@@ -6,6 +6,8 @@ Booking SaaS for **pickleball / badminton courts** in Vietnam: every court owner
 
 **Repo layout (monorepo):** the Laravel + Inertia app is in **`apps/app/`** — run `artisan` / `composer` / `npm` / tests from there (`cd apps/app` or `docker compose exec app …`). The repo root holds project-level `docs/`, `.claude/`, `worklogs/`, `CLAUDE.md`, `AGENTS.md`, and `docker-compose.yml`.
 
+**Git:** never commit to `main` directly — branch per task (`<type>/<slug>`), PR into `main`. See [`.claude/rules/git-workflow`](.claude/rules/git-workflow/SKILL.md).
+
 ## Stack (mirrors the template project `/Users/nhut/Documents/appdhv`)
 
 Laravel 13 + Inertia 2 + React 18 + **PostgreSQL** · Horizon queue · shadcn/ui + Tailwind. Patterns taken from appdhv: `Support/WorkingTenant` (like its `WorkingSchool`), `Concerns/Auditable` trait, models with `id` bigint + `uuid` (route key), Breeze + Ziggy + Sanctum.
