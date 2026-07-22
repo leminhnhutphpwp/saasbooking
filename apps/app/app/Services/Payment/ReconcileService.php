@@ -117,6 +117,40 @@ class ReconcileService
         return preg_match('/SAN-[A-Z0-9]{5}/', strtoupper($memo), $m) ? $m[0] : null;
     }
 
+    /** Manually match a bank txn to a payment (owner-driven reconcile). */
+    public function manualMatch(BankTxnInbox $inbox, Payment $payment): void
+    {
+        DB::transaction(function () use ($inbox, $payment) {
+            $booking = $payment->booking;
+            $outcome = $this->bookings->secureForPayment($booking);
+
+            $payment->update([
+                'bank_txn_id' => $inbox->bank_txn_id,
+                'raw_payload' => $inbox->payload,
+            ]);
+
+            if ($outcome === 'lost') {
+                $payment->update(['status' => PaymentStatus::Orphaned]);
+                $this->payments->requestRefund($payment, (int) $payment->amount, CancelReason::RaceLost);
+                $this->bookings->markPaymentOrphaned($booking);
+            } else {
+                $payment->update(['status' => PaymentStatus::Matched, 'matched_at' => now()]);
+                $this->bookings->confirmDeposit($booking);
+            }
+
+            $inbox->update(['processed_at' => now(), 'note' => 'Manual match by owner']);
+        });
+    }
+
+    /** Dismiss an unmatched bank txn as irrelevant (not a booking deposit). */
+    public function dismissTxn(BankTxnInbox $inbox): void
+    {
+        $inbox->update([
+            'processed_at' => $inbox->processed_at ?? now(),
+            'note' => 'Dismissed by owner',
+        ]);
+    }
+
     private function markUnmatched(BankTxnInbox $inbox, string $note, ?int $paymentId = null): void
     {
         $inbox->update(['note' => $note, 'processed_at' => now()]);

@@ -5,7 +5,9 @@ use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
 use App\Http\Controllers\Manager\OpeningRuleController;
 use App\Http\Controllers\Manager\PricingRuleController;
+use App\Http\Controllers\Manager\ReconcileController;
 use App\Http\Controllers\Manager\RefundController;
+use App\Http\Controllers\Manager\SeriesController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
@@ -44,6 +46,10 @@ Route::middleware('auth')->prefix('manager')->name('manager.')->group(function (
     Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
     Route::post('/refunds/{refund}/done', [RefundController::class, 'markDone'])->name('refunds.done');
 
+    Route::get('/series', [SeriesController::class, 'index'])->name('series.index');
+    Route::post('/series', [SeriesController::class, 'store'])->name('series.store');
+    Route::delete('/series/{series}', [SeriesController::class, 'destroy'])->name('series.destroy');
+
     Route::get('/courts/{court}/opening-rules', [OpeningRuleController::class, 'index'])->name('courts.opening-rules.index');
     Route::post('/courts/{court}/opening-rules', [OpeningRuleController::class, 'store'])->name('courts.opening-rules.store');
     Route::put('/courts/{court}/opening-rules/{openingRule}', [OpeningRuleController::class, 'update'])->name('courts.opening-rules.update');
@@ -56,6 +62,10 @@ Route::middleware('auth')->prefix('manager')->name('manager.')->group(function (
 
     Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
     Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
+
+    Route::get('/reconcile', [ReconcileController::class, 'unmatched'])->name('reconcile.index');
+    Route::post('/reconcile/match', [ReconcileController::class, 'manualMatch'])->name('reconcile.match');
+    Route::post('/reconcile/{inbox}/dismiss', [ReconcileController::class, 'dismissTxn'])->name('reconcile.dismiss');
 });
 
 // Public booking page (resolved by tenant slug — no auth).
