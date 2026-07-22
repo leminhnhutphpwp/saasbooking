@@ -1,0 +1,43 @@
+# Dependencies
+/vendor
+/node_modules
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.*.local
+/auth.json
+
+# Laravel
+/bootstrap/ssr
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/.phpunit.cache
+.phpunit.result.cache
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+Homestead.json
+Homestead.yaml
+
+# Logs
+*.log
+npm-debug.log
+yarn-error.log
+
+# OS & editors
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/.nova
+/.zed
+/.fleet
+/.cursor
+.phpactor.json
+
+# Claude Code — personal overrides ignored via .claude/.gitignore (settings.local.json)
