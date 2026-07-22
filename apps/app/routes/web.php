@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
+use App\Http\Controllers\Manager\RefundController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
@@ -32,6 +34,12 @@ Route::middleware('auth')->prefix('manager')->name('manager.')->group(function (
     Route::post('/courts', [CourtController::class, 'store'])->name('courts.store');
     Route::put('/courts/{court}', [CourtController::class, 'update'])->name('courts.update');
     Route::delete('/courts/{court}', [CourtController::class, 'destroy'])->name('courts.destroy');
+
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::post('/calendar/walk-in', [CalendarController::class, 'storeWalkIn'])->name('calendar.walk-in');
+
+    Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
+    Route::post('/refunds/{refund}/done', [RefundController::class, 'markDone'])->name('refunds.done');
 });
 
 // Public booking page (resolved by tenant slug — no auth).
