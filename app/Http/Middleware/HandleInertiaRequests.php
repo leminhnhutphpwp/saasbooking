@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\WorkingTenant;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -32,8 +33,20 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? array_merge(
+                    $request->user()->only('id', 'name', 'email', 'tenant_id'),
+                    ['roles' => $request->user()->getRoleNames()],
+                ) : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+            ],
+            // Working-tenant context shared across the Manager console.
+            'workingTenants' => fn () => $request->user()
+                ? WorkingTenant::switchable($request->user())
+                : [],
+            'workingTenantId' => fn () => $request->attributes->get(WorkingTenant::ATTR),
         ];
     }
 }
