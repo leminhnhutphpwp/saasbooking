@@ -1,9 +1,10 @@
 # SÂN — dev stack. One modular monolith on one Postgres (see docs/09).
 #   app (php-fpm) · web (nginx) · db (postgres 16) · redis · horizon · scheduler · vite
+name: san
+
 services:
   app:
     build: { context: ./apps/app, dockerfile: docker/php/Dockerfile }
-    container_name: san_app
     restart: unless-stopped
     volumes:
       - ./apps/app:/var/www
@@ -13,7 +14,6 @@ services:
 
   web:
     image: nginx:alpine
-    container_name: san_web
     restart: unless-stopped
     ports: ["8000:80"]
     volumes:
@@ -24,7 +24,6 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: san_db
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-san}
@@ -36,7 +35,6 @@ services:
 
   redis:
     image: redis:alpine
-    container_name: san_redis
     restart: unless-stopped
     ports: ["127.0.0.1:6379:6379"]
     volumes: [redis-data:/data]
@@ -45,7 +43,6 @@ services:
   # Queue via Horizon (reminders, ZNS, reconcile, series generation).
   horizon:
     build: { context: ./apps/app, dockerfile: docker/php/Dockerfile }
-    container_name: san_horizon
     restart: unless-stopped
     command: php artisan horizon
     volumes:
@@ -57,7 +54,6 @@ services:
   # Scheduler — ExpireStaleHolds (1'), GenerateSeriesOccurrences (daily), SendBookingReminders.
   scheduler:
     build: { context: ./apps/app, dockerfile: docker/php/Dockerfile }
-    container_name: san_scheduler
     restart: unless-stopped
     command: php artisan schedule:work
     volumes:
@@ -68,7 +64,6 @@ services:
 
   vite:
     image: node:22-alpine
-    container_name: san_vite
     working_dir: /var/www
     volumes: [./apps/app:/var/www]
     ports: ["5173:5173"]
