@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Controllers\Manager\BrandingController;
 use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
+use App\Http\Controllers\Manager\OpeningRuleController;
+use App\Http\Controllers\Manager\PricingRuleController;
 use App\Http\Controllers\Manager\RefundController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
@@ -40,6 +43,19 @@ Route::middleware('auth')->prefix('manager')->name('manager.')->group(function (
 
     Route::get('/refunds', [RefundController::class, 'index'])->name('refunds.index');
     Route::post('/refunds/{refund}/done', [RefundController::class, 'markDone'])->name('refunds.done');
+
+    Route::get('/courts/{court}/opening-rules', [OpeningRuleController::class, 'index'])->name('courts.opening-rules.index');
+    Route::post('/courts/{court}/opening-rules', [OpeningRuleController::class, 'store'])->name('courts.opening-rules.store');
+    Route::put('/courts/{court}/opening-rules/{openingRule}', [OpeningRuleController::class, 'update'])->name('courts.opening-rules.update');
+    Route::delete('/courts/{court}/opening-rules/{openingRule}', [OpeningRuleController::class, 'destroy'])->name('courts.opening-rules.destroy');
+
+    Route::get('/courts/{court}/pricing-rules', [PricingRuleController::class, 'index'])->name('courts.pricing-rules.index');
+    Route::post('/courts/{court}/pricing-rules', [PricingRuleController::class, 'store'])->name('courts.pricing-rules.store');
+    Route::put('/courts/{court}/pricing-rules/{pricingRule}', [PricingRuleController::class, 'update'])->name('courts.pricing-rules.update');
+    Route::delete('/courts/{court}/pricing-rules/{pricingRule}', [PricingRuleController::class, 'destroy'])->name('courts.pricing-rules.destroy');
+
+    Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
+    Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
 });
 
 // Public booking page (resolved by tenant slug — no auth).

@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ManagerLayout from '@/Layouts/ManagerLayout';
 import { Button } from '@/Components/ui/button';
 
 const REASON = {
@@ -21,7 +21,7 @@ export default function Index({ refunds }) {
     const ago = (iso) => (iso ? new Date(iso).toLocaleDateString('vi-VN') : '');
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold">Hoàn cọc chờ xử lý</h2>}>
+        <ManagerLayout header={<h2 className="text-xl font-semibold">Hoàn cọc chờ xử lý</h2>}>
             <Head title="Hoàn cọc" />
 
             <div className="mx-auto max-w-3xl p-4 sm:p-6">
@@ -48,6 +48,6 @@ export default function Index({ refunds }) {
                     ))}
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </ManagerLayout>
     );
 }

@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ManagerLayout from '@/Layouts/ManagerLayout';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -62,7 +62,7 @@ export default function Index({ courts, courtTypes }) {
         s === 'active' ? 'default' : s === 'maintenance' ? 'secondary' : 'outline';
 
     return (
-        <AuthenticatedLayout
+        <ManagerLayout
             header={<h2 className="text-xl font-semibold leading-tight">Quản lý sân</h2>}
         >
             <Head title="Quản lý sân" />
@@ -91,6 +91,13 @@ export default function Index({ courts, courtTypes }) {
                                 <Badge variant={statusVariant(court.status)}>
                                     {court.status_label}
                                 </Badge>
+                                <div className="flex items-center">
+                                <Button variant="outline" size="sm" onClick={() => router.visit(`/manager/courts/${court.uuid}/opening-rules`)}>
+                                    Giờ
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => router.visit(`/manager/courts/${court.uuid}/pricing-rules`)}>
+                                    Giá
+                                </Button>
                                 <Button variant="outline" size="sm" onClick={() => openEdit(court)}>
                                     Sửa
                                 </Button>
@@ -101,6 +108,7 @@ export default function Index({ courts, courtTypes }) {
                                 )}
                             </div>
                         </div>
+                            </div>
                     ))}
                 </div>
             </div>
@@ -171,6 +179,6 @@ export default function Index({ courts, courtTypes }) {
                     </form>
                 </DialogContent>
             </Dialog>
-        </AuthenticatedLayout>
+        </ManagerLayout>
     );
 }

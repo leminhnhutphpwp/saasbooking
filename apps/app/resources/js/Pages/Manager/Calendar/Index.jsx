@@ -1,6 +1,6 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ManagerLayout from '@/Layouts/ManagerLayout';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -47,7 +47,7 @@ export default function Index({ date, bookings, courts }) {
     };
 
     return (
-        <AuthenticatedLayout header={<h2 className="text-xl font-semibold">Lịch đặt sân</h2>}>
+        <ManagerLayout header={<h2 className="text-xl font-semibold">Lịch đặt sân</h2>}>
             <Head title="Lịch đặt sân" />
 
             <div className="mx-auto max-w-3xl p-4 sm:p-6">
@@ -125,6 +125,6 @@ export default function Index({ date, bookings, courts }) {
                     </form>
                 </DialogContent>
             </Dialog>
-        </AuthenticatedLayout>
+        </ManagerLayout>
     );
 }

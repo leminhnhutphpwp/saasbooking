@@ -4,6 +4,8 @@ import { useState } from 'react';
 export default function Show({ tenant, date, courts }) {
     const [selected, setSelected] = useState(null);
     const form = useForm({ name: '', phone: '', court_id: null, start_at: '', end_at: '' });
+    const brand = tenant.settings ?? {};
+    const pc = brand.primary_color || '#2563eb';
 
     const changeDate = (d) =>
         router.get(`/book/${tenant.slug}`, { date: d }, { preserveState: true, preserveScroll: true });
@@ -25,14 +27,19 @@ export default function Show({ tenant, date, courts }) {
             <Head title={`Đặt sân — ${tenant.name}`} />
 
             <div className="mx-auto max-w-2xl p-4">
-                <h1 className="text-2xl font-bold">{tenant.name}</h1>
-                <p className="text-sm text-gray-500">Chọn khung giờ để đặt sân</p>
+                <div className="mb-4">
+                    {brand.logo_url && (
+                        <img src={brand.logo_url} alt={tenant.name} className="mb-2 h-14 w-auto object-contain" />
+                    )}
+                    <h1 className="text-2xl font-bold" style={{ color: pc }}>{tenant.name}</h1>
+                    <p className="text-sm text-gray-500">Chọn khung giờ để đặt sân</p>
+                </div>
 
                 <input
                     type="date"
                     value={date}
                     onChange={(e) => changeDate(e.target.value)}
-                    className="mt-4 rounded-lg border p-2"
+                    className="mt-2 rounded-lg border p-2"
                 />
 
                 <div className="mt-4 space-y-4">
@@ -49,7 +56,8 @@ export default function Show({ tenant, date, courts }) {
                                         <button
                                             key={i}
                                             onClick={() => pick(court, slot)}
-                                            className={`rounded-lg border px-3 py-1.5 text-sm ${active ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}
+                                            className={`rounded-lg border px-3 py-1.5 text-sm ${active ? 'text-white' : 'hover:bg-gray-100'}`}
+                                            style={active ? { backgroundColor: pc, borderColor: pc } : {}}
                                         >
                                             {hhmm(slot.start)}–{hhmm(slot.end)}
                                         </button>
@@ -62,7 +70,7 @@ export default function Show({ tenant, date, courts }) {
 
                 {selected && (
                     <form onSubmit={submit} className="mt-6 space-y-3 rounded-lg border bg-white p-4">
-                        <div className="font-medium">
+                        <div className="font-medium" style={{ color: pc }}>
                             {selected.court_name} · {hhmm(selected.start)}–{hhmm(selected.end)}
                         </div>
                         <div>
@@ -86,9 +94,10 @@ export default function Show({ tenant, date, courts }) {
                         <button
                             type="submit"
                             disabled={form.processing}
-                            className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white disabled:opacity-50"
+                            className="w-full rounded-lg py-2.5 font-medium text-white disabled:opacity-50"
+                            style={{ backgroundColor: pc }}
                         >
-                            Giữ chỗ &amp; lấy mã QR cọc
+                            Giữ chỗ & lấy mã QR cọc
                         </button>
                     </form>
                 )}

@@ -43,7 +43,7 @@ class PublicBookingController extends Controller
             : CarbonImmutable::now($tenant->timezone);
 
         return Inertia::render('Public/Booking/Show', [
-            'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug],
+            'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug, 'settings' => $tenant->settings ?? []],
             'date' => $date->toDateString(),
             'courts' => $this->availability->search($tenant->id, $date, null, 60),
         ]);
@@ -98,7 +98,7 @@ class PublicBookingController extends Controller
             : null;
 
         return Inertia::render('Public/Booking/Status', [
-            'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug],
+            'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug, 'settings' => $tenant->settings ?? []],
             'booking' => [
                 'code' => $booking->code,
                 'status' => $booking->status->value,

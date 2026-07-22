@@ -11,7 +11,9 @@ const STATUS_LABEL = {
 };
 
 export default function Status({ tenant, booking, qr, account }) {
-    // Poll for confirmation while awaiting the deposit.
+    const brand = tenant.settings ?? {};
+    const pc = brand.primary_color || '#2563eb';
+
     useEffect(() => {
         if (booking.status !== 'pending_deposit') return;
         const t = setInterval(() => router.reload({ only: ['booking'] }), 5000);
@@ -25,7 +27,10 @@ export default function Status({ tenant, booking, qr, account }) {
             <Head title={`Mã đặt ${booking.code}`} />
 
             <div className="mx-auto max-w-md p-4 text-center">
-                <h1 className="text-xl font-bold">{tenant.name}</h1>
+                {brand.logo_url && (
+                    <img src={brand.logo_url} alt={tenant.name} className="mx-auto mb-2 h-14 w-auto object-contain" />
+                )}
+                <h1 className="text-xl font-bold" style={{ color: pc }}>{tenant.name}</h1>
                 <div className="mt-2 text-sm text-gray-600">
                     Mã đặt: <b className="font-mono">{booking.code}</b>
                 </div>
