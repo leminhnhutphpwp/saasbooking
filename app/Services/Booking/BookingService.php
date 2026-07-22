@@ -43,9 +43,16 @@ class BookingService
             $total = 0;
 
             foreach ($params['slots'] as $slot) {
-                $price = $this->pricing->resolve($tenant->id, $slot['court_id'], $slot['start_at'], $slot['end_at']);
+                // Series occurrences pass a snapshotted price; one-offs resolve it live.
+                $price = $slot['price_snapshot']
+                    ?? $this->pricing->resolve($tenant->id, $slot['court_id'], $slot['start_at'], $slot['end_at']);
                 $total += $price;
-                $slots[] = [...$slot, 'price_snapshot' => $price];
+                $slots[] = [
+                    'court_id' => $slot['court_id'],
+                    'start_at' => $slot['start_at'],
+                    'end_at' => $slot['end_at'],
+                    'price_snapshot' => $price,
+                ];
             }
 
             $booking = Booking::create([
