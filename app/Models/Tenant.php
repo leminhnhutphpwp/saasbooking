@@ -20,7 +20,7 @@ class Tenant extends Model
     use Auditable;
     use SoftDeletes;
 
-    protected $fillable = ['name', 'slug', 'timezone', 'status'];
+    protected $fillable = ['name', 'slug', 'vertical', 'timezone', 'status'];
 
     public function getRouteKeyName(): string
     {
