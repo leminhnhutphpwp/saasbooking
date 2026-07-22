@@ -60,6 +60,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 
 ## 5. Workflow
 
+- **Branch first.** Every task starts on a `<type>/<slug>` branch off `main` (`feat/` · `fix/` · `chore/` · `docs/`); PR into `main` after CI is green. **Never commit on `main`.** See `.claude/rules/git-workflow`.
 - Tasks come from [`docs/12-lo-trinh.md`](docs/12-lo-trinh.md) milestones **M0–M7** (critical path M3 → M4 → M6). Respect each milestone's **Definition of Done** before moving on.
 - Before a task: load the matching `.claude/skills/*` + `.claude/workflows/*` (§8). Read targeted, never bulk-read (`.claude/rules/context-efficiency`).
 - Bugfixes: red test first → localize → minimal fix → re-check invariants (`.claude/workflows/bugfix`).
@@ -73,6 +74,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 - ❌ A second anti-overlap path — `BookingService` + exclusion constraint is the only one.
 - ❌ Microservices / multi-DB / per-vertical apps — one modular monolith on one Postgres.
 - ❌ Golf/spa built or sold early — reserved doors only.
+- ❌ Committing directly to `main` — always branch first, PR in (`.claude/rules/git-workflow`).
 - ❌ Git mutations (commit/push/reset/rebase) without explicit user confirmation.
 
 ## 7. Pointers
