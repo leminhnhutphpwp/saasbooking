@@ -1,6 +1,5 @@
 # SÂN — dev stack. One modular monolith on one Postgres (see docs/09).
 #   app (php-fpm) · web (nginx) · db (postgres 16) · redis · horizon · scheduler · vite
-name: san
 
 services:
   app:
