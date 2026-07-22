@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Real PostgreSQL — the anti-double-book exclusion constraint + RLS are Postgres-only.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: san_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secret
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:alpine
+        ports: ['6379:6379']
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: san_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: secret
+      REDIS_HOST: 127.0.0.1
+      QUEUE_CONNECTION: sync
+      CACHE_STORE: array
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, redis, intl, bcmath, gd, zip, pcntl
+          coverage: none
+
+      - name: Install PHP deps
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare app
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Lint (Pint)
+        run: ./vendor/bin/pint --test
+
+      - name: Migrate
+        run: php artisan migrate --force
+
+      - name: Test (PHPUnit/Pest on PostgreSQL)
+        run: php artisan test
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build assets
+        run: |
+          npm ci
+          npm run build

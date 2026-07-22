@@ -41,3 +41,7 @@ Thumbs.db
 .phpactor.json
 
 # Claude Code — personal overrides ignored via .claude/.gitignore (settings.local.json)
+
+# Laravel scaffold extras
+/public/fonts-manifest.dev.json
+/.codex

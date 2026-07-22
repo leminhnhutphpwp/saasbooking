@@ -1,0 +1,82 @@
+# SÂN — dev stack. One modular monolith on one Postgres (see docs/09).
+#   app (php-fpm) · web (nginx) · db (postgres 16) · redis · horizon · scheduler · vite
+services:
+  app:
+    build: { context: ., dockerfile: docker/php/Dockerfile }
+    container_name: san_app
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on: [db, redis]
+    networks: [san]
+
+  web:
+    image: nginx:alpine
+    container_name: san_web
+    restart: unless-stopped
+    ports: ["8000:80"]
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on: [app]
+    networks: [san]
+
+  db:
+    image: postgres:16-alpine
+    container_name: san_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-san}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: [db-data:/var/lib/postgresql/data]
+    networks: [san]
+
+  redis:
+    image: redis:alpine
+    container_name: san_redis
+    restart: unless-stopped
+    volumes: [redis-data:/data]
+    networks: [san]
+
+  # Queue via Horizon (reminders, ZNS, reconcile, series generation).
+  horizon:
+    build: { context: ., dockerfile: docker/php/Dockerfile }
+    container_name: san_horizon
+    restart: unless-stopped
+    command: php artisan horizon
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on: [db, redis]
+    networks: [san]
+
+  # Scheduler — ExpireStaleHolds (1'), GenerateSeriesOccurrences (daily), SendBookingReminders.
+  scheduler:
+    build: { context: ., dockerfile: docker/php/Dockerfile }
+    container_name: san_scheduler
+    restart: unless-stopped
+    command: php artisan schedule:work
+    volumes:
+      - ./:/var/www
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on: [db, redis]
+    networks: [san]
+
+  vite:
+    image: node:22-alpine
+    container_name: san_vite
+    working_dir: /var/www
+    volumes: [./:/var/www]
+    ports: ["5173:5173"]
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    networks: [san]
+
+networks:
+  san: { driver: bridge }
+
+volumes:
+  db-data:
+  redis-data:
