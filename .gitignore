@@ -1,2 +1,5 @@
 .DS_Store
 /node_modules
+
+# DB dumps produced by scripts/backup.sh
+/backups/
