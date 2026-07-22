@@ -20,6 +20,7 @@
 /storage/framework/sessions/*
 /storage/framework/views/*
 /storage/logs/*
+/test-results/
 /.phpunit.cache
 .phpunit.result.cache
 _ide_helper.php
