@@ -1,8 +1,8 @@
 ---
 id: T01
 title: App shell & IA + palette v2
-status: todo
-owner: "-"
+status: claimed
+owner: "opencode-agent"
 priority: P0
 depends_on: []
 branch: feat/app-shell-ia
