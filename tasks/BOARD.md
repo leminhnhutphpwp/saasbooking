@@ -11,6 +11,7 @@ Switch the whole app to a modern **violet/indigo** palette + the airy card/shell
 | [T11](T11-retheme-violet-shell.md) | Re-theme v3 (violet/indigo) + airy card & shell (sidebar + top-bar) | todo | - | **P0** | — | app.css, tailwind, ManagerLayout, nav, ui/{card,button}, PageContainer/Header, StatCard, AppTopbar |
 | [T12](T12-home-dashboard-redesign.md) | Home dashboard redesign (hero + quick-links row + insight cards w/ charts) | todo | - | P1 | T11 | Pages/Manager/Home + QuickLinks |
 | [T13](T13-retheme-sweep.md) | v3 sweep — remaining pages (reports charts, calendar, config, lists, login) | todo | - | P2 | T11 | remaining Manager pages + Auth/Login |
+| [T14](T14-demo-seeder.md) | DemoSeeder — reproducible demo data (committed) | todo | - | P1 | — | database/seeders/DemoSeeder.php (backend, independent) |
 
 ## Manager-only actions (not delegated)
 - [x] Merge PR #4/#5/#6, T01 (#8), **T02 (#9)**, **T04 (#7)** into `main` — all verified (build + 108 tests + browser).
