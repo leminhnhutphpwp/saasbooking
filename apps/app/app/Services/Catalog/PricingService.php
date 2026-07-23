@@ -30,8 +30,16 @@ class PricingService
             ->filter(fn (PricingRule $r) => in_array($weekday, $r->weekday, true)
                 && $time >= $r->start_local
                 && $time < $r->end_local)
-            // court-specific always outranks venue-wide, then by priority
-            ->sortByDesc(fn (PricingRule $r) => ($r->court_id !== null ? 1_000_000 : 0) + $r->priority)
+            // Deterministic precedence (stable across deploys / DB row order):
+            // 1) court-specific always outranks venue-wide, 2) higher priority,
+            // 3) most-recent rule (higher id) as a tiebreaker so equal-priority
+            //    overlaps never flip nondeterministically. Slot is priced by its
+            //    START time (docs/11) — that policy is unchanged.
+            ->sort(fn (PricingRule $a, PricingRule $b) => [
+                $b->court_id !== null ? 1 : 0, $b->priority, $b->id,
+            ] <=> [
+                $a->court_id !== null ? 1 : 0, $a->priority, $a->id,
+            ])
             ->first();
 
         if (! $rule) {

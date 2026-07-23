@@ -58,7 +58,7 @@ class BookingService
                 ];
             }
 
-            $booking = Booking::create([
+            $booking = Booking::forceCreate([
                 'tenant_id' => $tenant->id,
                 'code' => $this->generateCode($tenant->id),
                 'customer_id' => $params['customer_id'],
@@ -83,13 +83,27 @@ class BookingService
         DB::transaction(fn () => $this->driverFor($booking->tenant)->release($booking));
     }
 
+    /**
+     * @throws SlotTakenException when a concurrent expire+re-hold steals the range between the
+     *                            'held' check and the commit UPDATE — the exclusion constraint (23P01) is the arbiter, so
+     *                            the reconcile caller can route to orphaned+refund instead of a 500 (docs/07 a, finding #5).
+     */
     public function confirmDeposit(Booking $booking): void
     {
-        DB::transaction(function () use ($booking) {
-            $booking->update(['status' => BookingStatus::Confirmed, 'hold_expires_at' => null]);
-            $this->driverFor($booking->tenant)->commit($booking);
-            event(new BookingConfirmed($booking));
-        });
+        try {
+            DB::transaction(function () use ($booking) {
+                $booking->forceFill(['status' => BookingStatus::Confirmed, 'hold_expires_at' => null])->save();
+                $this->driverFor($booking->tenant)->commit($booking);   // UPDATE hold_status='committed' → may raise 23P01
+                event(new BookingConfirmed($booking));
+            });
+        } catch (QueryException $e) {
+            // The savepoint has already rolled back the Confirmed update; surface the lost race as
+            // the canonical SlotTakenException rather than leaking a raw DB error.
+            if ($e->getCode() === '23P01') {
+                throw new SlotTakenException;
+            }
+            throw $e;
+        }
     }
 
     /** Payment arrived but the slot was already lost — refund is created in M4 (payment). */
@@ -97,7 +111,7 @@ class BookingService
     {
         DB::transaction(function () use ($booking) {
             $this->driverFor($booking->tenant)->release($booking);
-            $booking->update(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null]);
+            $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
         });
     }
 
@@ -105,14 +119,14 @@ class BookingService
     {
         DB::transaction(function () use ($booking) {
             $this->driverFor($booking->tenant)->release($booking);
-            $booking->update(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null]);
+            $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
             event(new BookingCancelled($booking));
         });
     }
 
     public function markNoShow(Booking $booking): void
     {
-        $booking->update(['status' => BookingStatus::NoShow]);
+        $booking->forceFill(['status' => BookingStatus::NoShow])->save();
     }
 
     /**
@@ -124,7 +138,11 @@ class BookingService
      */
     public function secureForPayment(Booking $booking): string
     {
-        $slots = $booking->slots()->get();
+        // Lock this booking's slot rows for the duration of the reconcile transaction so a
+        // concurrent ExpireStaleHolds cannot release + let another booking re-hold them between the
+        // 'held' decision below and confirmDeposit's commit (finding #5). The EXCLUDE constraint
+        // stays the only anti-overlap arbiter — this only pins THIS booking's own rows.
+        $slots = $booking->slots()->lockForUpdate()->get();
 
         $stillActive = $slots->contains(
             fn (BookingSlot $s) => in_array($s->hold_status, [HoldStatus::Holding, HoldStatus::Committed], true)
@@ -158,7 +176,7 @@ class BookingService
             ->each(function (Booking $booking) use (&$expired) {
                 DB::transaction(function () use ($booking) {
                     $this->driverFor($booking->tenant)->release($booking);
-                    $booking->update(['status' => BookingStatus::Expired]);
+                    $booking->forceFill(['status' => BookingStatus::Expired])->save();
                 });
                 $expired++;
             });

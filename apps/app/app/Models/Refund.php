@@ -16,8 +16,9 @@ class Refund extends Model
 {
     use Auditable;
 
+    // tenant_id / amount / status are NOT mass-assignable (audit #10) — set via forceCreate/forceFill.
     protected $fillable = [
-        'tenant_id', 'payment_id', 'amount', 'reason', 'method', 'status',
+        'payment_id', 'reason', 'method',
         'requested_at', 'resolved_at', 'resolved_by',
     ];
 

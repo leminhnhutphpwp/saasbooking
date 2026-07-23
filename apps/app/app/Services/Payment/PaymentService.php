@@ -34,18 +34,23 @@ class PaymentService
             throw new RuntimeException('Chưa cấu hình tài khoản nhận cọc cho cơ sở này.');
         }
 
-        $payment = Payment::firstOrCreate(
-            [
+        // amount/status/tenant_id are not mass-assignable (audit #10) — build explicitly.
+        $payment = Payment::query()
+            ->where('tenant_id', $booking->tenant_id)
+            ->where('booking_id', $booking->id)
+            ->where('method', PaymentMethod::VietQr)
+            ->first();
+
+        if (! $payment) {
+            $payment = Payment::forceCreate([
                 'tenant_id' => $booking->tenant_id,
                 'booking_id' => $booking->id,
                 'method' => PaymentMethod::VietQr,
-            ],
-            [
                 'amount' => $booking->deposit_amount,
                 'status' => PaymentStatus::Awaiting,
                 'memo_ref' => $booking->code,
-            ],
-        );
+            ]);
+        }
 
         return [
             'payment' => $payment,
@@ -62,7 +67,7 @@ class PaymentService
 
     public function requestRefund(Payment $payment, int $amount, CancelReason $reason): Refund
     {
-        return Refund::create([
+        return Refund::forceCreate([
             'tenant_id' => $payment->tenant_id,
             'payment_id' => $payment->id,
             'amount' => $amount,
@@ -74,10 +79,10 @@ class PaymentService
 
     public function markRefundDone(Refund $refund, ?int $resolvedBy = null): void
     {
-        $refund->update([
+        $refund->forceFill([
             'status' => RefundStatus::Done,
             'resolved_at' => now(),
             'resolved_by' => $resolvedBy,
-        ]);
+        ])->save();
     }
 }

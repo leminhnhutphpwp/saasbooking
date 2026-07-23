@@ -18,7 +18,8 @@ class Court extends Model
     use Auditable;
     use SoftDeletes;
 
-    protected $fillable = ['tenant_id', 'name', 'court_type', 'status'];
+    // tenant_id / status are NOT mass-assignable (audit #10) — set via forceCreate/forceFill.
+    protected $fillable = ['name', 'court_type'];
 
     protected $casts = [
         'court_type' => CourtType::class,

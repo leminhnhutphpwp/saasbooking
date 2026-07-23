@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -95,6 +96,19 @@ class SeriesController extends Controller
             'deposit_per_session' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        // Guard against a date range that contains NO occurrence of the chosen
+        // weekday (e.g. a 1-day window on the wrong day). Without this, the series
+        // has zero sessions and pricing later resolves for a weekday/time with no
+        // rule → RuntimeException → 500. Reject up front with a clear message.
+        $start = Carbon::createFromFormat('Y-m-d', $data['start_date'])->startOfDay();
+        $end = Carbon::createFromFormat('Y-m-d', $data['end_date'])->startOfDay();
+
+        if ($this->countWeekdaysBetween((int) $data['weekday'], $start, $end) === 0) {
+            throw ValidationException::withMessages([
+                'end_date' => 'Khoảng ngày đã chọn không chứa ngày nào trùng thứ trong tuần đã chọn.',
+            ]);
+        }
+
         $data['payment_mode'] = 'full';
 
         try {
@@ -114,7 +128,7 @@ class SeriesController extends Controller
     public function destroy(Request $request, RecurringSeries $series): RedirectResponse
     {
         $this->assertOwnedByWorkingTenant($request, $series);
-        $series->update(['status' => SeriesStatus::Cancelled]);
+        $series->forceFill(['status' => SeriesStatus::Cancelled])->save();
 
         return Redirect::back()->with('success', 'Đã hủy đặt cố định.');
     }

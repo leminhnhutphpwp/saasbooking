@@ -61,13 +61,16 @@ export default function Index({ courts, courtTypes }) {
     const statusVariant = (s) =>
         s === 'active' ? 'default' : s === 'maintenance' ? 'secondary' : 'outline';
 
+    const statusColor = (s) =>
+        s === 'active' ? 'bg-success/10 text-success' : s === 'maintenance' ? 'bg-warning/10 text-warning' : 'bg-muted text-muted-foreground';
+
     return (
         <ManagerLayout
             header={<h2 className="text-xl font-semibold leading-tight">Quản lý sân</h2>}
         >
             <Head title="Quản lý sân" />
 
-            <div className="mx-auto max-w-4xl p-4 sm:p-6">
+            <div className="mx-auto max-w-6xl p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">{courts.length} sân</p>
                     <Button onClick={openCreate}>+ Thêm sân</Button>
@@ -88,7 +91,7 @@ export default function Index({ courts, courtTypes }) {
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
-                                <Badge variant={statusVariant(court.status)}>
+                                <Badge className={statusColor(court.status)}>
                                     {court.status_label}
                                 </Badge>
                                 <div className="flex items-center">

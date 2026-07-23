@@ -54,9 +54,10 @@ class AvailabilityService
     /** @return array<int, array{start:CarbonImmutable, end:CarbonImmutable}> */
     private function freeIntervals(int $tenantId, Court $court, CarbonImmutable $date): array
     {
-        // Postgres stores these timestamptz as venue wall-clock (Laravel formats without an offset;
-        // single-tz Phase 1). Parse opening windows the same way so both sides align. Real multi-tz
-        // handling is a later concern (docs/11 #3).
+        // Wall-as-UTC convention (single-tz Phase 1): booking_slots store the venue wall-clock digits
+        // with no offset (Laravel formats without one). Parse opening windows NAIVELY the same way so
+        // both sides align; the exclusion constraint guarantees the write. Real multi-tz handling is a
+        // later concern (docs/11 #3).
         $open = [];
         foreach ($this->catalog->openingWindows($tenantId, $court->id, $date) as $w) {
             $open[] = [

@@ -1,4 +1,8 @@
 import '../css/app.css';
+import '@fontsource/be-vietnam-pro/400.css';
+import '@fontsource/be-vietnam-pro/500.css';
+import '@fontsource/be-vietnam-pro/600.css';
+import '@fontsource/be-vietnam-pro/700.css';
 import './bootstrap';
 
 import { createInertiaApp } from '@inertiajs/react';

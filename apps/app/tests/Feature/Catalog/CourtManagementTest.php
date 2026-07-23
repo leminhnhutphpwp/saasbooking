@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Catalog;
 
+use App\Enums\CourtStatus;
 use App\Models\Court;
 use App\Models\Tenant;
 use App\Models\User;
@@ -78,5 +79,24 @@ class CourtManagementTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('courts', ['id' => $courtB->id, 'name' => 'B1']);
+    }
+
+    public function test_destroy_soft_archives_court_without_deleting_the_row(): void
+    {
+        $t = $this->venue('venue-a');
+        $court = Court::create(['tenant_id' => $t->id, 'name' => 'Sân 1', 'court_type' => 'pickleball', 'status' => 'active']);
+
+        $this->actingAs($this->owner($t))
+            ->delete("/manager/courts/{$court->uuid}")
+            ->assertRedirect();
+
+        // Soft-archive (docs/11): status flips to Archived, but the row still EXISTS (not hard/soft deleted)
+        // so existing bookings keep referencing the court.
+        $this->assertSame(CourtStatus::Archived, $court->fresh()->status);
+        $this->assertDatabaseHas('courts', [
+            'id' => $court->id,
+            'status' => CourtStatus::Archived->value,
+            'deleted_at' => null,
+        ]);
     }
 }

@@ -33,11 +33,22 @@ class CalendarController extends Controller
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
-        $date = $request->filled('date')
-            ? CarbonImmutable::parse($request->string('date')->value())
-            : CarbonImmutable::now();
+        $tenant = $request->user()->tenant()->firstOrFail();
 
-        $dayStart = CarbonImmutable::parse($date->toDateString().' 00:00:00');
+        // Wall-as-UTC (single-tz Phase 1): "today" and the day bounds reference the VENUE wall-clock
+        // day (slots are stored naive/wall-clock), never real UTC. An invalid ?date= falls back to
+        // the venue's today instead of 500-ing.
+        $venueToday = CarbonImmutable::now($tenant->timezone)->toDateString();
+        $dateString = $venueToday;
+        if ($request->filled('date')) {
+            try {
+                $dateString = CarbonImmutable::parse($request->string('date')->value())->toDateString();
+            } catch (\Throwable) {
+                $dateString = $venueToday;
+            }
+        }
+
+        $dayStart = CarbonImmutable::parse($dateString.' 00:00:00');
         $dayEnd = $dayStart->addDay();
 
         $bookings = Booking::query()
@@ -49,6 +60,7 @@ class CalendarController extends Controller
                 'code' => $b->code,
                 'status' => $b->status->value,
                 'channel' => $b->channel->value,
+                'court_id' => $s->court_id,
                 'court' => $s->court?->name,
                 'customer' => $b->customer?->name,
                 'phone' => $b->customer?->phone,
@@ -58,11 +70,22 @@ class CalendarController extends Controller
             ->sortBy('start')
             ->values();
 
+        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
+            ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]);
+
+        // Generate time slots 05:00–23:00 (30-min intervals) as the venue's default range.
+        $timeSlots = [];
+        for ($h = 5; $h < 23; $h++) {
+            for ($m = 0; $m < 60; $m += 30) {
+                $timeSlots[] = sprintf('%02d:%02d', $h, $m);
+            }
+        }
+
         return Inertia::render('Manager/Calendar/Index', [
-            'date' => $date->toDateString(),
+            'date' => $dateString,
             'bookings' => $bookings,
-            'courts' => Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
-                ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]),
+            'courts' => $courts,
+            'timeSlots' => $timeSlots,
         ]);
     }
 
@@ -90,6 +113,8 @@ class CalendarController extends Controller
                 'customer_id' => $customer->id,
                 'channel' => BookingChannel::OwnerManual->value,
                 'payment_mode' => 'cash',
+                // Wall-as-UTC: parse the walk-in slot digits NAIVELY (no tz), same as the public-hold
+                // path, so they align with AvailabilityService and the exclusion constraint.
                 'slots' => [[
                     'court_id' => $data['court_id'],
                     'start_at' => CarbonImmutable::parse($data['start_at']),
@@ -101,7 +126,7 @@ class CalendarController extends Controller
         }
 
         // Cash walk-in is settled on the spot → confirm now (no VietQR).
-        Payment::create([
+        Payment::forceCreate([
             'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
             'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
             'matched_at' => now(),

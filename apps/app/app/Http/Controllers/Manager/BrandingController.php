@@ -20,6 +20,7 @@ class BrandingController extends Controller
         $tenant = Tenant::findOrFail(WorkingTenant::id($request));
 
         return Inertia::render('Manager/Settings/Branding', [
+            'tenant' => ['uuid' => $tenant->uuid, 'slug' => $tenant->slug],
             'settings' => $tenant->settings ?? [],
         ]);
     }
@@ -31,7 +32,9 @@ class BrandingController extends Controller
         $request->validate([
             'primary_color' => ['nullable', 'string', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'remove_logo' => ['nullable', 'boolean'],
-            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg', 'max:2048'],
+            // Security (#6): SVG is intentionally NOT allowed — it can carry <script> and is served
+            // same-origin (stored XSS). Raster formats only.
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
         ]);
 
         $settings = $tenant->settings ?? [];
