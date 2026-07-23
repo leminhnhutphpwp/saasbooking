@@ -1,8 +1,8 @@
 ---
 id: T09
 title: Config screens polish (pricing / opening / branding)
-status: todo
-owner: "-"
+status: claimed
+owner: agent
 priority: P1
 depends_on: [T07]
 branch: feat/config-polish
