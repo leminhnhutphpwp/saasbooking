@@ -33,11 +33,22 @@ class CalendarController extends Controller
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
-        $date = $request->filled('date')
-            ? CarbonImmutable::parse($request->string('date')->value())
-            : CarbonImmutable::now();
+        $tenant = $request->user()->tenant()->firstOrFail();
 
-        $dayStart = CarbonImmutable::parse($date->toDateString().' 00:00:00');
+        // Wall-as-UTC (single-tz Phase 1): "today" and the day bounds reference the VENUE wall-clock
+        // day (slots are stored naive/wall-clock), never real UTC. An invalid ?date= falls back to
+        // the venue's today instead of 500-ing.
+        $venueToday = CarbonImmutable::now($tenant->timezone)->toDateString();
+        $dateString = $venueToday;
+        if ($request->filled('date')) {
+            try {
+                $dateString = CarbonImmutable::parse($request->string('date')->value())->toDateString();
+            } catch (\Throwable) {
+                $dateString = $venueToday;
+            }
+        }
+
+        $dayStart = CarbonImmutable::parse($dateString.' 00:00:00');
         $dayEnd = $dayStart->addDay();
 
         $bookings = Booking::query()
@@ -59,7 +70,7 @@ class CalendarController extends Controller
             ->values();
 
         return Inertia::render('Manager/Calendar/Index', [
-            'date' => $date->toDateString(),
+            'date' => $dateString,
             'bookings' => $bookings,
             'courts' => Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
                 ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]),
@@ -90,6 +101,8 @@ class CalendarController extends Controller
                 'customer_id' => $customer->id,
                 'channel' => BookingChannel::OwnerManual->value,
                 'payment_mode' => 'cash',
+                // Wall-as-UTC: parse the walk-in slot digits NAIVELY (no tz), same as the public-hold
+                // path, so they align with AvailabilityService and the exclusion constraint.
                 'slots' => [[
                     'court_id' => $data['court_id'],
                     'start_at' => CarbonImmutable::parse($data['start_at']),

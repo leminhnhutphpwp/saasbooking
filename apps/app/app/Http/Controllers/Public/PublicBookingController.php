@@ -38,9 +38,16 @@ class PublicBookingController extends Controller
     {
         abort_unless($tenant->isActive(), 404);
 
-        $date = $request->filled('date')
-            ? CarbonImmutable::parse($request->string('date')->value())
-            : CarbonImmutable::now($tenant->timezone);
+        // Wall-as-UTC: default to the venue wall-clock day; an invalid ?date= falls back to it
+        // instead of 500-ing on garbage input.
+        $date = CarbonImmutable::now($tenant->timezone);
+        if ($request->filled('date')) {
+            try {
+                $date = CarbonImmutable::parse($request->string('date')->value());
+            } catch (\Throwable) {
+                $date = CarbonImmutable::now($tenant->timezone);
+            }
+        }
 
         return Inertia::render('Public/Booking/Show', [
             'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug, 'settings' => $tenant->settings ?? []],
