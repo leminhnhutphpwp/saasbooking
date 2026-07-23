@@ -141,7 +141,7 @@ class ReconcileService
         }
 
         try {
-            $payment->update(['status' => PaymentStatus::Matched, 'matched_at' => now()]);
+            $payment->forceFill(['status' => PaymentStatus::Matched, 'matched_at' => now()])->save();
             $this->bookings->confirmDeposit($booking);
             $this->finalize($inbox, self::STATUS_MATCHED, $matchedNote, paymentId: $payment->id);
         } catch (SlotTakenException) {
@@ -152,7 +152,7 @@ class ReconcileService
 
     private function orphan(Payment $payment, Booking $booking, BankTxnInbox $inbox): void
     {
-        $payment->update(['status' => PaymentStatus::Orphaned]);
+        $payment->forceFill(['status' => PaymentStatus::Orphaned])->save();
         $this->payments->requestRefund($payment, (int) $payment->amount, CancelReason::RaceLost);
         $this->bookings->markPaymentOrphaned($booking);
         $this->finalize($inbox, self::STATUS_ORPHANED, 'Auto-orphaned: slot lost, refund requested', paymentId: $payment->id);
