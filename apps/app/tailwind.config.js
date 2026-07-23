@@ -19,7 +19,12 @@ export default {
         },
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: [
+                    'Be Vietnam Pro',
+                    'ui-sans-serif',
+                    'system-ui',
+                    'sans-serif',
+                ],
             },
             // shadcn/ui tokens — map to the HSL CSS variables in resources/css/app.css
             colors: {
@@ -55,6 +60,14 @@ export default {
                 card: {
                     DEFAULT: 'hsl(var(--card))',
                     foreground: 'hsl(var(--card-foreground))',
+                },
+                success: {
+                    DEFAULT: 'hsl(var(--success))',
+                    foreground: 'hsl(var(--success-foreground))',
+                },
+                warning: {
+                    DEFAULT: 'hsl(var(--warning))',
+                    foreground: 'hsl(var(--warning-foreground))',
                 },
                 sidebar: {
                     DEFAULT: 'hsl(var(--sidebar-background))',
