@@ -46,6 +46,7 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 
     Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
+    Route::get('/courts/config', [CourtController::class, 'config'])->name('courts.config');
     Route::post('/courts', [CourtController::class, 'store'])->name('courts.store');
     Route::put('/courts/{court}', [CourtController::class, 'update'])->name('courts.update');
     Route::delete('/courts/{court}', [CourtController::class, 'destroy'])->name('courts.destroy');

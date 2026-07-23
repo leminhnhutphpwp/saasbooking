@@ -91,6 +91,28 @@ class CourtController extends Controller
         return back()->with('success', 'Đã lưu trữ sân.');
     }
 
+    public function config(Request $request): Response
+    {
+        $tenantId = WorkingTenant::id($request);
+
+        $courts = Court::forTenant((int) $tenantId)
+            ->where('status', CourtStatus::Active)
+            ->with(['openingRules', 'pricingRules'])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Court $c) => [
+                'uuid' => $c->uuid,
+                'name' => $c->name,
+                'court_type_label' => $c->court_type->label(),
+                'opening_rules_count' => $c->openingRules->count(),
+                'pricing_rules_count' => $c->pricingRules->count(),
+            ]);
+
+        return Inertia::render('Manager/Courts/Config', [
+            'courts' => $courts,
+        ]);
+    }
+
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void
     {
         abort_unless($court->tenant_id === WorkingTenant::id($request), 403);
