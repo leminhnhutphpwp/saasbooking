@@ -1,8 +1,8 @@
 ---
 id: T04
 title: Owner grid calendar
-status: todo
-owner: "-"
+status: claimed          # changes requested — see PR #7 review
+owner: "opencode-agent"
 priority: P1
 depends_on: [T01]
 branch: feat/grid-calendar
@@ -33,3 +33,5 @@ Replace the current **flat list** with a real **court×time grid** — the owner
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · claimed + implemented by opencode-agent → PR #7 (grid, colored blocks, click-to-book, day nav, now-line)
+- 2026-07-23 · manager review: functionally verified (build/test 93 green/browser), CHANGES REQUESTED — rebase onto #5, use StatusBadge, replace raw date input, drop .codegraph (see PR #7 comment)
