@@ -12,7 +12,7 @@ Keep the SÂN frontend coherent so many agents produce ONE consistent product, n
 ## Tokens & theme
 
 - **Use design tokens, never hardcoded colors.** Style with the shadcn token classes (`bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-primary`, `bg-card`, …). Do NOT write `bg-gray-100`/`text-slate-700` etc. in app pages — the token layer owns light/dark + the palette.
-- The **app chrome brand is emerald** (tokens). The **tenant's own brand color themes only the public booking page** (read from tenant settings, applied as an accent) — do not hardcode a tenant color.
+- The **app chrome brand is violet / indigo** (tokens) — modern SaaS look (see the QwenCloud reference). The **tenant's own brand color themes only the public booking page** (read from tenant settings, applied as an accent) — do not hardcode a tenant color.
 - Every screen must be **theme-aware** (light + dark) and **responsive / mobile-first** (public booking especially — players are on phones).
 
 ## Layout & IA

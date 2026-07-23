@@ -2,14 +2,15 @@
 
 > Updated: 2026-07-23 · Protocol: [`README.md`](README.md). An agent picks a `todo` task (deps all `done`), **claims it by editing the file**, works within `scope`, and hands back `in-review` for the manager to verify + merge.
 
-## Open (UI polish pass — after owner review of the built pages)
+## Open (Re-theme v3 — match the QwenCloud reference; owner: emerald look is "gớm")
 
-Owner: pages still look plain / inconsistent containers / booking page ugly + hard to use. Raise the craft bar (see `.claude/rules/ui-design` → Craft & consistency checklist). T07 is the foundation (blocks the rest).
-
-_All polish tasks (T07–T10) done — see Done. Next: go-live backlog._
+Switch the whole app to a modern **violet/indigo** palette + the airy card/shell aesthetic of the reference. T11 is the foundation (blocks the rest).
 
 | id | Task | status | owner | prio | depends_on | scope (short) |
 |----|------|--------|-------|------|-----------|---------------|
+| [T11](T11-retheme-violet-shell.md) | Re-theme v3 (violet/indigo) + airy card & shell (sidebar + top-bar) | todo | - | **P0** | — | app.css, tailwind, ManagerLayout, nav, ui/{card,button}, PageContainer/Header, StatCard, AppTopbar |
+| [T12](T12-home-dashboard-redesign.md) | Home dashboard redesign (hero + quick-links row + insight cards w/ charts) | todo | - | P1 | T11 | Pages/Manager/Home + QuickLinks |
+| [T13](T13-retheme-sweep.md) | v3 sweep — remaining pages (reports charts, calendar, config, lists, login) | todo | - | P2 | T11 | remaining Manager pages + Auth/Login |
 
 ## Manager-only actions (not delegated)
 - [x] Merge PR #4/#5/#6, T01 (#8), **T02 (#9)**, **T04 (#7)** into `main` — all verified (build + 108 tests + browser).
