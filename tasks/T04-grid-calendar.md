@@ -1,7 +1,7 @@
 ---
 id: T04
 title: Owner grid calendar
-status: claimed
+status: in-review
 owner: "opencode-agent"
 priority: P1
 depends_on: [T01]
@@ -28,8 +28,10 @@ Replace the current **flat list** with a real **court×time grid** — the owner
 - Drag-to-reschedule (later; note it). No layout/palette changes.
 
 ## Verification
-- [ ] `npm run build` passes · `php artisan test` (touches CalendarController) stays green
+- [x] `npm run build` passes
+- [x] `php artisan test` — 93 passed, all green
 - [ ] Browser: grid matches today's seed bookings; click-empty walk-in works; day nav correct.
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · claimed + implemented by opencode-agent: grid layout, colored status blocks, click-to-book walk-in dialog pre-filled, day nav (‹ today ›), "now" line, empty state, responsive horizontal scroll

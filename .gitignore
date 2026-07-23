@@ -6,3 +6,4 @@
 .codegraph
 # CodeGraph (local per-machine index — never commit)
 .codegraph/
+/test-results/
