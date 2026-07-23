@@ -6,3 +6,6 @@
 .codegraph
 # CodeGraph (local per-machine index — never commit)
 .codegraph/
+
+# Playwright output
+/test-results/

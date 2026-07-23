@@ -60,6 +60,7 @@ class CalendarController extends Controller
                 'code' => $b->code,
                 'status' => $b->status->value,
                 'channel' => $b->channel->value,
+                'court_id' => $s->court_id,
                 'court' => $s->court?->name,
                 'customer' => $b->customer?->name,
                 'phone' => $b->customer?->phone,
@@ -69,11 +70,22 @@ class CalendarController extends Controller
             ->sortBy('start')
             ->values();
 
+        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
+            ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]);
+
+        // Generate time slots 05:00–23:00 (30-min intervals) as the venue's default range.
+        $timeSlots = [];
+        for ($h = 5; $h < 23; $h++) {
+            for ($m = 0; $m < 60; $m += 30) {
+                $timeSlots[] = sprintf('%02d:%02d', $h, $m);
+            }
+        }
+
         return Inertia::render('Manager/Calendar/Index', [
             'date' => $dateString,
             'bookings' => $bookings,
-            'courts' => Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
-                ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]),
+            'courts' => $courts,
+            'timeSlots' => $timeSlots,
         ]);
     }
 
