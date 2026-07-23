@@ -16,13 +16,12 @@
 ¹ T04 — PR #7 submitted & manager-reviewed; **changes requested** (rebase onto #5, use StatusBadge, drop raw date input + `.codegraph`). Functionally verified green.
 
 ## Manager-only actions (not delegated)
-- [ ] Merge **PR #4** (mass-assignment hardening #10) into `main`.
-- [ ] Merge **PR #5** (design-system foundation, phase 1) into `main`.
-- [ ] Merge **PR #6** (this task-ledger workflow) into `main`.
-- [ ] After #4/#5/#6 merge → rebase task branches onto `main`.
+- [x] Merge **PR #4 / #5 / #6** into `main` (done 2026-07-23; main verified 108/108 + build + pint green).
+- [ ] T04 (PR #7): tell the worker to **rebase onto current `main`** (now has #5) + apply review fixes.
+- [ ] Next dispatch: **T01** (P0) — unblocks T02/T03/T05/T06.
 
 ## Backlog (no task file yet — opened when it's their turn)
 - Backend / go-live: run `migrate` on deploy · real Zalo ZNS HTTP transport · `scripts/deploy.sh` · backup cron + restore test · security headers/CSP · error monitoring. (See `../worklogs/2026-07-23-m6-audit-fixes.md` handoff.)
 
 ## Done
-- Design-system foundation phase 1 (PR #5) · M6 audit fixes (PR #3) · mass-assignment #10 (PR #4).
+- Task-ledger workflow (PR #6) · Design-system foundation phase 1 (PR #5) · mass-assignment #10 (PR #4) · M6 audit fixes (PR #3). All on `main`.
