@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -86,14 +87,19 @@ export default function OpeningRules({ court, rules }) {
         >
             <Head title={`Giờ mở cửa — ${court.name}`} />
 
-            <div className="mx-auto max-w-4xl p-4 sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{rules.length} khung giờ</p>
-                    <Button onClick={openAdd} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Thêm khung giờ
-                    </Button>
-                </div>
+            <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 space-y-6">
+                <PageHeader
+                    title={`Giờ mở cửa — ${court.name}`}
+                    backHref="/manager/courts"
+                    backLabel="Danh sách sân"
+                    actions={
+                        <Button onClick={openAdd} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Thêm khung giờ
+                        </Button>
+                    }
+                />
+                <p className="text-sm text-muted-foreground">{rules.length} khung giờ</p>
 
                 {form.errors.open_local && (
                     <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

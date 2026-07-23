@@ -1,6 +1,8 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
+import { EmptyState } from '@/Components/EmptyState';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -13,7 +15,7 @@ import {
     DialogTitle,
 } from '@/Components/ui/dialog';
 import { formatVND } from '@/lib/format';
-import { Trash2, Plus, AlertCircle } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, DollarSign } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -118,14 +120,19 @@ export default function PricingRules({ court, rules }) {
         >
             <Head title={`Bảng giá — ${court.name}`} />
 
-            <div className="mx-auto max-w-4xl p-4 sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{rules.length} mức giá</p>
-                    <Button onClick={openAdd} className="gap-2">
-                        <Plus className="h-4 w-4" />
-                        Thêm giá
-                    </Button>
-                </div>
+            <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 space-y-6">
+                <PageHeader
+                    title={`Bảng giá — ${court.name}`}
+                    backHref="/manager/courts"
+                    backLabel="Danh sách sân"
+                    actions={
+                        <Button onClick={openAdd} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Thêm giá
+                        </Button>
+                    }
+                />
+                <p className="text-sm text-muted-foreground">{rules.length} mức giá</p>
 
                 {form.errors.start_local && (
                     <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
@@ -133,16 +140,24 @@ export default function PricingRules({ court, rules }) {
                         <div>
                             <p className="font-medium">Trùng khung giờ</p>
                             <p>{form.errors.start_local}</p>
-                        </div>
-                    </div>
+</div>
+            </div>
                 )}
 
                 <div className="overflow-hidden rounded-lg border bg-card">
                     {rules.length === 0 ? (
-                        <div className="p-8 text-center">
-                            <p className="text-sm text-muted-foreground">Chưa có bảng giá nào.</p>
-                            <p className="mt-1 text-xs text-muted-foreground/60">Bấm "Thêm giá" để bắt đầu.</p>
-                        </div>
+                        <EmptyState
+                            icon={DollarSign}
+                            title="Chưa có bảng giá nào"
+                            description="Thiết lập giá cho từng khung giờ và ngày trong tuần."
+                            example="VD: 6–17h thường 100.000đ, 17–22h giờ vàng 130.000đ"
+                            action={
+                                <Button onClick={openAdd} className="gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Thêm giá
+                                </Button>
+                            }
+                        />
                     ) : (
                         <div className="divide-y">
                             {sortedRules.map((r) => (
