@@ -60,6 +60,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 
 ## 5. Workflow
 
+- **Task ledger first.** Active work is coordinated via markdown task files in [`tasks/`](tasks/) (protocol: [`tasks/README.md`](tasks/README.md), index: [`tasks/BOARD.md`](tasks/BOARD.md)). The manager decomposes work into one file per task with a non-overlapping `scope`; an executing agent picks a `todo` task whose `depends_on` are `done`, **claims it by editing `status`/`owner` in the file**, works ONLY within `scope`, then returns `in-review` for the manager to verify + merge. Agents must NOT touch files owned by another `claimed`/`in-review` task.
 - **Branch first.** Every task starts on a `<type>/<slug>` branch off `main` (`feat/` · `fix/` · `chore/` · `docs/`); PR into `main` after CI is green. **Never commit on `main`.** See `.claude/rules/git-workflow`.
 - Tasks come from [`docs/12-lo-trinh.md`](docs/12-lo-trinh.md) milestones **M0–M7** (critical path M3 → M4 → M6). Respect each milestone's **Definition of Done** before moving on.
 - Before a task: load the matching `.claude/skills/*` + `.claude/workflows/*` (§8). Read targeted, never bulk-read (`.claude/rules/context-efficiency`).
