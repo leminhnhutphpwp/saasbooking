@@ -1,8 +1,8 @@
 ---
 id: T04
 title: Owner grid calendar
-status: todo
-owner: "-"
+status: claimed
+owner: "opencode-agent"
 priority: P1
 depends_on: [T01]
 branch: feat/grid-calendar
