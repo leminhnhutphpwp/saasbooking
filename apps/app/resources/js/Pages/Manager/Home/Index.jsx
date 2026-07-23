@@ -31,7 +31,7 @@ export default function Index({ stats, awaitingDeposits, refundsToProcess, unmat
         <ManagerLayout>
             <Head title="Trang chủ" />
 
-            <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+            <div className="space-y-6 p-4 sm:p-6 lg:px-8">
                 <PageHeader
                     title="Trang chủ"
                     description="Tổng quan hoạt động hôm nay"

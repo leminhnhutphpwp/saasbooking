@@ -26,7 +26,7 @@ export default function Index({ refunds }) {
         <ManagerLayout header={<h2 className="text-sm font-medium text-muted-foreground">Hoàn cọc</h2>}>
             <Head title="Hoàn cọc" />
 
-            <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+            <div className="space-y-6 p-4 sm:p-6 lg:px-8">
                 <PageHeader
                     title="Hoàn cọc chờ xử lý"
                     description={`${refunds.length} khoản chờ chuyển khoản trả khách.`}

@@ -56,7 +56,7 @@ export default function Unmatched({ txns, pendingBookings }) {
         >
             <Head title="Đối soát tay" />
 
-            <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-6">
+            <div className="space-y-8 p-4 sm:p-6 lg:px-8">
                 {unmatched.length > 0 && (
                     <section>
                         <h3 className="mb-3 text-sm font-medium text-muted-foreground">

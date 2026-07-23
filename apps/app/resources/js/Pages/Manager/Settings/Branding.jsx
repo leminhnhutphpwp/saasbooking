@@ -72,7 +72,7 @@ export default function Branding({ tenant, settings }) {
         >
             <Head title="Thương hiệu" />
 
-            <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 space-y-6">
+            <div className="w-full px-4 py-6 sm:px-6 lg:px-8 space-y-6">
                 <PageHeader
                     title="Thương hiệu"
                     description="Tùy chỉnh giao diện trang đặt sân công khai của bạn."

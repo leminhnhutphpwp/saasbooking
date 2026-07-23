@@ -142,7 +142,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         <ManagerLayout header={<h2 className="text-sm font-medium text-muted-foreground">Lịch đặt sân</h2>}>
             <Head title="Lịch đặt sân" />
 
-            <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
+            <div className="space-y-4 p-4 sm:p-6 lg:px-8">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1">
                         <Button variant="outline" size="icon" onClick={() => goDay(-1)}>
