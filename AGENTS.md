@@ -78,6 +78,14 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 - ❌ Committing directly to `main` — always branch first, PR in (`.claude/rules/git-workflow`).
 - ❌ Git mutations (commit/push/reset/rebase) without explicit user confirmation.
 
+### Sub-agent discipline (a delegated agent MUST NOT)
+
+- ❌ **Work outside its task's `scope`** — no side-effect edits to seeders, routes, config, or "unrelated improvements". Need a file outside scope → stop, mark `blocked`, flag the manager (`tasks/README.md`).
+- ❌ **Rewrite a working file wholesale** — extend by adding; smallest change that meets the acceptance criteria (principle #2).
+- ❌ **Add dependencies or external CDNs**, or commit **self-generated binary assets** (logos/images/fonts), without manager approval.
+- ❌ **Claim a pass it did not run** — run `npm run build` / `php artisan test` / browser check and report real results; the manager re-verifies.
+- ❌ **Touch a file owned by another `claimed`/`in-review` task** (`tasks/BOARD.md`).
+
 ## 7. Pointers
 
 | Path | Use it for |
@@ -88,6 +96,8 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 | `.claude/skills/vertical-dispatch` | Driver pattern — engine/calendar/pricing per tenant type |
 | `.claude/skills/planning` | Planning methodology (research-first, door classification) |
 | `.claude/rules/coding-rules`, `laravel-inertia` | Coding standards; Laravel/Inertia patterns |
+| `.claude/rules/ui-design` | UI/design-system consistency (tokens, shared components, mobile-first) |
+| `tasks/` (`README.md`, `BOARD.md`) | Active work ledger + claim protocol for delegated agents |
 | `.claude/rules/security` | Tenant isolation, webhook verification, auth |
 | `.claude/rules/testing` | Test standards (Postgres-only, concurrency, idempotency) |
 | `.claude/rules/product-scope` | Scope guard — what's in / out |

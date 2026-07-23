@@ -1,37 +1,47 @@
-# Task Ledger — quy trình giao việc cho agent
+# Task Ledger — how work is delegated to agents
 
-Đây là **nguồn sự thật** cho việc-đang-làm của SÂN. Manager phân rã việc thành **1 file `.md` / 1 task**; agent **nhận việc bằng cách sửa trạng thái ngay trong file** → agent khác đọc thấy đã có người nhận thì **không đụng vào**. Chống giẫm chân + audit + an toàn xuyên phiên.
+The **single source of truth** for in-flight work on SÂN. The manager breaks work into **one `.md` file per task**; an executing agent **claims a task by editing its status inside the file**, so other agents reading the ledger see it's taken and **stay away**. This prevents collisions and gives durable, cross-session coordination + an audit trail.
 
-> Lịch sử milestone đã xong nằm ở `../task-status.md` + `../worklogs/`. Thư mục này chỉ chứa **việc đang/ sắp làm**.
+> Finished-milestone history lives in `../task-status.md` + `../worklogs/`. This folder holds only **active / upcoming** work.
+> Language: these are agent-facing files → **English** (per `.claude/rules/coding-rules` language split). Only end-user UI copy quoted inside a task stays Vietnamese.
 
-## Vai trò
+## Roles
 
-- **Manager (Claude chính):** phân rã việc → viết file task với **`scope` (danh sách file) KHÔNG chồng lấn nhau**; điều phối; **review + verify + merge**; cập nhật `BOARD.md`. KHÔNG tự code feature trừ việc quản trị (task file, review, hotfix nhỏ).
-- **Agent thực thi:** nhận đúng 1 task, làm **chỉ trong `scope`**, ghi nhật ký, trả kết quả để manager review.
+- **Manager (main Claude):** decompose work → write task files with **non-overlapping `scope` (file lists)**; coordinate; **review + verify + merge**; keep `BOARD.md` current. Does NOT write feature code — only governance (task files, review, tiny hotfixes).
+- **Executing agent:** take exactly ONE task, work **only within `scope`**, log progress, hand back for the manager to review.
 
-## Vòng đời trạng thái
+## Status lifecycle
 
-`todo` → `claimed` → `in-review` → `done`  ·  (`blocked` khi vướng)
+`todo` → `claimed` → `in-review` → `done`  ·  (`blocked` when stuck)
 
-## Giao thức NHẬN VIỆC (claim) — bắt buộc
+## Claim protocol (mandatory)
 
-1. Đọc `BOARD.md`. Chọn 1 task **`status: todo`** mà **mọi `depends_on` đã `done`**.
-2. Mở file task, kiểm tra lại `status`. **Nếu ≠ `todo` → BỎ QUA** (đã có người nhận).
-3. **Nhận việc = sửa file ngay:** đặt `status: claimed`, `owner: <tên/agent-id của bạn>`, `updated: <ngày>`, và thêm 1 dòng ở mục **## Nhật ký**. Thao tác edit này CHÍNH LÀ cái khoá.
-4. Chỉ sửa các file nằm trong `scope`. **Tuyệt đối không đụng file thuộc task khác đang `claimed`/`in-review`.** Nếu cần file ngoài `scope` → dừng, ghi `blocked` + báo manager (đừng tự mở rộng).
-5. Xong: đặt `status: in-review`, điền kết quả ở mục **## Verification** (build/test/ảnh).
-6. **Manager review:** đọc diff + chạy verify. Đạt → `status: done` + merge. Chưa đạt → về `claimed` kèm ghi chú.
+1. Read `BOARD.md`. Pick a **`status: todo`** task whose every `depends_on` is `done`.
+2. Open the task file; re-check `status`. **If ≠ `todo` → SKIP it** (already taken).
+3. **Claim = edit the file now:** set `status: claimed`, `owner: <your id>`, `updated: <date>`, and add a line under **## Log**. This edit IS the lock.
+4. Edit only files inside `scope`. **Never touch a file owned by another `claimed`/`in-review` task.** Need a file outside `scope`? Stop, set `blocked`, flag the manager — do NOT widen scope yourself.
+5. Done: set `status: in-review`, fill **## Verification** (build/test/screenshots).
+6. **Manager reviews** the diff + runs verification. Pass → `status: done` + merge. Fail → back to `claimed` with notes.
 
-## Quy tắc chống giẫm chân
+## Rules for executing agents — READ THIS (how NOT to break things)
 
-- **`scope` của các task chạy song song PHẢI rời nhau** — manager đảm bảo khi viết task. Đây mới là lớp chống trùng thật; `status` là ledger điều phối/audit.
-- Task có phụ thuộc thì làm **tuần tự** (sửa chung file cũng an toàn vì không đồng thời).
-- 1 branch / 1 task: dùng `branch:` khai trong file (theo `.claude/rules/git-workflow`).
+These encode real failures from earlier sessions. Breaking them wastes everyone's time and gets your work reverted.
 
-## Mẫu file task
+1. **STAY IN SCOPE.** Touch only the files in `scope`. Do NOT, as a side effect, rewrite the DB seeder, change routes, add assets, or "improve" unrelated files. Not in scope and not in the task → don't touch it.
+2. **EXTEND, DON'T REWRITE.** Never replace a working file wholesale. Make the smallest change that meets the acceptance criteria (platform principle #2: extend by adding).
+3. **RESPECT THE INVARIANTS.** Tenant-scope every query via `WorkingTenant`; `BookingService` is the only concurrency path; money is BIGINT; time is timestamptz / wall-as-UTC; snapshot price/deposit; status enums; refunds are a separate ledger. See `CLAUDE.md` + `.claude/rules/*`. For booking/payment/tenant changes run `/check-invariants`.
+4. **NO NEW DEPENDENCIES** without manager approval (especially heavy/chart/font libs). No external CDNs — self-host.
+5. **NO SELF-GENERATED BINARY ASSETS** (logos, images, favicons, fonts as blobs). Branding is a deliberate manager decision.
+6. **VERIFY BEFORE HANDOFF.** Run `npm run build`; run `php artisan test` if you touched backend; check the browser (owner@pickleball.vn). Report real results — never claim a pass you did not run. The manager re-verifies and will catch fabrication.
+7. **FOLLOW THE STACK RULES.** shadcn/ui primitives only (no raw HTML `<input>`/`<select>`); `@/*` alias; `declare(strict_types=1)`; service layer; and `.claude/rules/{coding-rules, laravel-inertia, ui-design, security, testing}`.
+8. **LANGUAGE SPLIT.** Code / config / task files = English; only end-user-facing UI copy is Vietnamese.
+9. **BRANCH PER TASK** (see the `branch:` field); never commit to `main`; commit/push only per `.claude/rules/git-workflow`.
+10. **WHEN UNSURE, ASK** — flag the manager. Do not guess and expand.
 
-Copy `_TEMPLATE.md`. `id` tăng dần `T01, T02…`. Đặt tên `T<NN>-<slug>.md`.
+## Task file template
 
-## Bảng điều khiển
+Copy `_TEMPLATE.md`. `id` increments `T01, T02…`. Name files `T<NN>-<slug>.md`.
 
-`BOARD.md` = bảng liệt kê mọi task (id · tiêu đề · status · owner · priority · depends_on). Manager cập nhật mỗi khi trạng thái đổi.
+## Board
+
+`BOARD.md` = the table of every task (id · title · status · owner · priority · depends_on). The manager updates it whenever a status changes.

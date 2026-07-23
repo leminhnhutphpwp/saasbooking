@@ -1,6 +1,6 @@
 ---
 id: T06
-title: Config screens (giờ / giá / branding)
+title: Config screens (opening / pricing / branding)
 status: todo
 owner: "-"
 priority: P2
@@ -16,22 +16,22 @@ scope:
 updated: 2026-07-23
 ---
 
-## Mục tiêu
-Config hiện thô (input HTML mặc định, không preview). Làm editor trực quan để chủ sân tự cấu hình dễ.
+## Goal
+Config is currently raw (default HTML inputs, no preview). Build visual editors so owners can self-configure easily.
 
-## Yêu cầu (acceptance criteria)
-- [ ] **Giờ mở cửa**: editor **lưới theo tuần** (T2–CN), thêm/sửa khung giờ trực quan; hiện overlap rõ (backend đã chặn overlap — hiển thị lỗi đẹp).
-- [ ] **Bảng giá**: bảng theo **dải giờ + ngày** (thường/giờ vàng/cuối tuần), thêm dòng dễ, `formatVND`; hiện priority/tie rõ.
-- [ ] **Branding**: **uploader shadcn** (không input thô) + **preview logo** + **live preview** trang khách + hiện **URL công khai** có nút copy; color picker; chỉ nhận png/jpg (SVG đã chặn — giữ).
-- [ ] Controller chỉ định hình đọc + giữ validation/ownership sẵn có (không nới lỏng tenant scope / mass-assignment guard).
-- [ ] Dùng component nền + empty state + toast khi lưu.
+## Acceptance criteria
+- [ ] **Opening hours**: a **weekly grid** editor (Mon–Sun), add/edit windows visually; show overlaps clearly (backend already rejects overlaps — render the error nicely).
+- [ ] **Pricing**: a table by **time band + day** (normal / peak / weekend), easy row add, `formatVND`; show priority/tie clearly.
+- [ ] **Branding**: a **shadcn uploader** (no raw input) + **logo preview** + **live preview** of the public page + the **public URL** with a copy button; color picker; png/jpg only (SVG already blocked — keep it).
+- [ ] Controllers only shape read data + keep existing validation/ownership (do NOT loosen tenant scope or the mass-assignment guard).
+- [ ] Use foundation components + empty states + a toast on save.
 
-## Ngoài phạm vi
-- Không đổi logic pricing/opening/reconcile. Không đổi $fillable/guard.
+## Out of scope (do NOT do here)
+- No pricing/opening/reconcile logic changes. No `$fillable`/guard changes.
 
 ## Verification
-- [ ] `npm run build` pass · `php artisan test` (đụng 3 controller) giữ xanh
-- [ ] Browser: sửa giờ/giá thấy phản hồi; upload logo thấy preview + URL copy; lưu ra toast.
+- [ ] `npm run build` passes · `php artisan test` (touches the 3 controllers) stays green
+- [ ] Browser: editing hours/prices reflects back; logo upload shows preview + copyable URL; save fires a toast.
 
-## Nhật ký
+## Log
 - 2026-07-23 · created by manager
