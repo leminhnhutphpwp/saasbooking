@@ -1,7 +1,7 @@
 ---
 id: T05
 title: Public booking page
-status: in-review
+status: done
 owner: agent
 priority: P1
 depends_on: [T01]
@@ -35,3 +35,4 @@ This is the **sales face** — players book on their phones. Currently too raw: 
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · manager review: verified live end-to-end (date strip, price/peak slots, sticky summary, tenant branding, QR screen) → APPROVED, merged (#11)
