@@ -16,8 +16,9 @@ class Payment extends Model
 {
     use Auditable;
 
+    // tenant_id / amount / status are NOT mass-assignable (audit #10) — set via forceCreate/forceFill.
     protected $fillable = [
-        'tenant_id', 'booking_id', 'method', 'amount', 'status', 'memo_ref',
+        'booking_id', 'method', 'memo_ref',
         'bank_txn_id', 'matched_at', 'raw_payload',
     ];
 

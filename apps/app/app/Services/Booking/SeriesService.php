@@ -46,7 +46,7 @@ class SeriesService
             CarbonImmutable::parse("{$firstDate} {$params['end_local']}"),
         );
 
-        $series = RecurringSeries::create([
+        $series = RecurringSeries::forceCreate([
             'tenant_id' => $tenant->id,
             'customer_id' => $params['customer_id'],
             'court_id' => $params['court_id'],

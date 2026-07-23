@@ -58,7 +58,7 @@ class BookingService
                 ];
             }
 
-            $booking = Booking::create([
+            $booking = Booking::forceCreate([
                 'tenant_id' => $tenant->id,
                 'code' => $this->generateCode($tenant->id),
                 'customer_id' => $params['customer_id'],
@@ -92,7 +92,7 @@ class BookingService
     {
         try {
             DB::transaction(function () use ($booking) {
-                $booking->update(['status' => BookingStatus::Confirmed, 'hold_expires_at' => null]);
+                $booking->forceFill(['status' => BookingStatus::Confirmed, 'hold_expires_at' => null])->save();
                 $this->driverFor($booking->tenant)->commit($booking);   // UPDATE hold_status='committed' → may raise 23P01
                 event(new BookingConfirmed($booking));
             });
@@ -111,7 +111,7 @@ class BookingService
     {
         DB::transaction(function () use ($booking) {
             $this->driverFor($booking->tenant)->release($booking);
-            $booking->update(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null]);
+            $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
         });
     }
 
@@ -119,14 +119,14 @@ class BookingService
     {
         DB::transaction(function () use ($booking) {
             $this->driverFor($booking->tenant)->release($booking);
-            $booking->update(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null]);
+            $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
             event(new BookingCancelled($booking));
         });
     }
 
     public function markNoShow(Booking $booking): void
     {
-        $booking->update(['status' => BookingStatus::NoShow]);
+        $booking->forceFill(['status' => BookingStatus::NoShow])->save();
     }
 
     /**
@@ -176,7 +176,7 @@ class BookingService
             ->each(function (Booking $booking) use (&$expired) {
                 DB::transaction(function () use ($booking) {
                     $this->driverFor($booking->tenant)->release($booking);
-                    $booking->update(['status' => BookingStatus::Expired]);
+                    $booking->forceFill(['status' => BookingStatus::Expired])->save();
                 });
                 $expired++;
             });

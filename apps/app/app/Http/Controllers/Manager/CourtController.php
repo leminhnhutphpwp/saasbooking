@@ -55,7 +55,7 @@ class CourtController extends Controller
             'court_type' => ['required', Rule::enum(CourtType::class)],
         ]);
 
-        Court::create([
+        Court::forceCreate([
             'tenant_id' => $tenantId,
             'name' => $data['name'],
             'court_type' => $data['court_type'],
@@ -75,7 +75,8 @@ class CourtController extends Controller
             'status' => ['required', Rule::enum(CourtStatus::class)],
         ]);
 
-        $court->update($data);
+        // $data is validated (name/court_type/status enum) but status isn't mass-assignable → forceFill.
+        $court->forceFill($data)->save();
 
         return back()->with('success', 'Đã cập nhật sân.');
     }
@@ -85,7 +86,7 @@ class CourtController extends Controller
         $this->assertOwnedByWorkingTenant($request, $court);
 
         // Soft-archive: existing bookings still reference the court (docs/11 #12).
-        $court->update(['status' => CourtStatus::Archived]);
+        $court->forceFill(['status' => CourtStatus::Archived])->save();
 
         return back()->with('success', 'Đã lưu trữ sân.');
     }

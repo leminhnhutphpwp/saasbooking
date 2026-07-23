@@ -10,6 +10,7 @@ use App\Listeners\SendBookingConfirmation;
 use App\Models\User;
 use App\Services\Notification\LogZaloZnsTransport;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -39,6 +40,12 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Defense-in-depth (audit #10): outside production, throw loudly if any code tries to
+        // mass-assign an attribute that isn't in $fillable (e.g. a future create($request->all())
+        // slipping tenant_id/status/price through) instead of silently dropping it. Production stays
+        // lenient so an edge case can't 500 a live booking.
+        Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
+
         Vite::prefetch(concurrency: 3);
 
         Event::listen(BookingConfirmed::class, SendBookingConfirmation::class);
