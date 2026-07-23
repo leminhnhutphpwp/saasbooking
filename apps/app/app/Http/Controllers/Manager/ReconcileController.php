@@ -32,10 +32,13 @@ class ReconcileController extends Controller
         $tenantId = WorkingTenant::id($request);
         $bankNumbers = TenantBankConfig::where('tenant_id', $tenantId)->pluck('account_number');
 
+        // Owner-action queue = unprocessed (processed_at IS NULL, includes a failed/early webhook)
+        // OR flagged unmatched. Filtered on structured columns, never LIKE on the free-text note:
+        // matched / orphaned / dismissed rows all fall outside both clauses and are excluded.
         $txns = BankTxnInbox::whereIn('account_number', $bankNumbers)
-            ->where('note', 'not like', 'Dismissed by owner')
             ->where(function ($q) {
-                $q->whereNotNull('note')->orWhereNull('processed_at');
+                $q->whereNull('processed_at')
+                    ->orWhere('status', ReconcileService::STATUS_UNMATCHED);
             })
             ->orderByDesc('received_at')
             ->get()
