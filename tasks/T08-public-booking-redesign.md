@@ -1,7 +1,7 @@
 ---
 id: T08
 title: Public booking page — redesign v2 (make it premium & easy)
-status: claimed
+status: done
 owner: agent
 priority: P1
 depends_on: [T07]

@@ -1,7 +1,7 @@
 ---
 id: T10
 title: Operational pages polish (home / calendar / reports / lists)
-status: claimed
+status: done
 owner: agent
 priority: P2
 depends_on: [T07]

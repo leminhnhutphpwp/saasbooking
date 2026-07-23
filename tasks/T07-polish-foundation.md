@@ -1,7 +1,7 @@
 ---
 id: T07
 title: Polish foundation — container system + empty states + consistency
-status: in-review
+status: done
 owner: agent
 priority: P0
 depends_on: []

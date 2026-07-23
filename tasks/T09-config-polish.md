@@ -1,7 +1,7 @@
 ---
 id: T09
 title: Config screens polish (pricing / opening / branding)
-status: claimed
+status: done
 owner: agent
 priority: P1
 depends_on: [T07]
