@@ -3,6 +3,7 @@ import { Moon, Search, Sun } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Dropdown from '@/Components/Dropdown';
 import { LogOut, User } from 'lucide-react';
+import { SidebarTrigger } from '@/Components/ui/sidebar';
 
 function ThemeToggle() {
     const [dark, setDark] = useState(false);
@@ -62,6 +63,8 @@ export function AppTopbar() {
 
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
+            <SidebarTrigger className="-ml-1" />
+
             <div className="flex flex-1 items-center justify-center">
                 <div className="relative w-full max-w-md">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

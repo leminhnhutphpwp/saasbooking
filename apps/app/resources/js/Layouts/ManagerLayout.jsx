@@ -15,7 +15,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
-    SidebarTrigger,
 } from '@/Components/ui/sidebar';
 import { managerNav } from '@/managerNav';
 
@@ -75,7 +74,9 @@ export default function ManagerLayout({ children }) {
                 </SidebarContent>
 
                 <SidebarFooter className="border-t border-sidebar-border p-3">
-                    <SidebarTrigger className="mx-auto h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
+                        <span>v1.0</span>
+                    </div>
                 </SidebarFooter>
             </Sidebar>
 
