@@ -1,8 +1,8 @@
 ---
 id: T07
 title: Polish foundation — container system + empty states + consistency
-status: todo
-owner: "-"
+status: in-review
+owner: agent
 priority: P0
 depends_on: []
 branch: feat/polish-foundation
