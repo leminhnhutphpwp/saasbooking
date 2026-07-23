@@ -1,7 +1,7 @@
 ---
 id: T01
 title: App shell & IA + palette v2
-status: in-review
+status: done
 owner: "opencode-agent"
 priority: P0
 depends_on: []
@@ -51,3 +51,4 @@ Fix the root "messy / disconnected" problem: unify the app to **ONE shell** (sid
 ## Log
 - 2026-07-23 · created by manager
 - 2026-07-23 · claimed + implemented by opencode-agent: dark slate sidebar, palette v2 (deeper emerald, higher contrast), three nav groups (Tổng quan / Vận hành / Cấu hình) with Home + Reports stubs, unified shell (Profile + Dashboard use ManagerLayout), /dashboard redirect for tenant users, sidebar branding with logo + compact user footer
+- 2026-07-23 · manager: reviewed live (build+108 test+browser) → APPROVED, merged as PR #8
