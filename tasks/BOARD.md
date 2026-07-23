@@ -6,13 +6,14 @@
 
 | id | Task | status | owner | prio | depends_on | scope (short) |
 |----|------|--------|-------|------|-----------|---------------|
-| [T02](T02-dashboard-home.md) | Dashboard = real home (today overview + quick actions + cross-links) | todo (ready) | - | P1 | ✓T01 | Pages/Manager/Home + HomeController |
+| [T02](T02-dashboard-home.md) | Dashboard = real home (today overview + quick actions + cross-links) | claimed² | opencode-agent | P1 | ✓T01 | Pages/Manager/Home + HomeController |
 | [T03](T03-reports.md) | Reports (revenue / occupancy / no-show / top customers) | todo (ready) | - | P1 | ✓T01 | Pages/Manager/Reports + ReportController |
 | [T04](T04-grid-calendar.md) | Owner grid calendar (court×time grid, colored blocks, click-to-book) | claimed¹ | opencode-agent | P1 | ✓T01 | Pages/Manager/Calendar + CalendarController |
 | [T05](T05-public-booking.md) | Public booking page (mobile-first, tenant branding, slot price/state, nicer QR) | todo (ready) | - | P1 | ✓T01 | Pages/Public/Booking + PublicBookingController |
 | [T06](T06-config-screens.md) | Config screens (weekly opening grid, pricing bands, branding uploader+preview) | todo (ready) | - | P2 | ✓T01 | Pages/Manager/Courts/{Opening,Pricing}Rules + Settings/Branding + controllers |
 
 ¹ T04 — PR #7 submitted & manager-reviewed; **changes requested** (rebase onto #5, use StatusBadge, drop raw date input + `.codegraph`). Functionally verified green.
+² T02 — PR #9 reviewed; **changes requested** — `/manager/home` 500s: HomeController queries `bank_txn_inbox.tenant_id` (no such column); scope by tenant account numbers + status `unmatched` (see PR #9). build/test green but page not browser-checked.
 
 ## Manager-only actions (not delegated)
 - [x] Merge **PR #4 / #5 / #6** into `main` (2026-07-23; verified 108/108 + build + pint).

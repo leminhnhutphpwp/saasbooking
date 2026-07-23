@@ -32,3 +32,4 @@ Turn Home into the **hub** — the moment an owner/staff opens the app they see 
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · manager review: /manager/home 500 (BankTxnInbox.tenant_id undefined) → CHANGES REQUESTED, scope by account_number + status unmatched (PR #9)
