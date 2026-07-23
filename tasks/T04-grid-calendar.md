@@ -1,8 +1,8 @@
 ---
 id: T04
-title: Owner grid calendar
-status: claimed          # changes requested — see PR #7 review
-owner: "opencode-agent"
+title: Grid calendar chủ sân
+status: todo
+owner: "-"
 priority: P1
 depends_on: [T01]
 branch: feat/grid-calendar
@@ -12,26 +12,24 @@ scope:
 updated: 2026-07-23
 ---
 
-## Goal
-Replace the current **flat list** with a real **court×time grid** — the owner's everyday tool. Current state: `screenshot-1784790306038-0.jpg`.
+## Mục tiêu
+Thay **danh sách phẳng** hiện tại bằng **lịch lưới sân×giờ** thật — công cụ chủ sân dùng mỗi ngày. Ảnh hiện trạng: `screenshot-1784790306038-0.jpg`.
 
-## Acceptance criteria
-- [ ] **Grid**: axes = courts (columns) × time slots (rows) for one day; cells = booking blocks sized to duration.
-- [ ] **Color by status** (reuse the StatusBadge palette): confirmed / awaiting-deposit / walk-in / expired; show customer name + time; hover/click for detail.
-- [ ] **Click an empty cell → walk-in booking** (open the existing walk-in dialog pre-filled with court + time).
-- [ ] **Day nav** (‹ today ›) and, if feasible, a **week** toggle; a "now" line.
-- [ ] Keep the **wall-as-UTC** convention when building/reading slots (do not add tz offsets).
-- [ ] All booking actions still go through `BookingService` (no new booking path); scoped by `WorkingTenant`.
-- [ ] Responsive: horizontal scroll on mobile; empty state for empty days.
+## Yêu cầu (acceptance criteria)
+- [ ] **Lưới**: trục = các sân (cột) × khung giờ (hàng) cho 1 ngày; ô = block booking, cao theo thời lượng.
+- [ ] **Block màu theo trạng thái** (dùng bảng màu StatusBadge): confirmed / chờ cọc / walk-in / hết hạn; hiện tên khách + giờ; hover/click xem chi tiết.
+- [ ] **Click ô trống → đặt hộ** (mở dialog đặt hộ sẵn có với sân+giờ điền trước).
+- [ ] **Điều hướng ngày** (‹ hôm nay ›) + có thể toggle **tuần** nếu khả thi; đường "bây giờ".
+- [ ] Giữ nguyên convention **wall-as-UTC** khi dựng/đọc slot (không tự thêm tz).
+- [ ] Mọi thao tác đặt vẫn qua `BookingService` (không tạo path đặt mới); scope theo `WorkingTenant`.
+- [ ] Responsive: mobile cuộn ngang được; empty state khi ngày trống.
 
-## Out of scope (do NOT do here)
-- Drag-to-reschedule (later; note it). No layout/palette changes.
+## Ngoài phạm vi
+- Kéo-thả đổi giờ (đợt sau, ghi chú lại). Không sửa layout/palette.
 
 ## Verification
-- [ ] `npm run build` passes · `php artisan test` (touches CalendarController) stays green
-- [ ] Browser: grid matches today's seed bookings; click-empty walk-in works; day nav correct.
+- [ ] `npm run build` pass · `php artisan test` (đụng CalendarController) giữ xanh
+- [ ] Browser: lưới đúng booking seed hôm nay; click ô trống đặt hộ chạy; đổi ngày đúng.
 
-## Log
+## Nhật ký
 - 2026-07-23 · created by manager
-- 2026-07-23 · claimed + implemented by opencode-agent → PR #7 (grid, colored blocks, click-to-book, day nav, now-line)
-- 2026-07-23 · manager review: functionally verified (build/test 93 green/browser), CHANGES REQUESTED — rebase onto #5, use StatusBadge, replace raw date input, drop .codegraph (see PR #7 comment)

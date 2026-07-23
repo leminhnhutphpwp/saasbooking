@@ -1,6 +1,6 @@
 ---
 id: T05
-title: Public booking page
+title: Trang đặt của khách (public)
 status: todo
 owner: "-"
 priority: P1
@@ -13,25 +13,25 @@ scope:
 updated: 2026-07-23
 ---
 
-## Goal
-This is the **sales face** — players book on their phones. Currently too raw: default browser date input, a wall of identical slot buttons, no price, no state. Screenshot: `screenshot-1784790403008-3.jpg`.
+## Mục tiêu
+Đây là **bộ mặt bán hàng** — khách đặt bằng điện thoại. Hiện quá thô: input ngày mặc định trình duyệt, slot là rừng nút giống nhau, không giá/không trạng thái. Ảnh: `screenshot-1784790403008-3.jpg`.
 
-## Acceptance criteria
-- [ ] **Mobile-first**: single-column on phones, good touch targets.
-- [ ] **Hero + tenant branding**: venue name/logo + the tenant's **brand color** (from settings) applied to the accent — each venue has its own identity.
-- [ ] **Date strip** (horizontal scrollable days) replaces the raw date input.
-- [ ] **Slots**: show **price** + clearly distinguish **free / booked (disabled) / selected / peak**; grouped per court, tidy.
-- [ ] **Sticky order summary** (court, time, price, **deposit amount**) + clear CTA; a coherent booking flow.
-- [ ] **Nice Status/QR screen**: VietQR prominent, amount / transfer memo copyable, status auto-updates (keep the existing polling).
-- [ ] Controller only **shapes read data** (slot price/state) — do not change the hold flow / `BookingService`; keep wall-as-UTC.
-- [ ] Polished Vietnamese copy; loading skeletons + empty/sold-out states.
+## Yêu cầu (acceptance criteria)
+- [ ] **Mobile-first**: bố cục 1 cột trên phone, chạm tốt.
+- [ ] **Hero + branding tenant**: tên/logo + **màu chủ đạo của tenant** (đọc từ settings) áp vào accent — mỗi sân 1 nhận diện.
+- [ ] **Date-strip** (dải ngày cuộn ngang) thay input ngày thô.
+- [ ] **Slot**: hiện **giá** + phân biệt rõ **trống / đã đặt (disable) / đang chọn / giờ vàng**; nhóm theo sân gọn.
+- [ ] **Tóm tắt đơn dính** (sân, giờ, giá, **tiền cọc**) + CTA rõ; các bước đặt mạch lạc.
+- [ ] **Màn Status/QR đẹp**: QR VietQR nổi bật, số tiền/nội dung CK copy được, trạng thái tự cập nhật (giữ polling sẵn có).
+- [ ] Controller chỉ **định hình dữ liệu đọc** (giá/trạng thái slot) — không đổi luồng hold/`BookingService`; giữ wall-as-UTC.
+- [ ] i18n tiếng Việt chỉn chu; loading skeleton + empty/hết slot.
 
-## Out of scope (do NOT do here)
-- No change to the booking/deposit/reconcile engine. No site builder.
+## Ngoài phạm vi
+- Không đổi engine đặt/cọc/reconcile. Không builder.
 
 ## Verification
-- [ ] `npm run build` passes · `php artisan test` (touches PublicBookingController) stays green
-- [ ] Browser desktop + mobile emulation: pick date → slots with price/state → book → QR; tenant brand color shows correctly.
+- [ ] `npm run build` pass · `php artisan test` (đụng PublicBookingController) giữ xanh
+- [ ] Browser desktop + giả lập mobile: chọn ngày→slot có giá/trạng thái→đặt→QR; branding màu tenant hiện đúng.
 
-## Log
+## Nhật ký
 - 2026-07-23 · created by manager

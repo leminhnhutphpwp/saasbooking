@@ -1,7 +1,7 @@
 ---
 id: T02
-title: Dashboard = real home
-status: claimed          # changes requested — PR #9 (/manager/home 500)
+title: Dashboard = trang chủ thật
+status: todo
 owner: "-"
 priority: P1
 depends_on: [T01]
@@ -12,24 +12,23 @@ scope:
 updated: 2026-07-23
 ---
 
-## Goal
-Turn Home into the **hub** — the moment an owner/staff opens the app they see today's situation and jump anywhere fast. Cures the "pages feel disconnected" complaint.
+## Mục tiêu
+Biến Home thành **trung tâm điều phối** — nơi chủ sân/nhân viên mở app là thấy tình hình hôm nay và đi nhanh tới mọi việc. Chữa "các trang thiếu liên kết".
 
-## Acceptance criteria
-- [ ] **Today overview**: bookings count, confirmed, awaiting-deposit, today's revenue, occupancy — via `StatCard` + `formatVND`.
-- [ ] **Quick actions**: walk-in booking ("Đặt hộ"), create recurring series, view today's calendar, handle refunds — buttons that deep-link.
-- [ ] **Needs-attention / cross-links**: short lists of "awaiting deposits", "refunds to process", "unmatched transactions" — each links to the right page.
-- [ ] **Upcoming**: the next few bookings today.
-- [ ] Data scoped by `WorkingTenant`; thin controller (read via existing services/models, no new business logic).
-- [ ] Use the foundation components (`PageHeader/StatCard/StatusBadge/EmptyState/format`); empty states when there's no data.
+## Yêu cầu (acceptance criteria)
+- [ ] **Tổng quan hôm nay**: số đặt sân, đã xác nhận, chờ cọc, doanh thu hôm nay, tỉ lệ lấp sân — dùng `StatCard` + `formatVND`.
+- [ ] **Quick actions**: Đặt hộ khách vãng lai · Tạo đặt cố định · Xem lịch hôm nay · Xử lý hoàn cọc — nút dẫn thẳng.
+- [ ] **Cross-links / cần chú ý**: danh sách ngắn "cọc đang chờ", "hoàn cọc cần xử lý", "giao dịch chưa khớp" — mỗi cái link tới đúng trang.
+- [ ] **Sắp diễn ra**: vài booking kế tiếp trong ngày.
+- [ ] Dữ liệu scope theo `WorkingTenant`; controller mỏng (đọc qua service/model, không logic nghiệp vụ mới).
+- [ ] Dùng component nền sẵn (`PageHeader/StatCard/StatusBadge/EmptyState/format`); empty state khi chưa có dữ liệu.
 
-## Out of scope (do NOT do here)
-- No layout/sidebar/palette changes (that's T01). No heavy reports (that's T03).
+## Ngoài phạm vi
+- Không sửa layout/sidebar/palette (đã ở T01). Không tạo report nặng (→ T03).
 
 ## Verification
-- [ ] `npm run build` passes · `php artisan test` if backend touched
-- [ ] Browser: Home shows the tenant's correct numbers and every link lands on the right page.
+- [ ] `npm run build` pass · `php artisan test` nếu đụng backend
+- [ ] Browser: Home hiển thị số liệu đúng của tenant + các link đi đúng chỗ.
 
-## Log
+## Nhật ký
 - 2026-07-23 · created by manager
-- 2026-07-23 · manager review: /manager/home 500 (BankTxnInbox.tenant_id undefined) → CHANGES REQUESTED, scope by account_number + status unmatched (PR #9)

@@ -1,33 +1,33 @@
 ---
 id: T00
-title: <short title>
+title: <tiêu đề ngắn>
 status: todo            # todo | claimed | in-review | done | blocked
-owner: "-"              # id of the agent that claimed it, or "-"
-priority: P1            # P0 (blocking) | P1 | P2 | P3
-depends_on: []          # task ids that must be done first, e.g. [T01]
-branch: <type>/<slug>   # branch for this task
-scope:                  # file boundary this task may edit — must NOT overlap other tasks
+owner: "-"              # tên/agent-id đã nhận, hoặc "-"
+priority: P1            # P0 (chặn) | P1 | P2 | P3
+depends_on: []          # danh sách id phải done trước, vd [T01]
+branch: <type>/<slug>   # nhánh làm task này
+scope:                  # RANH GIỚI file được sửa — không chồng task khác
   - apps/app/...
 updated: 2026-07-23
 ---
 
-## Goal
-<1-3 sentences: what and why>
+## Mục tiêu
+<1-3 câu: làm gì, vì sao>
 
-## Context / references
-<links to docs, reference files, screenshots, locked design decisions>
+## Bối cảnh / tham chiếu
+<link doc, file mẫu, screenshot, quyết định thiết kế đã chốt>
 
-## Acceptance criteria
+## Yêu cầu (acceptance criteria)
 - [ ] ...
 - [ ] ...
 
-## Out of scope (do NOT do here)
+## Ngoài phạm vi (KHÔNG làm ở task này)
 - ...
 
-## Verification (agent fills in before setting in-review)
-- [ ] `npm run build` passes
-- [ ] `php artisan test` (if backend touched): X/Y
-- [ ] Browser check (owner@pickleball.vn): ...
+## Verification (agent điền trước khi in-review)
+- [ ] `npm run build` pass
+- [ ] `php artisan test` (nếu đụng backend): X/Y
+- [ ] Kiểm browser (owner@pickleball.vn): ...
 
-## Log
+## Nhật ký
 - 2026-07-23 · created by manager
