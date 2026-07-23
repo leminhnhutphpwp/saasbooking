@@ -4,55 +4,110 @@
 
 @layer base {
   :root {
-    /* DHV Deep Red — primary accent */
-    --primary: 0 62% 41%;
+    /* SÂN — modern SaaS: slate neutrals + emerald brand (app chrome) */
+
+    /* Surfaces */
+    --background: 210 40% 98%;          /* slate-50  #F8FAFC */
+    --foreground: 222 47% 11%;          /* slate-900 #0F172A */
+    --card: 0 0% 100%;                  /* white */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary — emerald-600 (app chrome brand) */
+    --primary: 161 93% 30%;             /* emerald-600 #059669 */
     --primary-foreground: 0 0% 100%;
 
-    /* DHV Dark Navy */
-    --foreground: 230 50% 19%;
-    --background: 0 0% 99%;
+    /* Secondary — slate */
+    --secondary: 210 40% 96%;           /* slate-100 #F1F5F9 */
+    --secondary-foreground: 222 47% 11%;
 
-    /* Card / Surface */
-    --card: 0 0% 100%;
-    --card-foreground: 230 50% 19%;
+    /* Muted — slate */
+    --muted: 210 40% 96%;               /* slate-100 */
+    --muted-foreground: 215 16% 47%;    /* slate-500 #64748B */
 
-    /* Popover */
-    --popover: 0 0% 100%;
-    --popover-foreground: 230 50% 19%;
+    /* Accent — emerald tint */
+    --accent: 152 81% 96%;              /* emerald-50  #ECFDF5 */
+    --accent-foreground: 163 94% 24%;   /* emerald-700 #047857 */
 
-    /* Secondary — subtle warm gray */
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 230 30% 20%;
-
-    /* Muted */
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 50%;
-
-    /* Accent */
-    --accent: 0 0% 96%;
-    --accent-foreground: 230 50% 19%;
-
-    /* Destructive */
-    --destructive: 0 72% 51%;
+    /* Destructive — rose */
+    --destructive: 347 77% 50%;         /* rose-600 #E11D48 */
     --destructive-foreground: 0 0% 100%;
 
-    /* Borders / Inputs */
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 62% 41%;
+    /* Success — emerald / Warning — amber */
+    --success: 161 93% 30%;             /* emerald-600 */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;              /* amber-500 */
+    --warning-foreground: 0 0% 100%;
+
+    /* Borders / Inputs / Ring */
+    --border: 214 32% 91%;              /* slate-200 #E2E8F0 */
+    --input: 214 32% 91%;              /* slate-200 */
+    --ring: 161 93% 30%;               /* emerald-600 */
 
     /* Radius */
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar — Dark Navy */
-    --sidebar-background: 230 50% 19%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 0 62% 41%;
+    /* Sidebar — light chrome, emerald active/hover */
+    --sidebar-background: 0 0% 100%;    /* white */
+    --sidebar-foreground: 215 25% 27%;  /* slate-700 */
+    --sidebar-primary: 161 93% 30%;     /* emerald-600 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 62% 41%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 230 30% 30%;
-    --sidebar-ring: 0 62% 41%;
+    --sidebar-accent: 152 81% 96%;      /* emerald-50 */
+    --sidebar-accent-foreground: 163 94% 24%; /* emerald-700 */
+    --sidebar-border: 214 32% 91%;      /* slate-200 */
+    --sidebar-ring: 161 93% 30%;
+  }
+
+  .dark {
+    /* Surfaces */
+    --background: 222 84% 5%;           /* slate-950 #020617 */
+    --foreground: 210 40% 98%;          /* slate-50 */
+    --card: 222 47% 11%;               /* slate-900 #0F172A */
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary — emerald-500 */
+    --primary: 160 84% 39%;             /* emerald-500 #10B981 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary — slate-800 */
+    --secondary: 217 33% 17%;           /* slate-800 #1E293B */
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted — slate-800 */
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;    /* slate-400 #94A3B8 */
+
+    /* Accent — deep emerald */
+    --accent: 164 86% 16%;              /* emerald-900 #064E3B */
+    --accent-foreground: 158 64% 52%;   /* emerald-400 #34D399 */
+
+    /* Destructive — rose-500 */
+    --destructive: 350 89% 60%;         /* rose-500 #F43F5E */
+    --destructive-foreground: 210 40% 98%;
+
+    /* Success / Warning */
+    --success: 160 84% 39%;             /* emerald-500 */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;              /* amber-500 */
+    --warning-foreground: 222 47% 11%;
+
+    /* Borders / Inputs / Ring */
+    --border: 217 33% 17%;              /* slate-800 */
+    --input: 217 33% 17%;
+    --ring: 160 84% 39%;               /* emerald-500 */
+
+    /* Sidebar — slate-900 surface, emerald active */
+    --sidebar-background: 222 47% 11%;  /* slate-900 */
+    --sidebar-foreground: 215 20% 65%;  /* slate-400 */
+    --sidebar-primary: 160 84% 39%;     /* emerald-500 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 164 60% 18%;      /* deep emerald */
+    --sidebar-accent-foreground: 158 64% 52%; /* emerald-400 */
+    --sidebar-border: 217 33% 17%;      /* slate-800 */
+    --sidebar-ring: 160 84% 39%;
   }
 
   * {

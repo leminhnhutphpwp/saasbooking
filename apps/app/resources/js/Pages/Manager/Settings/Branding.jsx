@@ -36,7 +36,7 @@ export default function Branding({ settings }) {
         >
             <Head title="Thương hiệu" />
 
-            <div className="mx-auto max-w-2xl p-4 sm:p-6">
+            <div className="mx-auto max-w-3xl p-4 sm:p-6">
                 <form onSubmit={submit} className="space-y-6 rounded-lg border bg-card p-6">
                     <div className="space-y-1.5">
                         <Label>Logo</Label>
