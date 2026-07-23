@@ -19,9 +19,11 @@ class Booking extends Model
     use Auditable;
     use SoftDeletes;
 
+    // tenant_id / status / total_amount / deposit_amount are intentionally NOT mass-assignable
+    // (defense-in-depth, audit #10) — set explicitly by services via forceCreate/forceFill only.
     protected $fillable = [
-        'tenant_id', 'code', 'customer_id', 'series_id', 'status', 'channel',
-        'hold_expires_at', 'total_amount', 'deposit_amount', 'payment_mode',
+        'code', 'customer_id', 'series_id', 'channel',
+        'hold_expires_at', 'payment_mode',
         'cancel_policy_snapshot', 'reminded_at',
     ];
 

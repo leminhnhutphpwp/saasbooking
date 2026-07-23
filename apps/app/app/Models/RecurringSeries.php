@@ -17,10 +17,11 @@ class RecurringSeries extends Model
 
     protected $table = 'recurring_series';
 
+    // tenant_id / status are NOT mass-assignable (audit #10) — set via forceCreate/forceFill.
     protected $fillable = [
-        'tenant_id', 'customer_id', 'court_id', 'weekday', 'start_local', 'end_local', 'tz',
+        'customer_id', 'court_id', 'weekday', 'start_local', 'end_local', 'tz',
         'start_date', 'end_date', 'price_per_session_snapshot', 'deposit_per_session',
-        'generated_through', 'status',
+        'generated_through',
     ];
 
     protected $casts = [

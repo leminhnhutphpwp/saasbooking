@@ -128,7 +128,7 @@ class SeriesController extends Controller
     public function destroy(Request $request, RecurringSeries $series): RedirectResponse
     {
         $this->assertOwnedByWorkingTenant($request, $series);
-        $series->update(['status' => SeriesStatus::Cancelled]);
+        $series->forceFill(['status' => SeriesStatus::Cancelled])->save();
 
         return Redirect::back()->with('success', 'Đã hủy đặt cố định.');
     }

@@ -114,7 +114,7 @@ class CalendarController extends Controller
         }
 
         // Cash walk-in is settled on the spot → confirm now (no VietQR).
-        Payment::create([
+        Payment::forceCreate([
             'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
             'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
             'matched_at' => now(),
