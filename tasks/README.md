@@ -5,23 +5,34 @@ The **single source of truth** for in-flight work on SÂN. The manager breaks wo
 > Finished-milestone history lives in `../task-status.md` + `../worklogs/`. This folder holds only **active / upcoming** work.
 > Language: these are agent-facing files → **English** (per `.claude/rules/coding-rules` language split). Only end-user UI copy quoted inside a task stays Vietnamese.
 
+## Who is a "worker"
+
+A worker is **anyone/anything that executes one task**: a human dev, or an AI agent — on **any machine**. Coordination happens **entirely through this git repo** (task files + branches + PRs), never through a shared process. So a "claim" only counts once it is **committed and pushed** where others can see it.
+
 ## Roles
 
-- **Manager (main Claude):** decompose work → write task files with **non-overlapping `scope` (file lists)**; coordinate; **review + verify + merge**; keep `BOARD.md` current. Does NOT write feature code — only governance (task files, review, tiny hotfixes).
-- **Executing agent:** take exactly ONE task, work **only within `scope`**, log progress, hand back for the manager to review.
+- **Manager:** decompose work → write task files with **non-overlapping `scope` (file lists)**; assign/hand out tasks; **review + verify + merge**; keep `BOARD.md` current. Does NOT write feature code — only governance.
+- **Worker:** take exactly ONE task, work **only within `scope`**, verify, open a PR for the manager to review.
 
 ## Status lifecycle
 
 `todo` → `claimed` → `in-review` → `done`  ·  (`blocked` when stuck)
 
-## Claim protocol (mandatory)
+## Claim protocol (git-visible — mandatory)
 
-1. Read `BOARD.md`. Pick a **`status: todo`** task whose every `depends_on` is `done`.
-2. Open the task file; re-check `status`. **If ≠ `todo` → SKIP it** (already taken).
-3. **Claim = edit the file now:** set `status: claimed`, `owner: <your id>`, `updated: <date>`, and add a line under **## Log**. This edit IS the lock.
-4. Edit only files inside `scope`. **Never touch a file owned by another `claimed`/`in-review` task.** Need a file outside `scope`? Stop, set `blocked`, flag the manager — do NOT widen scope yourself.
-5. Done: set `status: in-review`, fill **## Verification** (build/test/screenshots).
-6. **Manager reviews** the diff + runs verification. Pass → `status: done` + merge. Fail → back to `claimed` with notes.
+A local edit is invisible to other machines. The **lock is the pushed branch + open PR**.
+
+1. `git switch main && git pull` so the ledger is current. Read `BOARD.md`.
+2. Pick a **`status: todo`** task whose every `depends_on` is `done`. Re-check the task file's `status`; **if ≠ `todo`, or a branch/PR for it already exists → SKIP** (taken).
+3. **Claim (push it):** `git switch -c <branch from the task's `branch:` field>`, edit the task file (`status: claimed`, `owner: <your id>`, `updated:`, add a **## Log** line), commit, **push**, and **open a draft PR** titled `T##: <title>`. The pushed branch + draft PR is the visible lock everyone can see (`gh pr list` / GitHub).
+4. Work only inside `scope`. **Never touch files owned by another open task branch/PR.** Need a file outside `scope`? Stop, set `blocked`, tell the manager — do NOT widen scope.
+5. Done: set `status: in-review`, fill **## Verification** (build/test/screenshots), push, mark the PR ready-for-review.
+6. **Manager reviews** the diff + re-runs verification. Pass → merge + set `status: done` on `main`. Fail → comments; back to `claimed`.
+
+## Two ways to assign (pick one per team)
+
+- **Manager-assigned (recommended for a small team):** the manager sets `owner:` + `status: claimed` on the board/task and tells a specific worker "do T04". No claim race because the manager decides who does what.
+- **Self-serve:** workers self-claim free tasks via step 3. The first pushed branch/PR wins; a second worker seeing an existing branch/PR for that task backs off.
 
 ## Rules for executing agents — READ THIS (how NOT to break things)
 
