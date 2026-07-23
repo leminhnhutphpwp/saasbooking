@@ -6,7 +6,7 @@
 
 | id | Task | status | owner | prio | depends_on | scope (short) |
 |----|------|--------|-------|------|-----------|---------------|
-| [T02](T02-dashboard-home.md) | Dashboard = real home (today overview + quick actions + cross-links) | todo (ready) | - | P1 | ✓T01 | Pages/Manager/Home + HomeController |
+| [T02](T02-dashboard-home.md) | Dashboard = real home (today overview + quick actions + cross-links) | claimed | opencode-agent | P1 | ✓T01 | Pages/Manager/Home + HomeController |
 | [T03](T03-reports.md) | Reports (revenue / occupancy / no-show / top customers) | todo (ready) | - | P1 | ✓T01 | Pages/Manager/Reports + ReportController |
 | [T04](T04-grid-calendar.md) | Owner grid calendar (court×time grid, colored blocks, click-to-book) | claimed¹ | opencode-agent | P1 | ✓T01 | Pages/Manager/Calendar + CalendarController |
 | [T05](T05-public-booking.md) | Public booking page (mobile-first, tenant branding, slot price/state, nicer QR) | todo (ready) | - | P1 | ✓T01 | Pages/Public/Booking + PublicBookingController |

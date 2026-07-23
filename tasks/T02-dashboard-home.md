@@ -1,8 +1,8 @@
 ---
 id: T02
 title: Dashboard = real home
-status: todo
-owner: "-"
+status: claimed
+owner: "opencode-agent"
 priority: P1
 depends_on: [T01]
 branch: feat/dashboard-home
