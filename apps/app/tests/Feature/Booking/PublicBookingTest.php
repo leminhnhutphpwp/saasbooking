@@ -85,4 +85,27 @@ class PublicBookingTest extends TestCase
                 ->where('booking.deposit', 60_000)
                 ->whereType('qr', 'string'));
     }
+
+    public function test_hold_on_a_taken_slot_redirects_back_with_error_and_creates_no_second_booking(): void
+    {
+        // First player holds 18:00–19:00.
+        $this->post('/book/venue-a/hold', [
+            'name' => 'Nguyen Van A', 'phone' => '0912345678', 'court_id' => $this->court->id,
+            'start_at' => '2026-07-21 18:00:00', 'end_at' => '2026-07-21 19:00:00',
+        ])->assertRedirect();
+
+        $this->assertSame(1, Booking::where('tenant_id', $this->tenant->id)->count());
+
+        // Second player tries an OVERLAPPING slot on the same court. createHold loses the race
+        // (SlotTakenException); the controller catches it and redirects back with an 'error' flash —
+        // no exception leaks and the booking row rolls back, so there is still exactly one booking.
+        $response = $this->post('/book/venue-a/hold', [
+            'name' => 'Tran Thi B', 'phone' => '0900000002', 'court_id' => $this->court->id,
+            'start_at' => '2026-07-21 18:30:00', 'end_at' => '2026-07-21 19:30:00',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertSame(1, Booking::where('tenant_id', $this->tenant->id)->count());
+    }
 }

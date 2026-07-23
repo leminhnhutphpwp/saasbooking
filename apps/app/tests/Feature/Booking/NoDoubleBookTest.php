@@ -14,7 +14,9 @@ use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Services\Booking\BookingService;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 /**
@@ -110,5 +112,46 @@ class NoDoubleBookTest extends TestCase
         $this->assertNotNull($booking->hold_expires_at);
         $this->assertStringStartsWith('SAN-', $booking->code);
         $this->assertSame(60_000, BookingSlot::first()->price_snapshot);
+    }
+
+    /**
+     * A genuine two-CONNECTION race (two open transactions on separate PDO handles committing the
+     * same overlapping range in parallel) is impractical in this harness, so we assert the DB
+     * contract directly instead — as the task permits. Why the true race can't run here:
+     *   - RefreshDatabase wraps each test in ONE uncommitted transaction on the default connection,
+     *     so a second real connection cannot see the tenant/court/booking fixtures (never committed);
+     *     committing fixtures on a side connection would leak rows RefreshDatabase can't roll back
+     *     and force a forbidden manual wipe.
+     *   - An EXCLUDE INSERT against a still-open first transaction BLOCKS synchronously until that
+     *     transaction ends — single-threaded PHP cannot run the two truly in parallel.
+     *
+     * So this pins the exact database contract the concurrency guard depends on: a second
+     * overlapping INSERT for the same court+range raises SQLSTATE 23P01 (exclusion_violation) at
+     * the DB layer — the code ResourceTimeSlotDriver / confirmDeposit map to SlotTakenException
+     * (409). The sequential-hold test above covers the service mapping; PublicBookingTest covers
+     * the HTTP surface.
+     */
+    public function test_exclusion_constraint_raises_23_p01_at_the_database(): void
+    {
+        $booking = $this->hold('2026-07-21 18:00', '2026-07-21 19:00');
+
+        try {
+            // Raw INSERT of an OVERLAPPING holding slot for the same court+range. Wrapped in a
+            // savepoint so the violation aborts only this nested transaction, not the outer
+            // RefreshDatabase wrapper — leaving it usable for the assertion below.
+            DB::transaction(function () use ($booking) {
+                DB::insert(
+                    'INSERT INTO booking_slots (tenant_id, booking_id, court_id, start_at, end_at, price_snapshot, hold_status)
+                     VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [$this->tenant->id, $booking->id, $this->court->id, '2026-07-21 18:30:00', '2026-07-21 19:30:00', 60_000, 'holding'],
+                );
+            });
+            $this->fail('Expected an exclusion_violation (23P01) but the overlapping INSERT succeeded.');
+        } catch (QueryException $e) {
+            $this->assertSame('23P01', $e->getCode());
+        }
+
+        // The loser left no row — the winning hold is still the only slot.
+        $this->assertSame(1, BookingSlot::count());
     }
 }

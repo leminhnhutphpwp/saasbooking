@@ -152,4 +152,50 @@ class ReconcileTest extends TestCase
         $this->assertSame(PaymentStatus::Awaiting, $payment->fresh()->status);
         $this->assertNotNull(BankTxnInbox::first()->note);
     }
+
+    /**
+     * Recovery (#2). A webhook that arrives before the deposit exists (or otherwise can't settle) is
+     * RECORDED but LEFT UNPROCESSED (processed_at = NULL, status 'unmatched') so a later redelivery
+     * re-runs it — rather than being ACKed and lost forever. Once the deposit exists, redelivery
+     * confirms exactly once; a further redelivery of the now-processed row is dropped (idempotency).
+     */
+    public function test_unprocessed_txn_is_reprocessed_on_redelivery_then_stays_idempotent(): void
+    {
+        // Webhook arrives BEFORE initDeposit: the booking exists (so we know its code) but there is
+        // no awaiting payment yet.
+        $booking = app(BookingService::class)->createHold($this->tenant, [
+            'customer_id' => $this->customer->id, 'channel' => 'zalo', 'payment_mode' => 'deposit',
+            'slots' => [[
+                'court_id' => $this->court->id,
+                'start_at' => CarbonImmutable::parse('2026-07-21 18:00', 'Asia/Ho_Chi_Minh'),
+                'end_at' => CarbonImmutable::parse('2026-07-21 19:00', 'Asia/Ho_Chi_Minh'),
+            ]],
+        ]);
+        $txn = $this->txn('TX-REC', 60_000, "chuyen tien {$booking->code}");
+
+        // 1) First delivery: no awaiting payment → recorded UNMATCHED but LEFT UNPROCESSED.
+        app(ReconcileService::class)->ingest($txn);
+        $inbox = BankTxnInbox::first();
+        $this->assertSame(ReconcileService::STATUS_UNMATCHED, $inbox->status);
+        $this->assertNull($inbox->processed_at);
+        $this->assertSame(BookingStatus::PendingDeposit, $booking->fresh()->status);
+
+        // Deposit is initialised late (player finally opens the QR page).
+        $payment = app(PaymentService::class)->initDeposit($booking)['payment'];
+
+        // 2) Redelivery re-processes the still-unprocessed row → confirm, exactly once.
+        app(ReconcileService::class)->ingest($txn);
+        $this->assertSame(1, BankTxnInbox::count());
+        $this->assertSame(ReconcileService::STATUS_MATCHED, $inbox->fresh()->status);
+        $this->assertNotNull($inbox->fresh()->processed_at);
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
+
+        // 3) A further redelivery of the now-processed txn is dropped — still confirmed exactly once.
+        app(ReconcileService::class)->ingest($txn);
+        $this->assertSame(1, BankTxnInbox::count());
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
+        $this->assertSame('TX-REC', $payment->fresh()->bank_txn_id);
+    }
 }
