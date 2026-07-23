@@ -1,8 +1,8 @@
 ---
 id: T11
 title: Re-theme v3 (violet/indigo) + airy card & shell aesthetic
-status: todo
-owner: "-"
+status: in-review
+owner: opencode
 priority: P0
 depends_on: []
 branch: feat/retheme-violet
@@ -46,8 +46,11 @@ QwenCloud dashboard: light near-white background, white cards with **large radiu
 - Home layout (T12), other feature pages/charts (T13), backend. No new deps (build with Tailwind + shadcn; gradients via CSS).
 
 ## Verification
-- [ ] `npm run build` passes; `php artisan test` 108/108
+- [x] `npm run build` passes
+- [x] `php artisan test` 108/108 passes
 - [ ] Browser ~390px + ~1440px: sidebar + topbar + a couple existing pages now violet/airy; attach screenshots.
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · claimed by opencode
+- 2026-07-23 · completed: palette switched emerald→violet/indigo, light refined sidebar with gradient logo, AppTopbar with search/theme toggle/avatar, cards rounded-2xl, buttons pill/rounded, StatCard with action+chart slots. Build + 108 tests pass.
