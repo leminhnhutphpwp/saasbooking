@@ -1,8 +1,8 @@
 ---
 id: T10
 title: Operational pages polish (home / calendar / reports / lists)
-status: todo
-owner: "-"
+status: claimed
+owner: agent
 priority: P2
 depends_on: [T07]
 branch: feat/operational-polish
