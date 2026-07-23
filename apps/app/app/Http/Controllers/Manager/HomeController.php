@@ -11,6 +11,8 @@ use App\Models\BankTxnInbox;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Refund;
+use App\Models\TenantBankConfig;
+use App\Services\Payment\ReconcileService;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -73,10 +75,11 @@ class HomeController extends Controller
                 'amount' => $r->amount,
             ]);
 
-        $unmatchedTxns = BankTxnInbox::query()
-            ->where('tenant_id', $tenantId)
-            ->where('status', 'pending')
-            ->orderBy('received_at', 'desc')
+        $bankNumbers = TenantBankConfig::where('tenant_id', $tenantId)->pluck('account_number');
+
+        $unmatchedTxns = BankTxnInbox::whereIn('account_number', $bankNumbers)
+            ->where(fn ($q) => $q->whereNull('processed_at')->orWhere('status', ReconcileService::STATUS_UNMATCHED))
+            ->orderByDesc('received_at')
             ->take(5)
             ->get()
             ->map(fn (BankTxnInbox $t) => [
