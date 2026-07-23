@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * A single dashboard stat tile: label + big value, with an optional icon and
- * an optional trend line. Matches the calendar stat tiles.
+ * an optional trend line. Numbers are the hero — large, bold, prominent.
  *
  * Usage:
  *   <StatCard label="Tổng đặt" value={12} icon={CalendarDays} />
@@ -36,10 +36,10 @@ export function StatCard({
 }) {
   return (
     <Card className={className}>
-      <CardContent className="flex items-start justify-between gap-3 p-4">
-        <div className="space-y-1">
-          <div className="text-sm text-muted-foreground">{label}</div>
-          <div className={cn('text-2xl font-bold', ACCENTS[accent])}>
+      <CardContent className="flex items-start justify-between gap-4 p-5">
+        <div className="space-y-1.5">
+          <div className="text-sm font-medium text-muted-foreground">{label}</div>
+          <div className={cn('text-3xl font-bold leading-none', ACCENTS[accent])}>
             {value}
           </div>
           {trend && (
@@ -49,7 +49,7 @@ export function StatCard({
         {Icon && (
           <div
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
               ICON_BG[accent],
             )}
           >
