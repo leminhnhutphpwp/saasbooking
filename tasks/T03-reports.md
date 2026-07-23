@@ -1,7 +1,7 @@
 ---
 id: T03
 title: Reports
-status: in-review
+status: done
 owner: agent
 priority: P1
 depends_on: [T01]
@@ -33,3 +33,4 @@ Owners need to see money & performance — there is currently no reporting scree
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · manager review: verified live (build/108 test/browser) — chart+summary+top customers, tenant-scoped, no chart dep → APPROVED, merged (#10)
