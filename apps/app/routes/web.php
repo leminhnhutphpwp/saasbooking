@@ -3,10 +3,12 @@
 use App\Http\Controllers\Manager\BrandingController;
 use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
+use App\Http\Controllers\Manager\HomeController;
 use App\Http\Controllers\Manager\OpeningRuleController;
 use App\Http\Controllers\Manager\PricingRuleController;
 use App\Http\Controllers\Manager\ReconcileController;
 use App\Http\Controllers\Manager\RefundController;
+use App\Http\Controllers\Manager\ReportController;
 use App\Http\Controllers\Manager\SeriesController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
@@ -24,6 +26,10 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
+    $user = request()->user();
+    if ($user && $user->tenant_id) {
+        return redirect()->route('manager.home');
+    }
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -36,6 +42,8 @@ Route::middleware('auth')->group(function () {
 // Manager console — court owner (tenant-scoped via WorkingTenant).
 // Security (#7): auth alone is not enough — `can:access-manager` requires a tenant-bound owner.
 Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('manager.')->group(function () {
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
+
     Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
     Route::post('/courts', [CourtController::class, 'store'])->name('courts.store');
     Route::put('/courts/{court}', [CourtController::class, 'update'])->name('courts.update');
@@ -67,6 +75,8 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::get('/reconcile', [ReconcileController::class, 'unmatched'])->name('reconcile.index');
     Route::post('/reconcile/match', [ReconcileController::class, 'manualMatch'])->name('reconcile.match');
     Route::post('/reconcile/{inbox}/dismiss', [ReconcileController::class, 'dismissTxn'])->name('reconcile.dismiss');
+
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 // Public booking page (resolved by tenant slug — no auth).
