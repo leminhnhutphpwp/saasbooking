@@ -1,7 +1,7 @@
 ---
 id: T02
 title: Dashboard = real home
-status: claimed          # changes requested — PR #9 (/manager/home 500)
+status: done
 owner: "-"
 priority: P1
 depends_on: [T01]
@@ -33,3 +33,4 @@ Turn Home into the **hub** — the moment an owner/staff opens the app they see 
 ## Log
 - 2026-07-23 · created by manager
 - 2026-07-23 · manager review: /manager/home 500 (BankTxnInbox.tenant_id undefined) → CHANGES REQUESTED, scope by account_number + status unmatched (PR #9)
+- 2026-07-23 · manager re-review: fix verified (inbox scoped by account_number), /manager/home renders → APPROVED, merged (#9)
