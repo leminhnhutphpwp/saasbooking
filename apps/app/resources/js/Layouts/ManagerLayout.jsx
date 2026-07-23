@@ -36,7 +36,7 @@ export default function ManagerLayout({ children }) {
                         href={route('manager.home')}
                         className="flex items-center gap-3 px-3 py-4"
                     >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-pink-500 shadow-sm">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 shadow-sm">
                             <ApplicationLogo className="h-6 w-6 text-white" />
                         </div>
                         <div className="flex flex-col group-data-[collapsible=icon]:hidden">

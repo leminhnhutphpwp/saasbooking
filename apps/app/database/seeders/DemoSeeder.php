@@ -72,7 +72,7 @@ class DemoSeeder extends Seeder
                 'vertical' => 'racket_court',
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
-                'settings' => ['branding' => ['primary_color' => '#7C3AED']],
+                'settings' => ['branding' => ['primary_color' => '#F06020']],
             ],
         );
     }

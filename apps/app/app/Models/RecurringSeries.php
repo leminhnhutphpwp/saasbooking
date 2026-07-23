@@ -58,6 +58,11 @@ class RecurringSeries extends Model
         return $this->belongsTo(Court::class);
     }
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class, 'series_id');

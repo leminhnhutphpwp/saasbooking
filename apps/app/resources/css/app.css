@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* SÂN — palette v3: violet/indigo, airy card & shell */
+    /* SÂN — palette v3: brand orange, airy card & shell */
 
     /* Surfaces */
     --background: 210 20% 98%;          /* slate-50 #FAFAFB */
@@ -14,8 +14,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Primary — violet-600 */
-    --primary: 263 70% 50%;             /* violet-600 #7C3AED */
+    /* Primary — brand orange #F06020 */
+    --primary: 18 87% 53%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary */
@@ -26,16 +26,16 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;    /* slate-500 #64748B */
 
-    /* Accent — violet-50 */
-    --accent: 263 70% 97%;              /* violet-50 #F5F3FF */
-    --accent-foreground: 263 70% 30%;   /* violet-700 */
+    /* Accent — orange-50 */
+    --accent: 33 100% 96%;              /* orange-50 #FFF7ED */
+    --accent-foreground: 17 88% 40%;    /* orange-700 #C2410C */
 
     /* Destructive — rose */
     --destructive: 347 77% 50%;
     --destructive-foreground: 0 0% 100%;
 
     /* Success / Warning */
-    --success: 263 70% 50%;
+    --success: 152 69% 40%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
@@ -43,7 +43,7 @@
     /* Borders / Inputs / Ring */
     --border: 214 32% 91%;              /* slate-200 */
     --input: 214 32% 91%;
-    --ring: 263 70% 50%;
+    --ring: 18 87% 53%;
 
     /* Radius */
     --radius: 1rem;
@@ -57,12 +57,12 @@
     /* Sidebar — light refined */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 215 16% 47%;  /* slate-500 */
-    --sidebar-primary: 263 70% 50%;     /* violet-600 */
+    --sidebar-primary: 18 87% 53%;      /* brand orange */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 70% 97%;      /* violet-50 */
-    --sidebar-accent-foreground: 263 70% 30%; /* violet-700 */
+    --sidebar-accent: 33 100% 96%;      /* orange-50 */
+    --sidebar-accent-foreground: 17 88% 40%; /* orange-700 */
     --sidebar-border: 214 32% 91%;      /* slate-200 */
-    --sidebar-ring: 263 70% 50%;
+    --sidebar-ring: 18 87% 53%;
   }
 
   .dark {
@@ -74,8 +74,8 @@
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary */
-    --primary: 263 70% 60%;             /* violet-500 */
+    /* Primary — lighter orange for dark mode */
+    --primary: 27 96% 61%;              /* orange-400 #FB923C */
     --primary-foreground: 0 0% 100%;
 
     /* Secondary */
@@ -87,15 +87,15 @@
     --muted-foreground: 215 20% 65%;    /* slate-400 */
 
     /* Accent */
-    --accent: 263 50% 20%;
-    --accent-foreground: 263 70% 80%;
+    --accent: 15 75% 20%;               /* dark orange tint */
+    --accent-foreground: 27 96% 75%;    /* light orange */
 
     /* Destructive */
     --destructive: 350 89% 60%;
     --destructive-foreground: 210 40% 98%;
 
     /* Success / Warning */
-    --success: 263 70% 60%;
+    --success: 152 69% 50%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 222 47% 11%;
@@ -103,17 +103,17 @@
     /* Borders / Inputs / Ring */
     --border: 217 33% 17%;              /* slate-800 */
     --input: 217 33% 17%;
-    --ring: 263 70% 60%;
+    --ring: 27 96% 61%;
 
     /* Sidebar */
     --sidebar-background: 222 47% 6%;   /* slate-950 */
     --sidebar-foreground: 215 20% 65%;  /* slate-400 */
-    --sidebar-primary: 263 70% 60%;     /* violet-500 */
+    --sidebar-primary: 27 96% 61%;      /* orange-400 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 263 50% 20%;
-    --sidebar-accent-foreground: 263 70% 80%;
+    --sidebar-accent: 15 75% 20%;
+    --sidebar-accent-foreground: 27 96% 75%;
     --sidebar-border: 217 33% 17%;      /* slate-800 */
-    --sidebar-ring: 263 70% 60%;
+    --sidebar-ring: 27 96% 61%;
   }
 
   * {
