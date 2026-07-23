@@ -1,7 +1,7 @@
 ---
 id: T06
 title: Config screens (opening / pricing / branding)
-status: in-review
+status: done
 owner: agent
 priority: P2
 depends_on: [T01]
@@ -35,3 +35,4 @@ Config is currently raw (default HTML inputs, no preview). Build visual editors 
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · manager review: verified live (branding uploader+preview+URL, opening weekly grid, pricing empty state) → APPROVED, merged (#12)
