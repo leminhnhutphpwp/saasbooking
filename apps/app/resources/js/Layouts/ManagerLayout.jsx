@@ -79,7 +79,7 @@ export default function ManagerLayout({ children }) {
                 </SidebarFooter>
             </Sidebar>
 
-            <main className="flex min-h-svh flex-1 flex-col">
+            <main className="flex flex-1 flex-col overflow-hidden">
                 <AppTopbar />
                 <div className="flex-1 overflow-auto">{children}</div>
             </main>
