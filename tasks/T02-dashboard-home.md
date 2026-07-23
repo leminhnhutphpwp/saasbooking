@@ -1,7 +1,7 @@
 ---
 id: T02
 title: Dashboard = real home
-status: todo
+status: claimed          # changes requested — PR #9 (/manager/home 500)
 owner: "-"
 priority: P1
 depends_on: [T01]
