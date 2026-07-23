@@ -14,6 +14,7 @@ use App\Models\Tenant;
 use App\Models\TenantBankConfig;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
+use App\Services\Catalog\PricingService;
 use App\Services\Payment\PaymentService;
 use App\Support\VietQr;
 use Carbon\CarbonImmutable;
@@ -32,6 +33,7 @@ class PublicBookingController extends Controller
         private AvailabilityService $availability,
         private BookingService $bookings,
         private PaymentService $payments,
+        private PricingService $pricing,
     ) {}
 
     public function show(Tenant $tenant, Request $request): Response
@@ -49,10 +51,33 @@ class PublicBookingController extends Controller
             }
         }
 
+        $courts = $this->availability->search($tenant->id, $date, null, 60);
+
+        $courts = array_map(function (array $court) use ($tenant) {
+            $court['free'] = array_map(function (array $slot) use ($tenant, $court) {
+                $start = CarbonImmutable::parse($slot['start']);
+                $end = CarbonImmutable::parse($slot['end']);
+                try {
+                    $price = $this->pricing->resolve($tenant->id, $court['court_id'], $start, $end);
+                } catch (\RuntimeException) {
+                    $price = 0;
+                }
+                $isPeak = $price > 100000;
+                return [
+                    'start' => $slot['start'],
+                    'end' => $slot['end'],
+                    'price' => $price,
+                    'peak' => $isPeak,
+                ];
+            }, $court['free']);
+
+            return $court;
+        }, $courts);
+
         return Inertia::render('Public/Booking/Show', [
             'tenant' => ['name' => $tenant->name, 'slug' => $tenant->slug, 'settings' => $tenant->settings ?? []],
             'date' => $date->toDateString(),
-            'courts' => $this->availability->search($tenant->id, $date, null, 60),
+            'courts' => $courts,
         ]);
     }
 

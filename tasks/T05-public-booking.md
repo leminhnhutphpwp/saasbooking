@@ -1,8 +1,8 @@
 ---
 id: T05
 title: Public booking page
-status: todo
-owner: "-"
+status: in-review
+owner: agent
 priority: P1
 depends_on: [T01]
 branch: feat/public-booking-ux
