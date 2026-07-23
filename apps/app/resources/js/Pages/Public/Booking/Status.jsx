@@ -5,11 +5,11 @@ import { Badge } from '@/Components/ui/badge';
 import { Card, CardContent } from '@/Components/ui/card';
 import { Button } from '@/Components/ui/button';
 import { formatVND } from '@/lib/format';
-import { CheckCircle, Clock, Copy, XCircle, Loader2, Check } from 'lucide-react';
+import { CheckCircle, Clock, Copy, XCircle, Loader2, Check, ArrowLeft } from 'lucide-react';
 
 const STATUS_CONFIG = {
     pending_deposit: { label: 'Chờ chuyển cọc', icon: Clock, variant: 'secondary', desc: 'Chuyển khoản đúng số tiền + nội dung để giữ sân.' },
-    confirmed: { label: 'Đã xác nhận', icon: CheckCircle, variant: 'default', desc: 'Sân đã được giữ cho bạn.' },
+    confirmed: { label: 'Đã xác nhận', icon: CheckCircle, variant: 'default', desc: 'Sân đã được giữ cho bạn. Cảm ơn!' },
     cancelled: { label: 'Đã hủy', icon: XCircle, variant: 'destructive', desc: 'Đơn đặt sân đã bị hủy.' },
     expired: { label: 'Hết hạn', icon: XCircle, variant: 'outline', desc: 'Thời gian giữ chỗ đã hết hạn.' },
     no_show: { label: 'Không đến', icon: XCircle, variant: 'destructive', desc: 'Bạn không đến chơi.' },
@@ -41,12 +41,19 @@ export default function Status({ tenant, booking, qr, account }) {
 
             <style>{`:root { --brand: ${pc}; }`}</style>
 
-            <div className="border-b bg-white" style={{ borderTopColor: pc, borderTopWidth: '3px' }}>
-                <div className="mx-auto flex max-w-md items-center gap-3 p-4">
-                    {brand.logo_path && (
-                        <img src={`/storage/${brand.logo_path}`} alt={tenant.name} className="h-10 w-auto rounded object-contain" />
-                    )}
-                    <h1 className="text-lg font-bold" style={{ color: pc }}>{tenant.name}</h1>
+            {/* Hero */}
+            <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${pc}dd 0%, ${pc} 100%)` }}>
+                <div className="mx-auto flex max-w-md items-center gap-4 px-4 py-5">
+                    <button
+                        onClick={() => router.visit(`/book/${tenant.slug}`)}
+                        className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white"
+                    >
+                        <ArrowLeft className="h-5 w-5" />
+                    </button>
+                    <div className="text-white">
+                        <h1 className="text-lg font-bold">{tenant.name}</h1>
+                        <p className="text-xs text-white/70">Trạng thái đơn đặt sân</p>
+                    </div>
                 </div>
             </div>
 
@@ -61,7 +68,7 @@ export default function Status({ tenant, booking, qr, account }) {
                                 </code>
                                 <button
                                     onClick={() => copy(booking.code, 'code')}
-                                    className="rounded p-1 text-muted-foreground hover:bg-accent"
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-accent"
                                     title="Sao chép"
                                 >
                                     {copied === 'code' ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
@@ -69,7 +76,7 @@ export default function Status({ tenant, booking, qr, account }) {
                             </div>
                         </div>
 
-                        <Badge variant={config.variant} className="gap-1.5 px-3 py-1">
+                        <Badge variant={config.variant} className="gap-1.5 px-3 py-1 text-sm">
                             <Icon className="h-3.5 w-3.5" />
                             {config.label}
                         </Badge>
@@ -81,20 +88,20 @@ export default function Status({ tenant, booking, qr, account }) {
                     <Card>
                         <CardContent className="p-6 text-center">
                             <div className="mx-auto w-fit rounded-xl border bg-white p-4 shadow-sm">
-                                <QRCodeSVG value={qr} size={200} className="mx-auto" />
+                                <QRCodeSVG value={qr} size={220} className="mx-auto" />
                             </div>
 
-                            <div className="mt-4">
-                                <div className="text-2xl font-bold" style={{ color: pc }}>
+                            <div className="mt-5">
+                                <div className="text-3xl font-bold" style={{ color: pc }}>
                                     {formatVND(booking.deposit)}
                                 </div>
-                                <p className="text-xs text-muted-foreground">Số tiền cọc</p>
+                                <p className="text-xs text-muted-foreground mt-1">Số tiền cọc</p>
                             </div>
 
-                            <div className="mt-4 space-y-2">
-                                <div className="rounded-lg bg-muted p-3">
-                                    <p className="text-xs text-muted-foreground">Nội dung chuyển khoản</p>
-                                    <div className="mt-0.5 flex items-center justify-center gap-2">
+                            <div className="mt-5 space-y-2.5">
+                                <div className="rounded-lg bg-muted p-3 text-left">
+                                    <p className="text-xs text-muted-foreground mb-1">Nội dung chuyển khoản</p>
+                                    <div className="flex items-center justify-between">
                                         <code className="font-mono text-sm font-bold">{booking.code}</code>
                                         <button
                                             onClick={() => copy(booking.code, 'memo')}
@@ -106,16 +113,24 @@ export default function Status({ tenant, booking, qr, account }) {
                                 </div>
 
                                 {account && (
-                                    <div className="rounded-lg bg-muted p-3">
-                                        <p className="text-xs text-muted-foreground">Tài khoản nhận</p>
-                                        <p className="font-medium">{account.name}</p>
-                                        <p className="font-mono text-sm">{account.number}</p>
+                                    <div className="rounded-lg bg-muted p-3 text-left">
+                                        <p className="text-xs text-muted-foreground mb-1">Tài khoản nhận</p>
+                                        <p className="font-medium text-sm">{account.name}</p>
+                                        <div className="flex items-center justify-between mt-0.5">
+                                            <code className="font-mono text-sm">{account.number}</code>
+                                            <button
+                                                onClick={() => copy(account.number, 'account')}
+                                                className="rounded p-1 text-muted-foreground hover:bg-accent"
+                                            >
+                                                {copied === 'account' ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
 
-                            <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                                <Loader2 className="h-3 w-3 animate-spin" />
+                            <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" style={{ color: pc }} />
                                 Đang chờ thanh toán — tự động cập nhật
                             </p>
                         </CardContent>
@@ -123,9 +138,9 @@ export default function Status({ tenant, booking, qr, account }) {
                 )}
 
                 {booking.status === 'confirmed' && (
-                    <Card className="border-emerald-200 bg-emerald-50">
+                    <Card style={{ borderColor: pc, borderWidth: '2px' }} className="bg-emerald-50/50">
                         <CardContent className="p-6 text-center">
-                            <CheckCircle className="mx-auto h-14 w-14 text-emerald-500" />
+                            <CheckCircle className="mx-auto h-14 w-14" style={{ color: pc }} />
                             <p className="mt-3 text-lg font-bold text-emerald-700">Đã giữ sân thành công!</p>
                             <p className="mt-1 text-sm text-emerald-600">Bạn sẽ nhận thông báo xác nhận qua Zalo.</p>
                         </CardContent>
@@ -141,7 +156,7 @@ export default function Status({ tenant, booking, qr, account }) {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="mt-4"
+                                className="mt-5"
                                 onClick={() => router.visit(`/book/${tenant.slug}`)}
                             >
                                 Đặt lại
