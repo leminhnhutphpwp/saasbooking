@@ -1,7 +1,7 @@
 ---
 id: T02
 title: Dashboard = real home
-status: claimed
+status: in-review
 owner: "opencode-agent"
 priority: P1
 depends_on: [T01]
@@ -30,5 +30,11 @@ Turn Home into the **hub** — the moment an owner/staff opens the app they see 
 - [ ] `npm run build` passes · `php artisan test` if backend touched
 - [ ] Browser: Home shows the tenant's correct numbers and every link lands on the right page.
 
+## Verification
+- [x] `npm run build` passes
+- [x] `php artisan test` — 108 passed, all green
+- [ ] Browser: Home shows tenant's correct numbers; every link lands on the right page.
+
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-23 · claimed + implemented by opencode-agent: StatCards (total/confirmed/pending/revenue/occupancy), Quick Actions (walk-in/series/calendar/refunds), Needs Attention (awaiting deposits/refunds/unmatched), Upcoming bookings list, deep-links to manager pages, empty state
