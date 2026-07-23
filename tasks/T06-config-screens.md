@@ -1,8 +1,8 @@
 ---
 id: T06
 title: Config screens (opening / pricing / branding)
-status: todo
-owner: "-"
+status: in-review
+owner: agent
 priority: P2
 depends_on: [T01]
 branch: feat/config-screens-ux

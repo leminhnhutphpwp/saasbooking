@@ -20,6 +20,7 @@ class BrandingController extends Controller
         $tenant = Tenant::findOrFail(WorkingTenant::id($request));
 
         return Inertia::render('Manager/Settings/Branding', [
+            'tenant' => ['uuid' => $tenant->uuid, 'slug' => $tenant->slug],
             'settings' => $tenant->settings ?? [],
         ]);
     }
