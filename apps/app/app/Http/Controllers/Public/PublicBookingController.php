@@ -63,6 +63,7 @@ class PublicBookingController extends Controller
                     $price = 0;
                 }
                 $isPeak = $price > 100000;
+
                 return [
                     'start' => $slot['start'],
                     'end' => $slot['end'],

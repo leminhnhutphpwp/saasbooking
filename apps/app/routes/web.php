@@ -30,6 +30,7 @@ Route::get('/dashboard', function () {
     if ($user && $user->tenant_id) {
         return redirect()->route('manager.home');
     }
+
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 

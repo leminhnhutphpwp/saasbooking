@@ -34,10 +34,16 @@ class ReportController extends Controller
         $to = $venueNow->toDateString();
 
         if ($request->filled('from')) {
-            try { $from = CarbonImmutable::parse($request->string('from')->value())->toDateString(); } catch (\Throwable) {}
+            try {
+                $from = CarbonImmutable::parse($request->string('from')->value())->toDateString();
+            } catch (\Throwable) {
+            }
         }
         if ($request->filled('to')) {
-            try { $to = CarbonImmutable::parse($request->string('to')->value())->toDateString(); } catch (\Throwable) {}
+            try {
+                $to = CarbonImmutable::parse($request->string('to')->value())->toDateString();
+            } catch (\Throwable) {
+            }
         }
 
         $dayStart = CarbonImmutable::parse($from.' 00:00:00');
@@ -48,9 +54,9 @@ class ReportController extends Controller
             ->where('bookings.tenant_id', $tenantId)
             ->where('status', BookingStatus::Confirmed)
             ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
-            ->select(DB::raw("DATE(booking_slots.start_at) as date"), DB::raw("SUM(bookings.total_amount) as total"))
+            ->select(DB::raw('DATE(booking_slots.start_at) as date'), DB::raw('SUM(bookings.total_amount) as total'))
             ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
-            ->groupBy(DB::raw("DATE(booking_slots.start_at)"))
+            ->groupBy(DB::raw('DATE(booking_slots.start_at)'))
             ->orderBy('date')
             ->get()
             ->keyBy('date')
@@ -99,7 +105,7 @@ class ReportController extends Controller
         $bookedMinutes = BookingSlot::where('tenant_id', $tenantId)
             ->where('start_at', '>=', $dayStart)
             ->where('start_at', '<=', $dayEnd)
-            ->select(DB::raw("COALESCE(SUM(EXTRACT(EPOCH FROM (end_at - start_at)) / 60), 0) as total"))
+            ->select(DB::raw('COALESCE(SUM(EXTRACT(EPOCH FROM (end_at - start_at)) / 60), 0) as total'))
             ->value('total');
 
         $occupancyRate = $totalMinutes > 0 ? (int) round((float) $bookedMinutes / $totalMinutes * 100) : 0;
