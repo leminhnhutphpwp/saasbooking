@@ -1,8 +1,8 @@
 ---
 id: T03
 title: Reports
-status: todo
-owner: "-"
+status: in-review
+owner: agent
 priority: P1
 depends_on: [T01]
 branch: feat/reports
