@@ -72,7 +72,7 @@ export default function Index({ filters, revenueByDay, summary, occupancy, topCu
         <ManagerLayout header={<h2 className="text-xl font-semibold">Báo cáo</h2>}>
             <Head title="Báo cáo" />
 
-            <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6">
+            <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
                 <Card>
                     <CardContent className="p-4">
                         <div className="flex flex-wrap items-end gap-3">

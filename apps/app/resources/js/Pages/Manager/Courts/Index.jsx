@@ -70,7 +70,7 @@ export default function Index({ courts, courtTypes }) {
         >
             <Head title="Quản lý sân" />
 
-            <div className="mx-auto max-w-7xl p-4 sm:p-6">
+            <div className="mx-auto max-w-6xl p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">{courts.length} sân</p>
                     <Button onClick={openCreate}>+ Thêm sân</Button>

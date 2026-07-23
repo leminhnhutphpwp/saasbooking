@@ -41,6 +41,15 @@ const STATUS_LABEL = {
     no_show: 'Bom',
 };
 
+const STATUS_BORDER = {
+    confirmed: '#10b981',
+    pending_deposit: '#f59e0b',
+    cancelled: '#94a3b8',
+    expired: '#94a3b8',
+    completed: '#10b981',
+    no_show: '#ef4444',
+};
+
 function pct(minutes) {
     return ((minutes - DAY_START * 60) / TOTAL_MIN * 100).toFixed(3);
 }
@@ -133,7 +142,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         <ManagerLayout header={<h2 className="text-sm font-medium text-muted-foreground">Lịch đặt sân</h2>}>
             <Head title="Lịch đặt sân" />
 
-            <div className="mx-auto max-w-full p-4 sm:p-6">
+            <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-1">
                         <Button variant="outline" size="icon" onClick={() => goDay(-1)}>
@@ -228,8 +237,8 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div
-                                                                className="absolute left-0.5 right-0.5 z-10 cursor-pointer overflow-hidden rounded border bg-card px-1 py-0.5 text-[11px] leading-tight shadow-sm"
-                                                                style={{ top: `${top}%`, height: `${heightPct}%`, minHeight: 20 }}
+                                                                className="absolute left-0.5 right-0.5 z-10 cursor-pointer overflow-hidden rounded border-l-4 bg-card px-1 py-0.5 text-[11px] leading-tight shadow-sm"
+                                                                style={{ top: `${top}%`, height: `${heightPct}%`, minHeight: 20, borderLeftColor: STATUS_BORDER[b.status] || '#e2e8f0' }}
                                                             >
                                                                 <div className="truncate font-semibold">
                                                                     {b.customer}
