@@ -18,12 +18,12 @@ import { cn } from '@/lib/utils';
  *   </PageContainer>
  */
 export function PageContainer({ size = 'default', className, children }) {
-  const maxWidth = size === 'narrow' ? 'max-w-3xl' : 'max-w-6xl';
+  const maxWidth = size === 'narrow' ? 'max-w-3xl' : 'max-w-[1600px]';
 
   return (
     <div
       className={cn(
-        'mx-auto w-full px-4 py-6 sm:px-6 space-y-6',
+        'w-full px-4 py-6 sm:px-6 lg:px-8 space-y-6',
         maxWidth,
         className,
       )}

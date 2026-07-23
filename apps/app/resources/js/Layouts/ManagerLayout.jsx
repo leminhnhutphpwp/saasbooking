@@ -11,7 +11,6 @@ import {
     SidebarGroupContent,
     SidebarGroupLabel,
     SidebarHeader,
-    SidebarInset,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
@@ -80,10 +79,10 @@ export default function ManagerLayout({ children }) {
                 </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset className="flex flex-col">
+            <main className="flex min-h-svh flex-1 flex-col">
                 <AppTopbar />
-                <main className="flex-1 overflow-auto">{children}</main>
-            </SidebarInset>
+                <div className="flex-1 overflow-auto">{children}</div>
+            </main>
 
             <Toaster richColors position="top-right" />
         </SidebarProvider>
