@@ -6,7 +6,7 @@
 
 | id | Task | status | owner | prio | depends_on | scope (short) |
 |----|------|--------|-------|------|-----------|---------------|
-| [T01](T01-app-shell-ia.md) | App shell & IA + palette v2 (grouped/wide/darker sidebar, unify to one shell, fix orphaned /dashboard, less-bright palette) | todo | - | **P0** | — | Layouts, nav, app.css, tailwind, routes, Home/Reports stubs |
+| [T01](T01-app-shell-ia.md) | App shell & IA + palette v2 (grouped/wide/darker sidebar, unify to one shell, fix orphaned /dashboard, less-bright palette) | in-review | opencode-agent | **P0** | — | Layouts, nav, app.css, tailwind, routes, Home/Reports stubs |
 | [T02](T02-dashboard-home.md) | Dashboard = real home (today overview + quick actions + cross-links) | todo | - | P1 | T01 | Pages/Manager/Home + HomeController |
 | [T03](T03-reports.md) | Reports (revenue / occupancy / no-show / top customers) | todo | - | P1 | T01 | Pages/Manager/Reports + ReportController |
 | [T04](T04-grid-calendar.md) | Owner grid calendar (court×time grid, colored blocks, click-to-book) | claimed¹ | opencode-agent | P1 | T01 | Pages/Manager/Calendar + CalendarController |
