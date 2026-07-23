@@ -1,6 +1,6 @@
 ---
 id: T03
-title: Reports (báo cáo)
+title: Reports
 status: todo
 owner: "-"
 priority: P1
@@ -12,24 +12,24 @@ scope:
 updated: 2026-07-23
 ---
 
-## Mục tiêu
-Chủ sân cần thấy tiền & hiệu suất — hiện chưa có màn báo cáo nào.
+## Goal
+Owners need to see money & performance — there is currently no reporting screen at all.
 
-## Yêu cầu (acceptance criteria)
-- [ ] **Doanh thu** theo ngày/tháng (biểu đồ cột đơn giản + tổng), chỉ tính booking confirmed/đã thu.
-- [ ] **Tỉ lệ lấp sân** (occupancy) theo ngày/khung giờ.
-- [ ] **No-show & cọc**: số bom sân, cọc đã thu, hoàn cọc.
-- [ ] **Top khách hàng** (số lần đặt / doanh thu).
-- [ ] Bộ lọc khoảng thời gian; scope theo `WorkingTenant`; tiền `formatVND`.
-- [ ] Query gọn (không N+1); controller mỏng. Biểu đồ tự vẽ bằng SVG/CSS hoặc lib đã có — **không thêm dependency nặng** nếu tránh được (hỏi manager nếu cần lib chart).
-- [ ] Dùng component nền + empty state.
+## Acceptance criteria
+- [ ] **Revenue** by day/month (simple bar chart + total), counting only confirmed/collected bookings.
+- [ ] **Occupancy** by day / time-slot.
+- [ ] **No-show & deposits**: no-show count, deposits collected, refunds.
+- [ ] **Top customers** (bookings / revenue).
+- [ ] Date-range filter; scoped by `WorkingTenant`; money via `formatVND`.
+- [ ] Efficient queries (no N+1); thin controller. Draw charts with SVG/CSS or an already-present lib — **do not add a heavy chart dependency** without asking the manager first.
+- [ ] Use foundation components + empty states.
 
-## Ngoài phạm vi
-- Không export Excel/PDF (đợt sau). Không sửa layout/palette.
+## Out of scope (do NOT do here)
+- No Excel/PDF export (later). No layout/palette changes.
 
 ## Verification
-- [ ] `npm run build` pass · test nếu đụng backend
-- [ ] Browser: số liệu khớp dữ liệu seed; đổi khoảng thời gian cập nhật đúng.
+- [ ] `npm run build` passes · tests if backend touched
+- [ ] Browser: numbers match seed data; changing the date range updates correctly.
 
-## Nhật ký
+## Log
 - 2026-07-23 · created by manager
