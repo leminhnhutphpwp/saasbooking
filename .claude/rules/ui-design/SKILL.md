@@ -35,6 +35,20 @@ Keep the SÂN frontend coherent so many agents produce ONE consistent product, n
 - ❌ Add logos/images/favicons you generated — branding assets are a deliberate manager decision.
 - ❌ Change backend logic from a UI task — controllers may only reshape read data; keep tenant scoping, validation, and the invariants intact.
 
+## Craft & consistency checklist (a page is not "done" until it passes)
+
+Functional ≠ finished. Court owners pay monthly — the UI must feel meticulous, not like a prototype. Every page must satisfy:
+
+- **One container, everywhere.** Wrap page content in the shared `PageContainer` (consistent `max-width` + responsive padding + vertical section rhythm). NEVER a full-bleed page with left-aligned content and a sea of empty space on the right/bottom. Consistent width across ALL pages.
+- **No dead space.** If content is sparse (empty states, short forms), constrain width and center it — don't stretch one tiny card across a 1500px row. Two-column layouts (form + live preview) beat one tall stack with empty sides.
+- **Empty states earn their space.** Icon in a tinted circle + title + one-line hint + a clear primary action + a concrete example ("VD: 6–17h 100k, 17–22h giờ vàng 130k"). Never a bare bordered box floating in white.
+- **Cards are consistent.** Same header pattern (icon + title), same inner padding, same border/shadow/radius. Don't mix styles between pages.
+- **Visual hierarchy over walls of sameness.** Group long lists (e.g. time slots → Sáng/Chiều/Tối); use size/weight/color to lead the eye; drop decorative clutter (an icon on every item is noise, not craft).
+- **Spacing rhythm.** Use a consistent scale (e.g. gap-2/3/4/6); align edges; equal gutters.
+- **Interactions feel alive.** Hover, active, focus-visible, selected states on every interactive element; subtle transitions; disabled states legible.
+- **Loading + responsive.** Skeletons for async; verify the layout at mobile width AND wide desktop (no stretched rows, no overflow).
+- **Self-check before in-review:** open the page in a browser at ~390px and ~1440px; if it looks empty, misaligned, or monotonous, it's not done.
+
 ## When to use this skill
 
 Any task that adds or changes React/Inertia UI (all of `tasks/T01`–`T06` and future UI work).
