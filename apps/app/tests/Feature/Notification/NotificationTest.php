@@ -57,9 +57,13 @@ class NotificationTest extends TestCase
             'customer_id' => $this->customer->id, 'status' => BookingStatus::Confirmed, 'channel' => 'zalo',
             'total_amount' => 60_000, 'deposit_amount' => 60_000, 'payment_mode' => 'deposit', 'cancel_policy_snapshot' => [],
         ]);
+        // Slots are stored wall-as-UTC (venue wall-clock digits, no offset — single-tz Phase 1),
+        // so "$minutes from now" must be measured against the VENUE wall-clock, matching how
+        // SendBookingReminders evaluates its window.
+        $wallNow = CarbonImmutable::parse(CarbonImmutable::now($this->tenant->timezone)->format('Y-m-d H:i:s'));
         BookingSlot::create([
             'tenant_id' => $this->tenant->id, 'booking_id' => $booking->id, 'court_id' => $this->court->id,
-            'start_at' => CarbonImmutable::now()->addMinutes($minutes), 'end_at' => CarbonImmutable::now()->addMinutes($minutes + 60),
+            'start_at' => $wallNow->addMinutes($minutes), 'end_at' => $wallNow->addMinutes($minutes + 60),
             'price_snapshot' => 60_000, 'hold_status' => HoldStatus::Committed,
         ]);
 

@@ -10,6 +10,7 @@ use App\Models\PricingRule;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -47,6 +48,8 @@ class PricingRuleController extends Controller
             'priority' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        $this->assertNoOverlap($request, $court, $data);
+
         $court->pricingRules()->create([
             'tenant_id' => WorkingTenant::id($request),
             'weekday' => $data['weekday'],
@@ -73,6 +76,8 @@ class PricingRuleController extends Controller
             'priority' => ['nullable', 'integer', 'min:0'],
         ]);
 
+        $this->assertNoOverlap($request, $court, $data, $pricingRule->id);
+
         $pricingRule->update($data);
 
         return back()->with('success', 'Đã cập nhật bảng giá.');
@@ -91,5 +96,41 @@ class PricingRuleController extends Controller
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void
     {
         abort_unless($court->tenant_id === WorkingTenant::id($request), 403);
+    }
+
+    /**
+     * Reject a pricing rule that OVERLAPS an existing effective rule for the same
+     * court (scope): shares at least one weekday AND its [start, end) time window
+     * intersects. Equal-priority overlaps make resolution ambiguous, so we forbid
+     * them up front. Tenant-scoped; on update, the rule being edited is ignored.
+     *
+     * @param  array{weekday: array<int>, start_local: string, end_local: string}  $data
+     */
+    private function assertNoOverlap(Request $request, Court $court, array $data, ?int $ignoreId = null): void
+    {
+        $newStart = substr($data['start_local'], 0, 5);
+        $newEnd = substr($data['end_local'], 0, 5);
+        $weekdays = array_map('intval', $data['weekday']);
+
+        $existing = PricingRule::query()
+            ->where('tenant_id', WorkingTenant::id($request))
+            ->where('court_id', $court->id)
+            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->get();
+
+        foreach ($existing as $rule) {
+            if (array_intersect($weekdays, $rule->weekday) === []) {
+                continue;
+            }
+
+            $exStart = substr($rule->start_local, 0, 5);
+            $exEnd = substr($rule->end_local, 0, 5);
+
+            if ($newStart < $exEnd && $exStart < $newEnd) {
+                throw ValidationException::withMessages([
+                    'start_local' => 'Bảng giá này trùng khung giờ với một bảng giá đã có (cùng sân, cùng ngày trong tuần).',
+                ]);
+            }
+        }
     }
 }

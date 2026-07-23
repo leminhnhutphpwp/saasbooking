@@ -22,7 +22,12 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        // Security (#3): the L11+ api group ships without throttling. Add the general 'api'
+        // limiter (defined in AppServiceProvider) so every /api route is rate-limited by default;
+        // the webhook route layers its own 'webhook' limiter on top.
+        $middleware->api(prepend: [
+            'throttle:api',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

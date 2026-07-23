@@ -33,8 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Manager console — court owner / staff (tenant-scoped via WorkingTenant).
-Route::middleware('auth')->prefix('manager')->name('manager.')->group(function () {
+// Manager console — court owner (tenant-scoped via WorkingTenant).
+// Security (#7): auth alone is not enough — `can:access-manager` requires a tenant-bound owner.
+Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('manager.')->group(function () {
     Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
     Route::post('/courts', [CourtController::class, 'store'])->name('courts.store');
     Route::put('/courts/{court}', [CourtController::class, 'update'])->name('courts.update');
@@ -69,7 +70,8 @@ Route::middleware('auth')->prefix('manager')->name('manager.')->group(function (
 });
 
 // Public booking page (resolved by tenant slug — no auth).
-Route::prefix('book')->name('public.')->group(function () {
+// Security (#3): unauthenticated surface → throttle per IP + per venue.
+Route::middleware('throttle:public-booking')->prefix('book')->name('public.')->group(function () {
     Route::get('/{tenant:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
     Route::post('/{tenant:slug}/hold', [PublicBookingController::class, 'hold'])->name('booking.hold');
     Route::get('/{tenant:slug}/status/{code}', [PublicBookingController::class, 'status'])->name('booking.status');

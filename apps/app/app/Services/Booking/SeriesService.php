@@ -33,14 +33,17 @@ class SeriesService
      */
     public function create(Tenant $tenant, array $params): SeriesResult
     {
+        // Wall-as-UTC (single-tz Phase 1): the venue tz is stored in the `tz` column for the future,
+        // but slot digits are parsed NAIVELY so they align with AvailabilityService / BookingService,
+        // which also parse without an offset (docs/11 #3).
         $tz = $tenant->timezone ?: 'Asia/Ho_Chi_Minh';
 
-        $firstDate = $this->firstOccurrenceDate($params['start_date'], $params['end_date'], (int) $params['weekday'], $tz);
+        $firstDate = $this->firstOccurrenceDate($params['start_date'], $params['end_date'], (int) $params['weekday']);
         $priceSnapshot = $this->pricing->resolve(
             $tenant->id,
             (int) $params['court_id'],
-            CarbonImmutable::parse("{$firstDate} {$params['start_local']}", $tz),
-            CarbonImmutable::parse("{$firstDate} {$params['end_local']}", $tz),
+            CarbonImmutable::parse("{$firstDate} {$params['start_local']}"),
+            CarbonImmutable::parse("{$firstDate} {$params['end_local']}"),
         );
 
         $series = RecurringSeries::create([
@@ -95,15 +98,17 @@ class SeriesService
     private function generateHorizon(Tenant $tenant, RecurringSeries $series): array
     {
         $tz = $series->tz;
-        $today = CarbonImmutable::now($tz)->startOfDay();
+        // Venue wall-clock "today" relabeled naive (wall-as-UTC), so it compares apples-to-apples
+        // with the naively-parsed series window/date columns below.
+        $today = CarbonImmutable::parse(CarbonImmutable::now($tz)->toDateString());
         $horizonEnd = $today->addWeeks((int) config('booking.series_horizon_weeks'));
 
-        $startDate = CarbonImmutable::parse($series->start_date->toDateString(), $tz);
+        $startDate = CarbonImmutable::parse($series->start_date->toDateString());
         $from = $series->generated_through
-            ? CarbonImmutable::parse($series->generated_through->toDateString(), $tz)->addDay()
+            ? CarbonImmutable::parse($series->generated_through->toDateString())->addDay()
             : ($startDate->greaterThan($today) ? $startDate : $today);
 
-        $seriesEnd = CarbonImmutable::parse($series->end_date->toDateString(), $tz);
+        $seriesEnd = CarbonImmutable::parse($series->end_date->toDateString());
         $to = $horizonEnd->lessThan($seriesEnd) ? $horizonEnd : $seriesEnd;
 
         $generated = [];
@@ -124,8 +129,8 @@ class SeriesService
                     'deposit_amount' => $series->deposit_per_session,
                     'slots' => [[
                         'court_id' => $series->court_id,
-                        'start_at' => CarbonImmutable::parse("{$day} {$series->start_local}", $tz),
-                        'end_at' => CarbonImmutable::parse("{$day} {$series->end_local}", $tz),
+                        'start_at' => CarbonImmutable::parse("{$day} {$series->start_local}"),
+                        'end_at' => CarbonImmutable::parse("{$day} {$series->end_local}"),
                         'price_snapshot' => $series->price_per_session_snapshot,
                     ]],
                 ]);
@@ -142,10 +147,10 @@ class SeriesService
         return [$generated, $conflicts];
     }
 
-    private function firstOccurrenceDate(string $startDate, string $endDate, int $weekday, string $tz): string
+    private function firstOccurrenceDate(string $startDate, string $endDate, int $weekday): string
     {
-        $cursor = CarbonImmutable::parse($startDate, $tz);
-        $end = CarbonImmutable::parse($endDate, $tz);
+        $cursor = CarbonImmutable::parse($startDate);
+        $end = CarbonImmutable::parse($endDate);
 
         while ($cursor->lessThanOrEqualTo($end)) {
             if ($cursor->dayOfWeekIso === $weekday) {
