@@ -47,19 +47,29 @@ final class SecurityHeaders
     {
         $isLocal = app()->environment('local', 'testing');
 
+        $scriptSrc = "'self'";
+        $styleSrc = "'self' 'unsafe-inline'";
+        $fontSrc = "'self' data:";
         $connectSrc = "'self'";
+
         if ($isLocal) {
-            // Vite HMR uses WebSocket
-            $connectSrc = "'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*";
+            // Vite dev server (various hostnames used in Docker/local)
+            $viteOrigins = "http://localhost:5173 http://127.0.0.1:5173 http://0.0.0.0:5173";
+            $scriptSrc .= " {$viteOrigins} 'unsafe-inline'";
+            $styleSrc .= " {$viteOrigins}";
+            $connectSrc .= " ws://localhost:* ws://127.0.0.1:* ws://0.0.0.0:* http://localhost:* http://127.0.0.1:* http://0.0.0.0:*";
         }
+
+        // External fonts (used in production)
+        $fontSrc .= " https://fonts.bunny.net";
+        $styleSrc .= " https://fonts.bunny.net";
 
         $directives = [
             "default-src 'self'",
-            "script-src 'self'",
-            // Tailwind + Inertia require inline styles and occasionally inline scripts
-            "style-src 'self' 'unsafe-inline'",
+            "script-src {$scriptSrc}",
+            "style-src {$styleSrc}",
             "img-src 'self' data: blob:",
-            "font-src 'self' data:",
+            "font-src {$fontSrc}",
             "connect-src {$connectSrc}",
             "frame-ancestors 'none'",
             "base-uri 'self'",
