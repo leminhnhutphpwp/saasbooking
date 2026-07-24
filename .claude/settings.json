@@ -9,7 +9,7 @@
       "Bash(./vendor/bin/phpunit*)",
       "Bash(./vendor/bin/pint*)",
       "Bash(docker compose *)",
-      "Bash(git status)",
+      "Bash(git status *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git diff *)",
@@ -17,13 +17,18 @@
       "Bash(git config *)",
       "Bash(git checkout *)",
       "Bash(git switch *)",
+      "Bash(git stash *)",
+      "Bash(git pull *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git branch *)",
       "Bash(gh pr *)",
       "Bash(gh repo *)"
     ],
     "ask": [
       "Bash(php artisan migrate:fresh *)",
-      "Bash(php artisan db:wipe *)",
-      "Bash(git push *)"
+      "Bash(php artisan db:wipe *)"
     ],
     "deny": [
       "Read(**/vendor/**)",
