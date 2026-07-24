@@ -1,0 +1,57 @@
+name: Update Task Status
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  update-task:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract task ID from PR title
+        id: extract
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          # Match patterns like "T12:", "feat(T12):", "fix(T12):", etc.
+          TASK_ID=$(echo "$PR_TITLE" | grep -oE 'T[0-9]+' | head -1)
+          if [ -n "$TASK_ID" ]; then
+            echo "task_id=$TASK_ID" >> $GITHUB_OUTPUT
+            echo "Found task: $TASK_ID"
+          else
+            echo "No task ID found in PR title"
+          fi
+
+      - name: Update task status to done
+        if: steps.extract.outputs.task_id != ''
+        run: |
+          TASK_ID="${{ steps.extract.outputs.task_id }}"
+          TASK_FILE="tasks/${TASK_ID}-*.md"
+
+          # Find the task file
+          TASK_PATH=$(ls $TASK_FILE 2>/dev/null | head -1)
+
+          if [ -n "$TASK_PATH" ] && [ -f "$TASK_PATH" ]; then
+            echo "Updating $TASK_PATH"
+            sed -i 's/status: in-review/status: done/g' "$TASK_PATH"
+            sed -i 's/status: claimed/status: done/g' "$TASK_PATH"
+
+            # Configure git
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            # Commit and push
+            git add "$TASK_PATH"
+            git commit -m "chore: mark $TASK_ID as done (merged via PR #${{ github.event.pull_request.number }})"
+            git push
+          else
+            echo "Task file not found for $TASK_ID"
+          fi
