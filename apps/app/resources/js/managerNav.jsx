@@ -31,7 +31,6 @@ export const managerNav = [
         title: 'Cấu hình',
         items: [
             { title: 'Danh sách sân', href: 'manager.courts.index', icon: Building2 },
-            { title: 'Giờ & Giá', href: 'manager.courts.index', icon: Clock },
             { title: 'Thương hiệu', href: 'manager.branding.edit', icon: Palette },
         ],
     },
