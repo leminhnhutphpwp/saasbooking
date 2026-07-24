@@ -1,8 +1,8 @@
 ---
 id: T13
 title: v3 aesthetic sweep — remaining pages
-status: todo
-owner: "-"
+status: claimed
+owner: claude-sonnet-5
 priority: P2
 depends_on: [T11]
 branch: feat/retheme-sweep
@@ -47,3 +47,4 @@ Bring every remaining page up to the T11 violet/airy standard so the whole app i
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-24 · claimed by claude-sonnet-5
