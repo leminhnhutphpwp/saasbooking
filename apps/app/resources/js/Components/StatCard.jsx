@@ -1,18 +1,10 @@
 import { Card, CardContent } from '@/Components/ui/card';
 import { cn } from '@/lib/utils';
 
-/**
- * A single dashboard stat tile: label + big value, with an optional icon and
- * an optional trend line. Numbers are the hero — large, bold, prominent.
- *
- * Usage:
- *   <StatCard label="Tổng đặt" value={12} icon={CalendarDays} />
- *   <StatCard label="Đã xác nhận" value={8} icon={Check} accent="emerald" />
- */
-
 const ACCENTS = {
   default: 'text-foreground',
-  emerald: 'text-emerald-600 dark:text-emerald-400',
+  violet: 'text-violet-600 dark:text-violet-400',
+  emerald: 'text-violet-600 dark:text-violet-400',
   amber: 'text-amber-600 dark:text-amber-400',
   rose: 'text-rose-600 dark:text-rose-400',
   primary: 'text-primary',
@@ -20,7 +12,8 @@ const ACCENTS = {
 
 const ICON_BG = {
   default: 'bg-muted text-muted-foreground',
-  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+  violet: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
+  emerald: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
   amber: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
   rose: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
   primary: 'bg-primary/10 text-primary',
@@ -32,28 +25,45 @@ export function StatCard({
   icon: Icon,
   accent = 'default',
   trend,
+  action,
+  chart,
   className,
 }) {
+  const accentClass = ACCENTS[accent] ?? accent;
+  const iconBgClass = ICON_BG[accent] ?? 'bg-muted text-muted-foreground';
+
   return (
-    <Card className={className}>
-      <CardContent className="flex items-start justify-between gap-4 p-5">
-        <div className="space-y-1.5">
-          <div className="text-sm font-medium text-muted-foreground">{label}</div>
-          <div className={cn('text-3xl font-bold leading-none', ACCENTS[accent])}>
-            {value}
+    <Card className={cn('relative', className)}>
+      {action && (
+        <div className="absolute right-4 top-4">
+          {action}
+        </div>
+      )}
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-muted-foreground">{label}</div>
+            <div className={cn('text-4xl font-bold leading-none tracking-tight', accentClass)}>
+              {value}
+            </div>
+            {trend && (
+              <div className="text-xs text-muted-foreground">{trend}</div>
+            )}
           </div>
-          {trend && (
-            <div className="text-xs text-muted-foreground">{trend}</div>
+          {Icon && (
+            <div
+              className={cn(
+                'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl',
+                iconBgClass,
+              )}
+            >
+              <Icon className="h-5 w-5" />
+            </div>
           )}
         </div>
-        {Icon && (
-          <div
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-              ICON_BG[accent],
-            )}
-          >
-            <Icon className="h-5 w-5" />
+        {chart && (
+          <div className="mt-4 border-t border-border pt-4">
+            {chart}
           </div>
         )}
       </CardContent>
