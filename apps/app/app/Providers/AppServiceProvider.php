@@ -8,6 +8,7 @@ use App\Contracts\ZaloZnsTransport;
 use App\Events\BookingConfirmed;
 use App\Listeners\SendBookingConfirmation;
 use App\Models\User;
+use App\Services\Notification\HttpZaloZnsTransport;
 use App\Services\Notification\LogZaloZnsTransport;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -34,8 +35,11 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        // Phase-1 ZNS transport = log/record. Swap for an HTTP transport at Zalo wire-up time.
-        $this->app->bind(ZaloZnsTransport::class, LogZaloZnsTransport::class);
+        // ZNS transport: configurable via ZALO_DRIVER env var (default: 'log')
+        // 'log' = record only (dev/testing), 'http' = send via Zalo Business API (production)
+        $driver = config('zalo.driver', 'log');
+        $transport = $driver === 'http' ? HttpZaloZnsTransport::class : LogZaloZnsTransport::class;
+        $this->app->bind(ZaloZnsTransport::class, $transport);
     }
 
     public function boot(): void
