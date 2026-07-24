@@ -1,7 +1,7 @@
 ---
 id: T14
 title: DemoSeeder — reproducible demo data (committed to the repo)
-status: todo
+status: claimed          # changes requested — fails to run (see log)
 owner: "-"
 priority: P1
 depends_on: []
@@ -46,3 +46,4 @@ The demo (2 tenants, 4 users, 10 courts, bookings) currently exists **only in th
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-24 · manager review: DEMOSEEDER FAILS on a fresh DB — DemoSeeder.php:23 uses Model::create() on a guarded model instead of forceCreate (exactly the #10 pitfall the spec warned about) → QueryException. Also delivered on a polluted branch (E2E + binaries + touched default DatabaseSeeder, all out of scope). CHANGES REQUESTED: use forceCreate/forceFill for Booking/Payment/Court/Refund/RecurringSeries, keep it standalone (do not modify DatabaseSeeder), clean branch off current main.
