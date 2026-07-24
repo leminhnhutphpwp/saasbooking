@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
-import ApplicationLogo from '@/Components/ApplicationLogo';
 import { AppTopbar } from '@/Components/AppTopbar';
 import {
     Sidebar,
@@ -36,9 +35,7 @@ export default function ManagerLayout({ children }) {
                         href={route('manager.home')}
                         className="flex items-center gap-3 px-3 py-4"
                     >
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-pink-500 shadow-sm">
-                            <ApplicationLogo className="h-6 w-6 text-white" />
-                        </div>
+                        <img src="/logo-transparent.png" alt="Wavise" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
                         <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                             <span className="text-base font-bold leading-tight text-foreground">SÂN</span>
                             <span className="text-[10px] leading-tight text-muted-foreground">Court Management</span>

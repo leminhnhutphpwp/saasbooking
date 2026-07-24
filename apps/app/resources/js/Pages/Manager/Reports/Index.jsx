@@ -120,13 +120,13 @@ export default function Index({ filters, revenueByDay, summary, occupancy, topCu
                         label="Đặt sân (đã xác nhận)"
                         value={summary.confirmedBookings}
                         icon={CalendarDays}
-                        accent="violet"
+                        accent="orange"
                     />
                     <StatCard
                         label="Tỉ lệ lấp đầy"
                         value={`${occupancy.rate}%`}
                         icon={Users}
-                        accent="violet"
+                        accent="orange"
                     />
                     <StatCard
                         label="Tỉ lệ bom"
@@ -180,9 +180,9 @@ export default function Index({ filters, revenueByDay, summary, occupancy, topCu
                                     <p className="text-xs text-muted-foreground">Số đơn bom</p>
                                     <p className="mt-1 text-2xl font-bold">{summary.noShowCount}</p>
                                 </div>
-                                <div className="rounded-xl border bg-violet-50 p-3 dark:bg-violet-950/30">
+                                <div className="rounded-xl border bg-orange-50 p-3 dark:bg-orange-950/30">
                                     <p className="text-xs text-muted-foreground">Tiền cọc đã thu</p>
-                                    <p className="mt-1 text-2xl font-bold text-violet-600 dark:text-violet-400">{formatVND(summary.depositsCollected)}</p>
+                                    <p className="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400">{formatVND(summary.depositsCollected)}</p>
                                 </div>
                                 <div className="rounded-xl border bg-amber-50 p-3 dark:bg-amber-950/30">
                                     <p className="text-xs text-muted-foreground">Đã hoàn cọc</p>

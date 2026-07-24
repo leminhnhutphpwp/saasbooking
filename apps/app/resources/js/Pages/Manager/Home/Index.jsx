@@ -58,10 +58,10 @@ function RevenueChart({ data }) {
                 </defs>
                 {!isEmpty && (
                     <>
-                        <path d={area} fill="url(#rev-fill)" className="text-violet-500" />
-                        <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-500" />
+                        <path d={area} fill="url(#rev-fill)" className="text-orange-500" />
+                        <path d={path} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500" />
                         {points.map((p, i) => (
-                            <circle key={i} cx={p[0]} cy={p[1]} r="3" className="fill-background stroke-violet-500" strokeWidth="2" />
+                            <circle key={i} cx={p[0]} cy={p[1]} r="3" className="fill-background stroke-orange-500" strokeWidth="2" />
                         ))}
                     </>
                 )}
@@ -169,7 +169,7 @@ export default function Index({
                                 </div>
                                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                                     <div
-                                        className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 transition-all"
+                                        className="h-full rounded-full bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 transition-all"
                                         style={{ width: `${Math.min(stats.occupancy, 100)}%` }}
                                     />
                                 </div>
@@ -188,7 +188,7 @@ export default function Index({
                                 <PillAction href={route('manager.reports.index')}>Báo cáo</PillAction>
                             </div>
                             <div className="mt-4 flex items-baseline gap-3">
-                                <div className="text-4xl font-bold tracking-tight text-violet-600 dark:text-violet-400">
+                                <div className="text-4xl font-bold tracking-tight text-orange-600 dark:text-orange-400">
                                     {formatVND(weekTotals.revenue)}
                                 </div>
                             </div>
@@ -310,9 +310,9 @@ export default function Index({
                                 <div>
                                     <div className="mb-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
+                                            <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
                                             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Giao dịch chưa khớp</span>
-                                            <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400">
+                                            <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-950/50 dark:text-orange-400">
                                                 {unmatchedTxns.length}
                                             </span>
                                         </div>

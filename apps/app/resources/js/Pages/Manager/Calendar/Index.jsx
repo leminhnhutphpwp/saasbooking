@@ -34,7 +34,7 @@ const DAY_END = 23;
 const TOTAL_MIN = (DAY_END - DAY_START) * 60;
 
 const STATUS_TINT = {
-    confirmed: { bg: 'bg-violet-50 dark:bg-violet-950/40', border: '#8b5cf6', text: 'text-violet-700 dark:text-violet-300' },
+    confirmed: { bg: 'bg-orange-50 dark:bg-orange-950/40', border: '#f97316', text: 'text-orange-700 dark:text-orange-300' },
     pending_deposit: { bg: 'bg-amber-50 dark:bg-amber-950/40', border: '#f59e0b', text: 'text-amber-700 dark:text-amber-300' },
     cancelled: { bg: 'bg-muted/50', border: '#94a3b8', text: 'text-muted-foreground' },
     expired: { bg: 'bg-muted/50', border: '#94a3b8', text: 'text-muted-foreground line-through' },

@@ -33,7 +33,7 @@ function UserAvatar({ user }) {
     return (
         <Dropdown>
             <Dropdown.Trigger>
-                <button className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 via-violet-500 to-pink-500 text-sm font-semibold text-white transition-shadow hover:shadow-md">
+                <button className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 text-sm font-semibold text-white transition-shadow hover:shadow-md">
                     {user.name?.charAt(0)?.toUpperCase()}
                 </button>
             </Dropdown.Trigger>
