@@ -1,15 +1,16 @@
 ---
 id: T12
 title: Home dashboard redesign (QwenCloud-style)
-status: todo
-owner: "-"
+status: claimed
+owner: claude-sonnet-5
 priority: P1
 depends_on: [T11]
 branch: feat/home-dashboard-redesign
 scope:
   - apps/app/resources/js/Pages/Manager/Home/Index.jsx
   - apps/app/resources/js/Components/QuickLinks.jsx   # new
-updated: 2026-07-23
+  - apps/app/app/Http/Controllers/Manager/HomeController.php   # add 7-day revenue series (read-only, tenant-scoped)
+updated: 2026-07-24
 ---
 
 ## Goal
@@ -40,3 +41,4 @@ Redesign the manager Home to the airy, card-based layout of the **QwenCloud refe
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-24 · claimed by claude-sonnet-5; extending scope with 7-day revenue series query in HomeController (read-only, tenant-scoped) so the revenue card has a real chart
