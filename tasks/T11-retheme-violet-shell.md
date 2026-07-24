@@ -1,7 +1,7 @@
 ---
 id: T11
 title: Re-theme v3 (violet/indigo) + airy card & shell aesthetic
-status: todo
+status: done
 owner: "-"
 priority: P0
 depends_on: []
@@ -51,3 +51,4 @@ QwenCloud dashboard: light near-white background, white cards with **large radiu
 
 ## Log
 - 2026-07-23 · created by manager
+- 2026-07-24 · manager: theme verified (violet/airy/reference-matching). Branch was polluted (T14/E2E/binaries) — extracted the 6 clean theme files only; merged. T12/T13 unblocked.
