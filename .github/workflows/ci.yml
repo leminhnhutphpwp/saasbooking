@@ -43,6 +43,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check task dependencies
+        if: github.event_name == 'pull_request'
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [ -f "scripts/check-deps.sh" ]; then
+            bash scripts/check-deps.sh "$PR_TITLE" || exit 1
+          fi
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
