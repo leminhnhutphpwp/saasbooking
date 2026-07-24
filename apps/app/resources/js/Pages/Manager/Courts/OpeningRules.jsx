@@ -2,10 +2,13 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
+import { PageContainer } from '@/Components/PageContainer';
+import { EmptyState } from '@/Components/EmptyState';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Badge } from '@/Components/ui/badge';
+import { Card } from '@/Components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -13,7 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import { Trash2, Plus, AlertCircle } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, Clock } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -82,16 +85,15 @@ export default function OpeningRules({ court, rules }) {
     const dayLabel = (days) => days.map((d) => DAY_FULL[d]).join(', ');
 
     return (
-        <ManagerLayout
-            header={<h2 className="text-xl font-semibold leading-tight">Giờ mở cửa — {court.name}</h2>}
-        >
+        <ManagerLayout>
             <Head title={`Giờ mở cửa — ${court.name}`} />
 
-            <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 space-y-6">
+            <PageContainer size="narrow">
                 <PageHeader
                     title={`Giờ mở cửa — ${court.name}`}
                     backHref="/manager/courts"
                     backLabel="Danh sách sân"
+                    description={`${rules.length} khung giờ mở cửa`}
                     actions={
                         <Button onClick={openAdd} className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -99,10 +101,9 @@ export default function OpeningRules({ court, rules }) {
                         </Button>
                     }
                 />
-                <p className="text-sm text-muted-foreground">{rules.length} khung giờ</p>
 
                 {form.errors.open_local && (
-                    <div className="mb-4 flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
                             <p className="font-medium">Trùng khung giờ</p>
@@ -111,38 +112,49 @@ export default function OpeningRules({ court, rules }) {
                     </div>
                 )}
 
-                <div className="divide-y rounded-lg border bg-card">
-                    {rules.length === 0 && (
-                        <div className="p-8 text-center">
-                            <p className="text-sm text-muted-foreground">Chưa có giờ mở cửa nào.</p>
-                            <p className="mt-1 text-xs text-muted-foreground/60">Bấm "Thêm khung giờ" để bắt đầu.</p>
+                <Card className="overflow-hidden">
+                    {rules.length === 0 ? (
+                        <EmptyState
+                            icon={Clock}
+                            title="Chưa có giờ mở cửa nào"
+                            description="Thiết lập khung giờ mở cửa cho sân theo từng ngày trong tuần."
+                            example="VD: T2–T6 mở 06:00–22:00, T7–CN mở 07:00–20:00"
+                            action={
+                                <Button onClick={openAdd} className="gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Thêm khung giờ
+                                </Button>
+                            }
+                        />
+                    ) : (
+                        <div className="divide-y">
+                            {rules.map((r) => (
+                                <div key={r.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                    <div className="flex-1 space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <div className="font-medium">{dayLabel(r.weekday)}</div>
+                                            <Badge variant="outline" className="font-mono text-xs">
+                                                {r.open_local} – {r.close_local}
+                                            </Badge>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground">
+                                            {r.effective_from && <>Từ {r.effective_from}</>}
+                                            {r.effective_to && <> · đến {r.effective_to}</>}
+                                            {!r.effective_from && !r.effective_to && <span className="italic">Vô thời hạn</span>}
+                                        </div>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
-                    {rules.map((r) => (
-                        <div key={r.id} className="flex items-center justify-between p-4">
-                            <div className="flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <div className="font-medium">{dayLabel(r.weekday)}</div>
-                                    <Badge variant="outline" className="font-mono text-xs">
-                                        {r.open_local} – {r.close_local}
-                                    </Badge>
-                                </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                    {r.effective_from && <>Từ {r.effective_from}</>}
-                                    {r.effective_to && <> · đến {r.effective_to}</>}
-                                    {!r.effective_from && !r.effective_to && <span className="italic">Vô thời hạn</span>}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
-                                <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                </Card>
+            </PageContainer>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-lg">
@@ -153,7 +165,7 @@ export default function OpeningRules({ court, rules }) {
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label>Ngày trong tuần</Label>
-                                <Button type="button" variant="ghost" size="sm" onClick={selectAllDays} className="text-xs">
+                                <Button type="button" variant="ghost" size="sm" onClick={selectAllDays} className="h-auto text-xs">
                                     Chọn tất cả
                                 </Button>
                             </div>
@@ -165,8 +177,8 @@ export default function OpeningRules({ court, rules }) {
                                         onClick={() => toggleDay(d)}
                                         className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
                                             form.data.weekday.includes(d)
-                                                ? 'border-primary bg-primary text-primary-foreground'
-                                                : 'border-border bg-card text-muted-foreground hover:bg-accent'
+                                                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                                                : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     >
                                         {DAY_LABELS[d]}

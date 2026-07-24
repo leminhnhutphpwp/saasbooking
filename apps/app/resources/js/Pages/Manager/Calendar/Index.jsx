@@ -1,8 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState, useEffect, useRef } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
+import { PageContainer } from '@/Components/PageContainer';
 import { StatusBadge } from '@/Components/StatusBadge';
-import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -26,28 +27,19 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/Components/ui/tooltip';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
 
 const DAY_START = 5;
 const DAY_END = 23;
 const TOTAL_MIN = (DAY_END - DAY_START) * 60;
 
-const STATUS_LABEL = {
-    confirmed: 'Đã xác nhận',
-    pending_deposit: 'Chờ cọc',
-    cancelled: 'Đã hủy',
-    expired: 'Hết hạn',
-    completed: 'Đã hoàn tất',
-    no_show: 'Bom',
-};
-
-const STATUS_BORDER = {
-    confirmed: '#10b981',
-    pending_deposit: '#f59e0b',
-    cancelled: '#94a3b8',
-    expired: '#94a3b8',
-    completed: '#10b981',
-    no_show: '#ef4444',
+const STATUS_TINT = {
+    confirmed: { bg: 'bg-violet-50 dark:bg-violet-950/40', border: '#8b5cf6', text: 'text-violet-700 dark:text-violet-300' },
+    pending_deposit: { bg: 'bg-amber-50 dark:bg-amber-950/40', border: '#f59e0b', text: 'text-amber-700 dark:text-amber-300' },
+    cancelled: { bg: 'bg-muted/50', border: '#94a3b8', text: 'text-muted-foreground' },
+    expired: { bg: 'bg-muted/50', border: '#94a3b8', text: 'text-muted-foreground line-through' },
+    completed: { bg: 'bg-emerald-50 dark:bg-emerald-950/40', border: '#10b981', text: 'text-emerald-700 dark:text-emerald-300' },
+    no_show: { bg: 'bg-rose-50 dark:bg-rose-950/40', border: '#ef4444', text: 'text-rose-700 dark:text-rose-300' },
 };
 
 function pct(minutes) {
@@ -61,6 +53,26 @@ function hhmm(iso) {
 function toMinutes(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
+}
+
+function formatDateHeader(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+    const weekday = d.toLocaleDateString('vi-VN', { weekday: 'long' });
+    const date = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    if (dateStr === todayStr) return `Hôm nay · ${weekday}`;
+    if (dateStr === tomorrowStr) return `Ngày mai · ${weekday}`;
+    if (dateStr === yesterdayStr) return `Hôm qua · ${weekday}`;
+    return `${weekday} · ${date}`;
 }
 
 export default function Index({ date, bookings, courts, timeSlots }) {
@@ -139,26 +151,30 @@ export default function Index({ date, bookings, courts, timeSlots }) {
     const isToday = date === todayStr;
 
     return (
-        <ManagerLayout header={<h2 className="text-sm font-medium text-muted-foreground">Lịch đặt sân</h2>}>
+        <ManagerLayout>
             <Head title="Lịch đặt sân" />
 
-            <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
-                        <Button variant="outline" size="icon" onClick={() => goDay(-1)}>
+            <PageContainer size="default" className="max-w-full 2xl:max-w-7xl">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <PageHeader
+                        title={formatDateHeader(date)}
+                        description={`${bookings.length} lịch đặt · ${courts.length} sân`}
+                    />
+                    <div className="flex items-center gap-1.5">
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goDay(-1)}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <Input
                             type="date"
                             value={date}
                             onChange={(e) => changeDate(e.target.value)}
-                            className="w-44"
+                            className="h-9 w-40"
                         />
-                        <Button variant="outline" size="icon" onClick={() => goDay(1)}>
+                        <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => goDay(1)}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                         {!isToday && (
-                            <Button variant="secondary" size="sm" onClick={goToday}>
+                            <Button variant="secondary" size="sm" className="h-9" onClick={goToday}>
                                 Hôm nay
                             </Button>
                         )}
@@ -166,26 +182,28 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                 </div>
 
                 {courts.length === 0 && (
-                    <div className="rounded-lg border bg-card p-12 text-center text-sm text-muted-foreground">
-                        Chưa có sân nào. Thêm sân trước khi xem lịch.
+                    <div className="rounded-2xl border bg-card p-12 text-center">
+                        <Clock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+                        <p className="text-sm font-medium text-foreground">Chưa có sân nào</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Thêm sân trước khi xem lịch đặt.</p>
                     </div>
                 )}
 
                 {courts.length > 0 && (
-                    <div className="overflow-x-auto" ref={scrollRef}>
+                    <div className="overflow-x-auto rounded-2xl border bg-card shadow-sm" ref={scrollRef}>
                         <div
                             className="grid min-w-[600px]"
                             style={{
                                 gridTemplateColumns: `72px repeat(${courts.length}, minmax(180px, 1fr))`,
                             }}
                         >
-                            <div className="sticky top-0 z-10 flex h-10 items-center justify-center border-b bg-muted/50 text-xs font-medium text-muted-foreground">
-                                <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /></svg>
+                            <div className="sticky top-0 z-10 flex h-11 items-center justify-center border-b bg-muted/40">
+                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                             </div>
                             {courts.map((court) => (
                                 <div
                                     key={court.id}
-                                    className="sticky top-0 z-10 flex h-10 items-center justify-center border-b bg-muted/50 px-2 text-sm font-semibold"
+                                    className="sticky top-0 z-10 flex h-11 items-center justify-center border-b border-l bg-muted/40 px-2 text-sm font-semibold"
                                 >
                                     {court.name}
                                 </div>
@@ -213,16 +231,16 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                         {timeSlots.map((slot, i) => (
                                             <div
                                                 key={slot}
-                                                className={`h-8 border-b ${i % 2 === 0 ? 'border-gray-100' : 'border-gray-50'}`}
+                                                className={`h-8 border-b ${i % 2 === 0 ? 'border-border/50' : 'border-border/20'}`}
                                             />
                                         ))}
 
                                         {isToday && nowPos && (
                                             <div
-                                                className="absolute left-0 right-0 z-20 border-t-2 border-red-500"
+                                                className="absolute left-0 right-0 z-20 border-t-2 border-primary"
                                                 style={{ top: `${nowPos}%` }}
                                             >
-                                                <div className="-mt-2 ml-1 h-3 w-3 rounded-full bg-red-500" />
+                                                <div className="-mt-2 ml-1 h-3 w-3 rounded-full bg-primary shadow-sm" />
                                             </div>
                                         )}
 
@@ -231,19 +249,20 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                             const endMin = toMinutes(hhmm(b.end));
                                             const top = pct(startMin);
                                             const heightPct = Math.max(0, pct(endMin) - pct(startMin));
+                                            const tint = STATUS_TINT[b.status] ?? STATUS_TINT.confirmed;
 
                                             return (
                                                 <TooltipProvider key={`${b.code}-${b.start}`}>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div
-                                                                className="absolute left-0.5 right-0.5 z-10 cursor-pointer overflow-hidden rounded border-l-4 bg-card px-1 py-0.5 text-[11px] leading-tight shadow-sm"
-                                                                style={{ top: `${top}%`, height: `${heightPct}%`, minHeight: 20, borderLeftColor: STATUS_BORDER[b.status] || '#e2e8f0' }}
+                                                                className={`absolute left-0.5 right-0.5 z-10 cursor-pointer overflow-hidden rounded-lg border-l-[3px] px-1.5 py-1 text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md ${tint.bg}`}
+                                                                style={{ top: `${top}%`, height: `${heightPct}%`, minHeight: 24, borderLeftColor: tint.border }}
                                                             >
-                                                                <div className="truncate font-semibold">
+                                                                <div className={`truncate font-semibold ${tint.text}`}>
                                                                     {b.customer}
                                                                 </div>
-                                                                <div className="truncate opacity-75">
+                                                                <div className="truncate text-muted-foreground">
                                                                     {hhmm(b.start)}–{hhmm(b.end)}
                                                                 </div>
                                                             </div>
@@ -274,15 +293,15 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                             return (
                                                 <div
                                                     key={`empty-${slot}`}
-                                                    className="absolute left-0 right-0 z-5 cursor-pointer rounded opacity-0 transition-opacity hover:opacity-100 hover:bg-blue-50/60"
+                                                    className="absolute left-0 right-0 z-5 cursor-pointer rounded opacity-0 transition-all hover:opacity-100 hover:bg-primary/5"
                                                     style={{
                                                         top: `${pct(slotMin)}%`,
                                                         height: `${pct(slotMin + 30) - pct(slotMin)}%`,
                                                     }}
                                                     onClick={() => openWalkIn(court.id, slot)}
                                                 >
-                                                    <div className="flex h-full items-center justify-center text-[10px] text-blue-600">
-                                                        +
+                                                    <div className="flex h-full items-center justify-center text-xs text-primary">
+                                                        <Plus className="h-3 w-3" />
                                                     </div>
                                                 </div>
                                             );
@@ -295,17 +314,14 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                 )}
 
                 {courts.length > 0 && bookings.length === 0 && (
-                    <p className="mt-4 text-center text-sm text-muted-foreground">
-                        Chưa có lịch đặt nào trong ngày này.
-                    </p>
+                    <div className="rounded-2xl border bg-card p-8 text-center">
+                        <Clock className="mx-auto mb-3 h-10 w-10 text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">
+                            Chưa có lịch đặt nào trong ngày này.
+                        </p>
+                    </div>
                 )}
-
-                {bookings.length > 0 && (
-                    <p className="mt-3 text-xs text-muted-foreground">
-                        {bookings.length} lịch đặt · {courts.length} sân
-                    </p>
-                )}
-            </div>
+            </PageContainer>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-md">

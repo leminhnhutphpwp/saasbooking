@@ -1,9 +1,13 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
+import { PageContainer } from '@/Components/PageContainer';
+import { EmptyState } from '@/Components/EmptyState';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Label } from '@/Components/ui/label';
+import { Card } from '@/Components/ui/card';
 import {
     Select,
     SelectContent,
@@ -18,8 +22,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-
-const vnd = (n) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+import { formatVND } from '@/lib/format';
+import { GitBranch, CheckCircle2 } from 'lucide-react';
 
 export default function Unmatched({ txns, pendingBookings }) {
     const [matchTxn, setMatchTxn] = useState(null);
@@ -51,99 +55,108 @@ export default function Unmatched({ txns, pendingBookings }) {
     const fresh = txns.filter((t) => !t.note);
 
     return (
-        <ManagerLayout
-            header={<h2 className="text-xl font-semibold leading-tight">Đối soát tay</h2>}
-        >
+        <ManagerLayout>
             <Head title="Đối soát tay" />
 
-            <div className="mx-auto max-w-6xl space-y-8 p-4 sm:p-6">
-                {unmatched.length > 0 && (
-                    <section>
-                        <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                            Cần đối soát ({unmatched.length})
-                        </h3>
-                        <div className="divide-y rounded-lg border bg-card">
-                            {unmatched.map((t) => (
-                                <div key={t.id} className="flex items-center justify-between p-4">
-                                    <div className="space-y-0.5">
-                                        <div className="font-medium">
-                                            {vnd(t.amount)} ·{' '}
-                                            <span className="font-mono text-sm">{t.memo}</span>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {t.received_at}
-                                        </div>
-                                        <Badge variant="secondary" className="text-xs">
-                                            {t.note}
-                                        </Badge>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => openMatch(t)}
-                                        >
-                                            Đối soát
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => dismissTxn(t.id)}
-                                        >
-                                            Bỏ qua
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
+            <PageContainer>
+                <PageHeader
+                    title="Đối soát tay"
+                    description={`${txns.length} giao dịch cần xử lý · Ghép giao dịch ngân hàng với đơn đặt sân`}
+                />
 
-                {fresh.length > 0 && (
-                    <section>
-                        <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                            Chờ xử lý ({fresh.length})
-                        </h3>
-                        <div className="divide-y rounded-lg border bg-card">
-                            {fresh.map((t) => (
-                                <div key={t.id} className="flex items-center justify-between p-4">
-                                    <div className="space-y-0.5">
-                                        <div className="font-medium">
-                                            {vnd(t.amount)} ·{' '}
-                                            <span className="font-mono text-sm">{t.memo}</span>
-                                        </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            {t.received_at}
-                                        </div>
+                {txns.length === 0 ? (
+                    <EmptyState
+                        icon={CheckCircle2}
+                        title="Không có giao dịch cần đối soát"
+                        description="Tất cả giao dịch ngân hàng đã được khớp tự động hoặc không có giao dịch mới."
+                    />
+                ) : (
+                    <div className="space-y-6">
+                        {unmatched.length > 0 && (
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                                        <GitBranch className="h-3.5 w-3.5" />
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => openMatch(t)}
-                                        >
-                                            Đối soát
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => dismissTxn(t.id)}
-                                        >
-                                            Bỏ qua
-                                        </Button>
-                                    </div>
+                                    <h3 className="text-sm font-semibold text-foreground">
+                                        Cần đối soát
+                                    </h3>
+                                    <Badge variant="secondary" className="text-xs">{unmatched.length}</Badge>
                                 </div>
-                            ))}
-                        </div>
-                    </section>
-                )}
+                                <Card className="overflow-hidden">
+                                    <div className="divide-y">
+                                        {unmatched.map((t) => (
+                                            <div key={t.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base font-bold text-primary">{formatVND(t.amount)}</span>
+                                                        <span className="font-mono text-sm text-muted-foreground">{t.memo}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                        <span>{t.received_at}</span>
+                                                        {t.note && (
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                {t.note}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex shrink-0 gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                        Đối soát
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => dismissTxn(t.id)}>
+                                                        Bỏ qua
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </section>
+                        )}
 
-                {txns.length === 0 && (
-                    <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
-                        Không có giao dịch nào cần đối soát.
+                        {fresh.length > 0 && (
+                            <section className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                        <GitBranch className="h-3.5 w-3.5" />
+                                    </div>
+                                    <h3 className="text-sm font-semibold text-foreground">
+                                        Chờ xử lý
+                                    </h3>
+                                    <Badge variant="secondary" className="text-xs">{fresh.length}</Badge>
+                                </div>
+                                <Card className="overflow-hidden">
+                                    <div className="divide-y">
+                                        {fresh.map((t) => (
+                                            <div key={t.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-base font-bold text-foreground">{formatVND(t.amount)}</span>
+                                                        <span className="font-mono text-sm text-muted-foreground">{t.memo}</span>
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {t.received_at}
+                                                    </div>
+                                                </div>
+                                                <div className="flex shrink-0 gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                        Đối soát
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => dismissTxn(t.id)}>
+                                                        Bỏ qua
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            </section>
+                        )}
                     </div>
                 )}
-            </div>
+            </PageContainer>
 
             <Dialog open={matchTxn !== null} onOpenChange={(o) => !o && setMatchTxn(null)}>
                 <DialogContent className="sm:max-w-xl">
@@ -153,24 +166,28 @@ export default function Unmatched({ txns, pendingBookings }) {
 
                     {matchTxn && (
                         <form onSubmit={submitMatch} className="space-y-4">
-                            <div className="rounded-lg bg-muted p-3 text-sm">
-                                <p>
-                                    <span className="font-medium">Số tiền:</span> {vnd(matchTxn.amount)}
-                                </p>
-                                <p>
-                                    <span className="font-medium">Nội dung:</span> {matchTxn.memo}
-                                </p>
-                                <p>
-                                    <span className="font-medium">Ngày:</span> {matchTxn.received_at}
-                                </p>
-                                {matchTxn.note && (
+                            <div className="rounded-xl border bg-muted/40 p-4 text-sm">
+                                <div className="space-y-1.5">
                                     <p>
-                                        <span className="font-medium">Ghi chú:</span> {matchTxn.note}
+                                        <span className="text-muted-foreground">Số tiền:</span>{' '}
+                                        <strong className="text-primary">{formatVND(matchTxn.amount)}</strong>
                                     </p>
-                                )}
+                                    <p>
+                                        <span className="text-muted-foreground">Nội dung:</span>{' '}
+                                        <span className="font-mono">{matchTxn.memo}</span>
+                                    </p>
+                                    <p>
+                                        <span className="text-muted-foreground">Ngày:</span> {matchTxn.received_at}
+                                    </p>
+                                    {matchTxn.note && (
+                                        <p>
+                                            <span className="text-muted-foreground">Ghi chú:</span> {matchTxn.note}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label>Chọn đơn đặt sân chờ cọc</Label>
                                 <Select
                                     value={form.data.booking_uuid}
@@ -183,7 +200,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                                         {pendingBookings.map((b) => (
                                             <SelectItem key={b.uuid} value={b.uuid}>
                                                 {b.code} — {b.customer_name} ({b.customer_phone}) —{' '}
-                                                {vnd(b.deposit_amount)}
+                                                {formatVND(b.deposit_amount)}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -196,7 +213,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                             </div>
 
                             {pendingBookings.length === 0 && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="rounded-xl border bg-muted/30 p-3 text-sm text-muted-foreground">
                                     Không có đơn nào đang chờ cọc để đối soát.
                                 </p>
                             )}
