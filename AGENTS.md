@@ -80,6 +80,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 
 ### Sub-agent discipline (a delegated agent MUST NOT)
 
+- ❌ **Merge source code into `main`.** Push your code to your task branch and stop. Your ONLY write to `main` is your task's own `.md` (status/handoff signal). The **manager** reviews the branch and merges the code. (`tasks/README.md` → "separation of merge duties".)
 - ❌ **Work outside its task's `scope`** — no side-effect edits to seeders, routes, config, or "unrelated improvements". Need a file outside scope → stop, mark `blocked`, flag the manager (`tasks/README.md`).
 - ❌ **Rewrite a working file wholesale** — extend by adding; smallest change that meets the acceptance criteria (principle #2).
 - ❌ **Add dependencies or external CDNs**, or commit **self-generated binary assets** (logos/images/fonts), without manager approval.

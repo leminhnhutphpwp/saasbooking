@@ -11,23 +11,34 @@ A worker is **anyone/anything that executes one task**: a human dev, or an AI ag
 
 ## Roles
 
-- **Manager:** decompose work → write task files with **non-overlapping `scope` (file lists)**; assign/hand out tasks; **review + verify + merge**; keep `BOARD.md` current. Does NOT write feature code — only governance.
-- **Worker:** take exactly ONE task, work **only within `scope`**, verify, open a PR for the manager to review.
+- **Manager:** decompose work → write task files with **non-overlapping `scope`**; review + verify (build/test/browser); **is the ONLY one who merges source code into `main`**; keep `BOARD.md` current. Does NOT write feature code.
+- **Worker:** take exactly ONE task, work **only within `scope`** on the task branch, verify, and **hand off via the task `.md`** — a worker NEVER merges source code into `main`.
+
+## The core rule — separation of merge duties
+
+- **Source code lives on the task branch only.** A worker commits + pushes their code to `<branch>` and **stops there**. They do NOT merge code into `main`.
+- **A worker's ONLY write to `main` is its own task `.md`** — the status/handoff signal ("I'm done, here's the branch, here's how to verify"). That is the report.
+- **Merging source code into `main` is the manager's job, always.** The manager pulls the `.md`, fetches the branch, reviews + verifies, then merges the code and sets the `.md` to `done`.
+
+This makes polluted/half-baked code reaching `main` **structurally impossible** — the worker's footprint on `main` is one small markdown file, nothing more.
 
 ## Status lifecycle
 
 `todo` → `claimed` → `in-review` → `done`  ·  (`blocked` when stuck)
 
-## Claim protocol (git-visible — mandatory)
+## Protocol
 
-A local edit is invisible to other machines. The **lock is the pushed branch + open PR**.
+**Worker:**
+1. `git switch main && git pull`. Read `BOARD.md`. Pick a `todo` task whose `depends_on` are all `done`; if its `.md` ≠ `todo` or a branch exists → SKIP.
+2. **Claim:** on `main`, set the task `.md` `status: claimed` + `owner` + a `## Log` line, commit **just that .md**, push (this small metadata commit is the visible lock). Then `git switch -c <branch>` and work.
+3. Work **only inside `scope`**. Commit + **push the code to `<branch>`**. Need a file outside `scope`? Stop, set `blocked`, tell the manager — never widen scope.
+4. **Hand off:** update the task `.md` → `status: in-review`, fill **## Verification** (build/test + browser screenshots) and a short **handoff note** (branch name, what changed, how to verify), commit **just the .md**, push to `main`. Do **NOT** merge the code branch.
 
-1. `git switch main && git pull` so the ledger is current. Read `BOARD.md`.
-2. Pick a **`status: todo`** task whose every `depends_on` is `done`. Re-check the task file's `status`; **if ≠ `todo`, or a branch/PR for it already exists → SKIP** (taken).
-3. **Claim (push it):** `git switch -c <branch from the task's `branch:` field>`, edit the task file (`status: claimed`, `owner: <your id>`, `updated:`, add a **## Log** line), commit, **push**, and **open a draft PR** titled `T##: <title>`. The pushed branch + draft PR is the visible lock everyone can see (`gh pr list` / GitHub).
-4. Work only inside `scope`. **Never touch files owned by another open task branch/PR.** Need a file outside `scope`? Stop, set `blocked`, tell the manager — do NOT widen scope.
-5. Done: set `status: in-review`, fill **## Verification** (build/test/screenshots), push, mark the PR ready-for-review.
-6. **Manager reviews** the diff + re-runs verification. Pass → merge + set `status: done` on `main`. Fail → comments; back to `claimed`.
+**Manager:**
+5. Pull `main` → see the `.md` at `in-review`. `git fetch` + review the branch diff; re-run build/test + browser verify (never trust the self-report).
+6. Pass → **manager merges the code** into `main` (clean — dropping anything out of scope) and sets the `.md` → `done`. Fail → note it on the `.md`/branch; back to `claimed`.
+
+> Note: this is still a **convention** — without branch protection, a rogue push of code to `main` is physically possible (it happened once). If a worker keeps violating, pair this with GitHub branch protection so only the manager can push to `main`. But as a working agreement it removes the ambiguity that caused workers to merge their own code.
 
 ## Two ways to assign (pick one per team)
 
