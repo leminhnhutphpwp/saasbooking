@@ -1,7 +1,7 @@
 ---
 id: T14
 title: DemoSeeder — reproducible demo data (committed to the repo)
-status: in-review
+status: done
 owner: claude-sonnet-5
 priority: P1
 depends_on: []

@@ -1,7 +1,7 @@
 ---
 id: T16
 title: Zalo ZNS HTTP transport (replace log-only stub)
-status: in-review
+status: done
 owner: claude-sonnet-5
 priority: P1
 depends_on: []

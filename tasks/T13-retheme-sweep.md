@@ -1,7 +1,7 @@
 ---
 id: T13
 title: v3 aesthetic sweep — remaining pages
-status: in-review
+status: done
 owner: claude-sonnet-5
 priority: P2
 depends_on: [T11]

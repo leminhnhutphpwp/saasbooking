@@ -1,7 +1,7 @@
 ---
 id: T17
 title: Backup cron wiring (schedule existing backup.sh)
-status: in-review
+status: done
 owner: claude-sonnet-5
 priority: P2
 depends_on: []

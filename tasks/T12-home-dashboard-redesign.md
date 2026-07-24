@@ -1,7 +1,7 @@
 ---
 id: T12
 title: Home dashboard redesign (QwenCloud-style)
-status: in-review
+status: done
 owner: claude-sonnet-5
 priority: P1
 depends_on: [T11]
