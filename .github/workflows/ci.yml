@@ -57,6 +57,8 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          mkdir -p storage/framework/{sessions,views,cache}
+          mkdir -p storage/logs
 
       - name: Lint (Pint)
         run: ./vendor/bin/pint --test
