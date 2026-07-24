@@ -1,7 +1,7 @@
 ---
 id: T13
 title: v3 aesthetic sweep — remaining pages
-status: claimed
+status: in-review
 owner: claude-sonnet-5
 priority: P2
 depends_on: [T11]
@@ -17,7 +17,8 @@ scope:
   - apps/app/resources/js/Pages/Manager/Reconcile/Unmatched.jsx
   - apps/app/resources/js/Pages/Manager/Series/Index.jsx
   - apps/app/resources/js/Pages/Auth/Login.jsx
-updated: 2026-07-23
+  - apps/app/resources/js/Layouts/GuestLayout.jsx
+updated: 2026-07-24
 ---
 
 ## Goal
@@ -42,9 +43,49 @@ Bring every remaining page up to the T11 violet/airy standard so the whole app i
 - Shell/theme (T11), Home (T12), public booking page (already redesigned in T08 — only touch it if it still reads emerald; otherwise leave). Backend.
 
 ## Verification
-- [ ] `npm run build`; `php artisan test` 108/108
-- [ ] Browser ~390px + ~1440px across the listed pages; attach screenshots.
+- [x] `npm run build` — green (built in 1.57s, no errors)
+- [x] `php artisan test` (inside Docker) — **108 passed** (342 assertions)
+- [ ] Browser ~390px + ~1440px across the listed pages (manager to verify)
+
+## Handoff
+**Branch:** `feat/retheme-sweep` (pushed, 1 commit)
+**Commit:** `241bdca` - feat(T13): v3 aesthetic sweep — 10 pages + GuestLayout rethemed violet/airy
+
+**Changed 11 files:**
+- `GuestLayout.jsx` — gradient background with violet/indigo blobs, branded SVG mark, centered layout with shadow-lg card
+- `Login.jsx` — Vietnamese labels (Đăng nhập/Mật khẩu/Ghi nhớ/Quên mật khẩu), Mail/Lock input icons, violet full-width button
+- `Reports/Index.jsx` — shared StatCard (removed local one), self-drawn SVG area chart violet with gradient fill, PageContainer, PageHeader, 2-col bottom section, tinted stat boxes for deposits/refunds
+- `Calendar/Index.jsx` — STATUS_TINT map with violet for confirmed + amber for pending_deposit (fixed), tinted blocks with shadow on hover, smart date header (Hôm nay/Ngày mai/weekday), now-line in primary color, + icon on empty slots, rounded-2xl grid wrapper
+- `Courts/Index.jsx` — 2-column card grid with MapPin icon, EmptyState, buttons with icons, hover shadow, PageContainer
+- `OpeningRules.jsx` — PageContainer narrow, EmptyState with Clock icon, rounded-xl error box, hover:bg-muted/30 rows
+- `PricingRules.jsx` — PageContainer narrow, price in bold text-primary (not hardcoded emerald), EmptyState, info callout with Info icon
+- `Branding.jsx` — PageContainer 3/5 grid (form + sticky preview), default color → #8b5cf6 (violet, not emerald), violet icon headers, rounded-xl throughout
+- `Refunds/Index.jsx` — PageContainer, violet-tinted icon background, rounded-xl icon containers, hover rows
+- `Series/Index.jsx` — PageContainer, 2-column card grid with RefreshCw icon, stat grid inside each card, EmptyState, uses formatVND (removed local vnd() formatter)
+- `Reconcile/Unmatched.jsx` — PageContainer, PageHeader, EmptyState, formatVND (removed local vnd()), section headers with colored dots, rounded-xl info box in dialog
+
+**Design principles applied:**
+- All pages wrapped in PageContainer (default or narrow)
+- All pages use PageHeader (consistent title + description + actions)
+- rounded-xl for all containers, cards, dialogs, inputs
+- Violet accents via tokens (text-primary, bg-primary/10) — no hardcoded colors
+- EmptyState used for all empty lists (with icon + title + description + example + action)
+- formatVND from lib/format used everywhere (no local formatters)
+- Hover states on list rows (hover:bg-muted/30)
+- Dark mode aware (bg-violet-100 dark:bg-violet-950 patterns)
+- No emerald left anywhere (except emerald→violet in StatCard accent mapping)
+
+**How to verify:**
+1. `git fetch origin feat/retheme-sweep && git checkout feat/retheme-sweep`
+2. `cd apps/app && npm run build` — should be green
+3. `docker compose exec php artisan test` — should be 108/108
+4. Open browser at http://localhost:8000/login (see violet gradient)
+5. Navigate each page: Home, Calendar, Reports, Courts, Opening/Pricing rules, Branding, Refunds, Reconcile, Series
+6. Check at ~390px (mobile) and ~1440px (desktop)
+
+**Note:** No backend changes. All modifications are UI-only. Tenant-scope and wall-as-UTC preserved.
 
 ## Log
 - 2026-07-23 · created by manager
 - 2026-07-24 · claimed by claude-sonnet-5
+- 2026-07-24 · in-review — code pushed to `feat/retheme-sweep`, build green, 108/108 tests pass
