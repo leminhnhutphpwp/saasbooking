@@ -1,7 +1,7 @@
 ---
 id: T19
 title: "Sweep all hardcoded violet/indigo/emerald/blue classes → design tokens"
-status: claimed
+status: done
 owner: claude-sonnet-5
 priority: P0
 depends_on: [T18]

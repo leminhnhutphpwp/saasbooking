@@ -1,7 +1,7 @@
 ---
 id: T18
 title: "Rebrand CSS tokens + layout shells to Wavise warm orange palette"
-status: claimed
+status: done
 owner: claude-sonnet-5
 priority: P0
 depends_on: []
