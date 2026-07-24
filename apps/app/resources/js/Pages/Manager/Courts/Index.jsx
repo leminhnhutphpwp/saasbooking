@@ -1,10 +1,14 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
+import { PageContainer } from '@/Components/PageContainer';
+import { EmptyState } from '@/Components/EmptyState';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Badge } from '@/Components/ui/badge';
+import { Card } from '@/Components/ui/card';
 import {
     Select,
     SelectContent,
@@ -19,6 +23,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
+import { MapPin, Clock, DollarSign, Plus, Settings2, Archive } from 'lucide-react';
 
 export default function Index({ courts, courtTypes }) {
     const [open, setOpen] = useState(false);
@@ -53,7 +58,7 @@ export default function Index({ courts, courtTypes }) {
     };
 
     const archive = (court) => {
-        if (confirm(`Lưu trữ sân “${court.name}”?`)) {
+        if (confirm(`Lưu trữ sân "${court.name}"?`)) {
             router.delete(`/manager/courts/${court.uuid}`, { preserveScroll: true });
         }
     };
@@ -61,60 +66,101 @@ export default function Index({ courts, courtTypes }) {
     const statusVariant = (s) =>
         s === 'active' ? 'default' : s === 'maintenance' ? 'secondary' : 'outline';
 
-    const statusColor = (s) =>
-        s === 'active' ? 'bg-success/10 text-success' : s === 'maintenance' ? 'bg-warning/10 text-warning' : 'bg-muted text-muted-foreground';
-
     return (
-        <ManagerLayout
-            header={<h2 className="text-xl font-semibold leading-tight">Quản lý sân</h2>}
-        >
+        <ManagerLayout>
             <Head title="Quản lý sân" />
 
-            <div className="mx-auto max-w-6xl p-4 sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{courts.length} sân</p>
-                    <Button onClick={openCreate}>+ Thêm sân</Button>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Quản lý sân"
+                    description={`${courts.length} sân · Quản lý sân, giờ mở cửa và bảng giá`}
+                    actions={
+                        <Button onClick={openCreate} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Thêm sân
+                        </Button>
+                    }
+                />
 
-                <div className="divide-y rounded-lg border bg-card">
-                    {courts.length === 0 && (
-                        <p className="p-6 text-center text-sm text-muted-foreground">
-                            Chưa có sân nào. Bấm “Thêm sân” để tạo.
-                        </p>
-                    )}
-                    {courts.map((court) => (
-                        <div key={court.uuid} className="flex items-center justify-between p-4">
-                            <div>
-                                <div className="font-medium">{court.name}</div>
-                                <div className="text-sm text-muted-foreground">
-                                    {court.court_type_label}
+                {courts.length === 0 ? (
+                    <EmptyState
+                        icon={MapPin}
+                        title="Chưa có sân nào"
+                        description="Tạo sân đầu tiên để bắt đầu nhận lịch đặt. Mỗi sân có thể thiết lập giờ mở cửa và bảng giá riêng."
+                        example="VD: Sân A1 (Pickleball), Sân 1 (Cầu lông)"
+                        action={
+                            <Button onClick={openCreate} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Thêm sân đầu tiên
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {courts.map((court) => (
+                            <Card key={court.uuid} className="overflow-hidden transition-shadow hover:shadow-md">
+                                <div className="p-5">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                                <MapPin className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold">{court.name}</h3>
+                                                <p className="text-sm text-muted-foreground">{court.court_type_label}</p>
+                                            </div>
+                                        </div>
+                                        <Badge variant={statusVariant(court.status)}>
+                                            {court.status_label}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="mt-4 flex flex-wrap gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-1.5"
+                                            onClick={() => router.visit(`/manager/courts/${court.uuid}/opening-rules`)}
+                                        >
+                                            <Clock className="h-3.5 w-3.5" />
+                                            Giờ mở cửa
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-1.5"
+                                            onClick={() => router.visit(`/manager/courts/${court.uuid}/pricing-rules`)}
+                                        >
+                                            <DollarSign className="h-3.5 w-3.5" />
+                                            Bảng giá
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="gap-1.5"
+                                            onClick={() => openEdit(court)}
+                                        >
+                                            <Settings2 className="h-3.5 w-3.5" />
+                                            Sửa
+                                        </Button>
+                                        {court.status !== 'archived' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="gap-1.5 text-muted-foreground hover:text-destructive"
+                                                onClick={() => archive(court)}
+                                            >
+                                                <Archive className="h-3.5 w-3.5" />
+                                                Lưu trữ
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Badge className={statusColor(court.status)}>
-                                    {court.status_label}
-                                </Badge>
-                                <div className="flex items-center">
-                                <Button variant="outline" size="sm" onClick={() => router.visit(`/manager/courts/${court.uuid}/opening-rules`)}>
-                                    Giờ
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => router.visit(`/manager/courts/${court.uuid}/pricing-rules`)}>
-                                    Giá
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => openEdit(court)}>
-                                    Sửa
-                                </Button>
-                                {court.status !== 'archived' && (
-                                    <Button variant="ghost" size="sm" onClick={() => archive(court)}>
-                                        Lưu trữ
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                            </div>
-                    ))}
-                </div>
-            </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </PageContainer>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent>
@@ -123,7 +169,7 @@ export default function Index({ courts, courtTypes }) {
                     </DialogHeader>
 
                     <form onSubmit={submit} className="space-y-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="name">Tên sân</Label>
                             <Input
                                 id="name"
@@ -136,7 +182,7 @@ export default function Index({ courts, courtTypes }) {
                             )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label>Loại sân</Label>
                             <Select
                                 value={form.data.court_type}
@@ -156,7 +202,7 @@ export default function Index({ courts, courtTypes }) {
                         </div>
 
                         {editing && (
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label>Trạng thái</Label>
                                 <Select
                                     value={form.data.status}
