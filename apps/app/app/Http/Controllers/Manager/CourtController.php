@@ -8,6 +8,7 @@ use App\Enums\CourtStatus;
 use App\Enums\CourtType;
 use App\Http\Controllers\Controller;
 use App\Models\Court;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,7 +88,7 @@ class CourtController extends Controller
             'status' => CourtStatus::Active,
         ]);
 
-        return back()->with('success', 'Đã tạo sân mới.');
+        return back()->with('success', Messages::get('court', 'created'));
     }
 
     public function update(Request $request, Court $court): RedirectResponse
@@ -103,7 +104,7 @@ class CourtController extends Controller
         // $data is validated (name/court_type/status enum) but status isn't mass-assignable → forceFill.
         $court->forceFill($data)->save();
 
-        return back()->with('success', 'Đã cập nhật sân.');
+        return back()->with('success', Messages::get('court', 'updated'));
     }
 
     public function updateStatus(Request $request): RedirectResponse
@@ -125,7 +126,7 @@ class CourtController extends Controller
 
             if ($courtIds->count() !== count($data['court_uuids'])) {
                 throw ValidationException::withMessages([
-                    'court_uuids' => 'Một hoặc nhiều sân đã chọn không tồn tại trong cơ sở này.',
+                    'court_uuids' => Messages::get('court', 'not_found'),
                 ]);
             }
 
@@ -134,7 +135,7 @@ class CourtController extends Controller
                 ->update(['status' => $data['status']]);
         });
 
-        return back()->with('success', 'Đã cập nhật trạng thái các sân đã chọn.');
+        return back()->with('success', Messages::get('court', 'status_updated'));
     }
 
     public function destroy(Request $request, Court $court): RedirectResponse
@@ -144,7 +145,7 @@ class CourtController extends Controller
         // Soft-archive: existing bookings still reference the court (docs/11 #12).
         $court->forceFill(['status' => CourtStatus::Archived])->save();
 
-        return back()->with('success', 'Đã lưu trữ sân.');
+        return back()->with('success', Messages::get('court', 'archived'));
     }
 
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void

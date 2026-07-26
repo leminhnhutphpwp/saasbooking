@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Catalog;
 
 use App\Models\PricingRule;
+use App\Support\Messages;
 use Carbon\CarbonInterface;
 use RuntimeException;
 
@@ -43,7 +44,7 @@ class PricingService
             ->first();
 
         if (! $rule) {
-            throw new RuntimeException("No pricing rule for court {$courtId} at {$startAt->toDateTimeString()}");
+            throw new RuntimeException(Messages::get('pricing_service', 'no_rule', ['time' => $startAt->toDateTimeString()]));
         }
 
         $minutes = abs($startAt->diffInMinutes($endAt));

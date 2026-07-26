@@ -18,6 +18,7 @@ use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\Booking\BookingService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -144,8 +145,8 @@ class BookingWorkbenchController extends Controller
                     'end_at' => CarbonImmutable::parse($data['end_at']),
                 ]],
             ]);
-        } catch (SlotTakenException $e) {
-            return back()->with('error', $e->getMessage());
+        } catch (SlotTakenException) {
+            return back()->with('error', Messages::error('booking', 'slot_taken'));
         }
 
         // Cash walk-in is settled on the spot → confirm immediately (no VietQR).
@@ -163,7 +164,7 @@ class BookingWorkbenchController extends Controller
         }
 
         return redirect()->route('manager.bookings.show', $booking)
-            ->with('success', "Đã đặt sân cho {$customer->name} ({$booking->code}).");
+            ->with('success', Messages::get('booking', 'created', ['name' => $customer->name, 'code' => $booking->code]));
     }
 
     /**
@@ -186,7 +187,7 @@ class BookingWorkbenchController extends Controller
         ];
 
         if (! isset($validTransitions[$currentStatus->value]) || ! in_array($action, $validTransitions[$currentStatus->value])) {
-            return back()->with('error', "Không thể thực hiện \"{$action}\" từ trạng thái \"{$currentStatus->value}\".");
+            return back()->with('error', Messages::get('booking', 'invalid_transition', ['action' => $action, 'status' => $currentStatus->value]));
         }
 
         match ($action) {
@@ -196,7 +197,7 @@ class BookingWorkbenchController extends Controller
             'cancel' => $this->cancel($booking, $request->input('reason')),
         };
 
-        return back()->with('success', 'Đã cập nhật trạng thái đặt sân.');
+        return back()->with('success', Messages::success('booking', 'status_updated'));
     }
 
     private function checkIn(Booking $booking): void

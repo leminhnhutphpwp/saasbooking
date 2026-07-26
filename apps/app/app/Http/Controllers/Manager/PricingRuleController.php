@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Court;
 use App\Models\PricingRule;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -59,7 +60,7 @@ class PricingRuleController extends Controller
             'priority' => $data['priority'] ?? 0,
         ]);
 
-        return back()->with('success', 'Đã thêm bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'created'));
     }
 
     public function update(Request $request, Court $court, PricingRule $pricingRule): RedirectResponse

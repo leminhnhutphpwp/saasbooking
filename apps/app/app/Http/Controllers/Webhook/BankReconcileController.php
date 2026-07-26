@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Webhook;
 use App\Http\Controllers\Controller;
 use App\Models\TenantBankConfig;
 use App\Services\Payment\ReconcileService;
+use App\Support\Messages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -42,7 +43,7 @@ class BankReconcileController extends Controller
         abort_unless(
             $config && $config->webhook_secret && hash_equals((string) $config->webhook_secret, (string) $token),
             401,
-            'Invalid webhook token.'
+            Messages::get('webhook', 'invalid_token')
         );
 
         $reconcile->ingest([

@@ -8,6 +8,7 @@ use App\Models\Court;
 use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
+use App\Support\Messages;
 use Illuminate\Support\Carbon;
 
 /**
@@ -46,7 +47,7 @@ final class VenueReadinessService
         if ($activeCourtCount === 0) {
             $blockers[] = new ReadinessBlocker(
                 code: 'no_active_court',
-                message: 'Chưa có sân hoạt động nào. Vui lòng tạo ít nhất một sân.',
+                message: Messages::get('readiness', 'no_courts'),
                 action: 'courts.create',
             );
         }
@@ -63,7 +64,7 @@ final class VenueReadinessService
             if ($courtsWithoutOpening->isNotEmpty()) {
                 $blockers[] = new ReadinessBlocker(
                     code: 'missing_opening_coverage',
-                    message: 'Các sân sau chưa có giờ mở cửa: '.$courtsWithoutOpening->implode(', '),
+                    message: Messages::get('readiness', 'missing_opening', ['courts' => $courtsWithoutOpening->implode(', ')]),
                     action: 'opening-rules.index',
                 );
             }
@@ -75,7 +76,7 @@ final class VenueReadinessService
         if ($pricingRuleCount === 0) {
             $blockers[] = new ReadinessBlocker(
                 code: 'missing_pricing',
-                message: 'Chưa có quy tắc giá nào. Vui lòng thiết lập giá cho sân.',
+                message: Messages::get('readiness', 'no_pricing'),
                 action: 'pricing-rules.index',
             );
         }
@@ -88,7 +89,7 @@ final class VenueReadinessService
         if (! $activeBankConfig) {
             $blockers[] = new ReadinessBlocker(
                 code: 'missing_bank_config',
-                message: 'Chưa có tài khoản ngân hàng active. Vui lòng cấu hình tài khoản nhận cọc.',
+                message: Messages::get('readiness', 'no_bank_config'),
                 action: 'bank-config.index',
             );
         }

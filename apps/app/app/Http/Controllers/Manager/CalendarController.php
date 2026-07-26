@@ -14,6 +14,7 @@ use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Services\Booking\BookingService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
@@ -121,8 +122,8 @@ class CalendarController extends Controller
                     'end_at' => CarbonImmutable::parse($data['end_at']),
                 ]],
             ]);
-        } catch (SlotTakenException $e) {
-            return back()->with('error', $e->getMessage());
+        } catch (SlotTakenException) {
+            return back()->with('error', Messages::error('booking', 'slot_taken'));
         }
 
         // Cash walk-in is settled on the spot → confirm now (no VietQR).
@@ -133,6 +134,6 @@ class CalendarController extends Controller
         ]);
         $this->bookings->confirmDeposit($booking);
 
-        return back()->with('success', "Đã đặt sân cho {$customer->name} (tiền mặt).");
+        return back()->with('success', Messages::get('booking', 'walkin_created', ['name' => $customer->name]));
     }
 }
