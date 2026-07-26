@@ -4,6 +4,7 @@ use App\Http\Controllers\Manager\BookingWorkbenchController;
 use App\Http\Controllers\Manager\BrandingController;
 use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
+use App\Http\Controllers\Manager\CustomerController;
 use App\Http\Controllers\Manager\HomeController;
 use App\Http\Controllers\Manager\OpeningRuleController;
 use App\Http\Controllers\Manager\PricingRuleController;
@@ -79,6 +80,16 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::post('/reconcile/{inbox}/dismiss', [ReconcileController::class, 'dismissTxn'])->name('reconcile.dismiss');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    // Customer management (phone-first operations).
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+
+    // Recurrence operations — cancel one occurrence or end remaining series.
+    Route::post('/series/{series}/cancel-occurrence/{booking}', [SeriesController::class, 'cancelOccurrence'])->name('series.cancel-occurrence');
+    Route::post('/series/{series}/end', [SeriesController::class, 'endSeries'])->name('series.end');
 
     // Booking operations workbench (owner/receptionist daily tool).
     Route::get('/bookings', [BookingWorkbenchController::class, 'index'])->name('bookings.index');

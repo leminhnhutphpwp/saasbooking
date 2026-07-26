@@ -14,6 +14,7 @@ use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -75,6 +76,19 @@ class BookingWorkbenchTest extends TestCase
             'tenant_id' => $t->id,
             'name' => $name,
             'phone' => $phone,
+        ]);
+    }
+
+    private function pricingRule(Tenant $t, ?int $courtId = null): PricingRule
+    {
+        return PricingRule::create([
+            'tenant_id' => $t->id,
+            'court_id' => $courtId,
+            'weekday' => [1, 2, 3, 4, 5, 6, 7],
+            'start_local' => '00:00:00',
+            'end_local' => '23:59:59',
+            'price_per_hour' => 60_000,
+            'priority' => 0,
         ]);
     }
 
@@ -203,6 +217,7 @@ class BookingWorkbenchTest extends TestCase
         $t = $this->venue('v1');
         $owner = $this->owner($t);
         $court = $this->court($t);
+        $this->pricingRule($t, $court->id);
 
         $start = CarbonImmutable::tomorrow()->setHour(14)->setMinute(0);
         $end = $start->addHour();
@@ -242,6 +257,7 @@ class BookingWorkbenchTest extends TestCase
         $owner = $this->owner($t);
         $court = $this->court($t);
         $customer = $this->customer($t);
+        $this->pricingRule($t, $court->id);
 
         // Existing booking at 10:00-11:00
         $existing = $this->createConfirmedBooking($t, $court, $customer);
@@ -277,7 +293,10 @@ class BookingWorkbenchTest extends TestCase
             ->patch("/manager/bookings/{$booking->uuid}/status", ['action' => 'complete'])
             ->assertRedirect();
 
-        $this->assertSame(BookingStatus::Completed, $booking->fresh()->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::Completed->value,
+        ]);
     }
 
     public function test_update_status_can_mark_no_show(): void
@@ -292,7 +311,10 @@ class BookingWorkbenchTest extends TestCase
             ->patch("/manager/bookings/{$booking->uuid}/status", ['action' => 'no_show'])
             ->assertRedirect();
 
-        $this->assertSame(BookingStatus::NoShow, $booking->fresh()->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::NoShow->value,
+        ]);
     }
 
     public function test_update_status_can_cancel_confirmed_booking(): void
@@ -310,7 +332,16 @@ class BookingWorkbenchTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::Cancelled->value,
+        ]);
+
+        // Verify slots were released
+        $this->assertDatabaseHas('booking_slots', [
+            'booking_id' => $booking->id,
+            'hold_status' => HoldStatus::Released->value,
+        ]);
     }
 
     public function test_update_status_rejects_invalid_transition(): void
@@ -323,13 +354,16 @@ class BookingWorkbenchTest extends TestCase
 
         // Cannot complete a pending_deposit booking (only confirmed can be completed)
         // First make it pending
-        $booking->forceFill(['status' => BookingStatus::PendingDeposit])->save();
+        \DB::table('bookings')->where('id', $booking->id)->update(['status' => BookingStatus::PendingDeposit->value]);
 
         $response = $this->actingAs($owner)
             ->patch("/manager/bookings/{$booking->uuid}/status", ['action' => 'complete']);
 
         $response->assertSessionHas('error');
-        $this->assertSame(BookingStatus::PendingDeposit, $booking->fresh()->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'status' => BookingStatus::PendingDeposit->value,
+        ]);
     }
 
     public function test_update_status_cannot_complete_already_completed(): void
@@ -340,7 +374,7 @@ class BookingWorkbenchTest extends TestCase
         $customer = $this->customer($t);
         $booking = $this->createConfirmedBooking($t, $court, $customer, 'SAN-DONE');
 
-        $booking->forceFill(['status' => BookingStatus::Completed])->save();
+        \DB::table('bookings')->where('id', $booking->id)->update(['status' => BookingStatus::Completed->value]);
 
         $response = $this->actingAs($owner)
             ->patch("/manager/bookings/{$booking->uuid}/status", ['action' => 'complete']);
@@ -379,7 +413,10 @@ class BookingWorkbenchTest extends TestCase
             ->assertForbidden();
 
         // Status unchanged
-        $this->assertSame(BookingStatus::Confirmed, $bookingB->fresh()->status);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $bookingB->id,
+            'status' => BookingStatus::Confirmed->value,
+        ]);
     }
 
     // ─── Money invariant tests ─────────────────────────────────────────
@@ -389,6 +426,7 @@ class BookingWorkbenchTest extends TestCase
         $t = $this->venue('v1');
         $owner = $this->owner($t);
         $court = $this->court($t);
+        $this->pricingRule($t, $court->id);
 
         $start = CarbonImmutable::tomorrow()->setHour(9);
         $end = $start->addHour();

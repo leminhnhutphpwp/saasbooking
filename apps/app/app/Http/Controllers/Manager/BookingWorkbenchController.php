@@ -23,7 +23,7 @@ use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -228,20 +228,28 @@ class BookingWorkbenchController extends Controller
 
     private function complete(Booking $booking): void
     {
-        $booking->forceFill(['status' => BookingStatus::Completed])->save();
+        DB::table('bookings')
+            ->where('id', $booking->id)
+            ->update(['status' => BookingStatus::Completed->value]);
     }
 
     private function markNoShow(Booking $booking): void
     {
-        $this->bookings->markNoShow($booking);
+        DB::table('bookings')
+            ->where('id', $booking->id)
+            ->update(['status' => BookingStatus::NoShow->value]);
     }
 
     private function cancel(Booking $booking, ?string $reason): void
     {
-        $cancelReason = $reason
-            ? CancelReason::OwnerCancel
-            : CancelReason::OwnerCancel;
-
-        $this->bookings->cancel($booking, $cancelReason);
+        DB::transaction(function () use ($booking) {
+            $this->bookings->release($booking);
+            DB::table('bookings')
+                ->where('id', $booking->id)
+                ->update([
+                    'status' => BookingStatus::Cancelled->value,
+                    'hold_expires_at' => null,
+                ]);
+        });
     }
 }
