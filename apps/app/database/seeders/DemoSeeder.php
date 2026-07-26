@@ -167,7 +167,7 @@ class DemoSeeder extends Seeder
                     'effective_from' => $today->toDateString(),
                 ],
                 [
-                    'weekday' => json_encode([1, 2, 3, 4, 5, 6, 7]), // Mon-Sun
+                    'weekday' => [1, 2, 3, 4, 5, 6, 7], // Mon-Sun
                     'open_local' => '06:00:00',
                     'close_local' => '23:00:00',
                     'tz' => 'Asia/Ho_Chi_Minh',
@@ -184,7 +184,7 @@ class DemoSeeder extends Seeder
                     'effective_from' => $today->toDateString(),
                 ],
                 [
-                    'weekday' => json_encode([1, 2, 3, 4, 5, 6, 7]),
+                    'weekday' => [1, 2, 3, 4, 5, 6, 7],
                     'open_local' => '06:00:00',
                     'close_local' => '22:00:00',
                     'tz' => 'Asia/Ho_Chi_Minh',
@@ -196,7 +196,7 @@ class DemoSeeder extends Seeder
         $this->seedPricingRules($tenant1->id, [
             // Off-peak: 06:00-17:00 weekdays = 100k
             [
-                'weekday' => json_encode([1, 2, 3, 4, 5]),
+                'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '06:00:00',
                 'end_local' => '17:00:00',
                 'price_per_hour' => 100_000,
@@ -204,7 +204,7 @@ class DemoSeeder extends Seeder
             ],
             // Peak: 17:00-22:00 weekdays = 130k
             [
-                'weekday' => json_encode([1, 2, 3, 4, 5]),
+                'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '17:00:00',
                 'end_local' => '22:00:00',
                 'price_per_hour' => 130_000,
@@ -212,7 +212,7 @@ class DemoSeeder extends Seeder
             ],
             // Weekend: all day = 150k
             [
-                'weekday' => json_encode([6, 7]),
+                'weekday' => [6, 7],
                 'start_local' => '06:00:00',
                 'end_local' => '23:00:00',
                 'price_per_hour' => 150_000,
@@ -223,14 +223,14 @@ class DemoSeeder extends Seeder
         // Pricing rules for tenant 2 (80k / 120k)
         $this->seedPricingRules($tenant2->id, [
             [
-                'weekday' => json_encode([1, 2, 3, 4, 5]),
+                'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '06:00:00',
                 'end_local' => '17:00:00',
                 'price_per_hour' => 80_000,
                 'priority' => 0,
             ],
             [
-                'weekday' => json_encode([1, 2, 3, 4, 5]),
+                'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '17:00:00',
                 'end_local' => '22:00:00',
                 'price_per_hour' => 120_000,
