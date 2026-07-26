@@ -1,8 +1,6 @@
 # worklogs/ — agent hand-off log
 
-Short, append-only notes so the next agent (or the next session) knows what was done and why, without re-reading everything. Mirrors the hand-off convention from the template project `appdhv`.
-
-> **Overall progress:** see [`../task-status.md`](../task-status.md) (milestones M0–M7 + commits + how to run).
+Historical decisions and handoffs. Current truth lives in `docs/`, active work in `tasks/`, and implementation state in code/tests.
 
 ## Index
 
@@ -16,10 +14,17 @@ Short, append-only notes so the next agent (or the next session) knows what was 
 | 2026-07-22 | [M4 — payment: VietQR + reconcile](2026-07-22-m4-payment-vietqr-reconcile.md) |
 | 2026-07-22 | [M5 — notification scaffold (Zalo)](2026-07-22-m5-notification-scaffold.md) |
 | 2026-07-22 | [M6 part 1 — public booking page](2026-07-22-m6-public-booking-page.md) |
+| 2026-07-23 | [Audit and hardening fixes](2026-07-23-m6-audit-fixes.md) |
+| 2026-07-24 | [Zalo ZNS HTTP transport](2026-07-24-t16-zalo-zns-http.md) |
+| 2026-07-24 | [Backup scheduling](2026-07-24-t17-backup-cron.md) |
+| 2026-07-25 | [Tenant resource categories](2026-07-25-tenant-resource-categories.md) |
+| 2026-07-26 | [Smart pricing rules](2026-07-26-smart-pricing-rules.md) |
+| 2026-07-26 | [Service registration and memberships](2026-07-26-service-registration.md) |
+| 2026-07-26 | [Agent context cleanup](2026-07-26-agent-context-cleanup.md) |
 
 ## Convention
 
-- One file per work session: `YYYY-MM-DD-<short-slug>.md` (use the real date; ask the user or read the environment if unsure).
+- Add a worklog only for a meaningful session with a durable decision or handoff; do not log cosmetic one-line fixes.
 - Keep it short. Template:
 
 ```markdown

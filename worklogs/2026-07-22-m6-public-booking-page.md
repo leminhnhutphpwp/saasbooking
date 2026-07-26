@@ -29,7 +29,7 @@ Slice giá trị nhất của M6: trang đặt sân công khai (theo slug tenant
 - **Dashboard chủ sân (Manager):** lịch lưới sân×giờ, đặt hộ khách vãng lai (tiền mặt), quản lý đặt cố định, hoàn cọc một chạm, màn "giao dịch chưa khớp / đối soát tay", cấu hình sân/giá/giờ mở/thương hiệu (gom nợ UI M2/M4).
 - **Playwright E2E** (luồng khách + chủ sân đặt hộ).
 - **Branding template** (logo/màu tenant) cho trang công khai (hiện dùng style mặc định).
-- Trang công khai chưa gắn layout thương hiệu; xem `03-giao-dien-quan-ly.md` / `04-cau-hinh-per-tenant.md`.
+- Tại thời điểm ghi log, trang công khai chưa gắn layout thương hiệu; contract cấu hình hiện hành ở `docs/04-cau-hinh-per-tenant.md`.
 
 ## Status
 ✅ Completed (phần 1) — luồng đặt sân công khai chạy & test end-to-end. ⚠️ Dashboard chủ sân + E2E + branding là phần lớn còn lại của M6.

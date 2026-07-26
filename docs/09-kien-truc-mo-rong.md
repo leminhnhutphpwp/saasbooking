@@ -78,7 +78,7 @@ Bản platform gốc (`_archive-platform/`) **đã từng có** chế độ capa
 
 → **`bookings`, payment, notification, interop, tenant KHÔNG đổi** — chỉ thêm một tồn kho song song. Ước lượng lõi phủ ~70% cho golf; ~30% còn lại là tồn kho + giá + flight.
 
-> **Quan trọng — chừa cửa ≠ nên làm sớm, và "riêng" ≠ hệ thống khác.** Golf là **thị trường khác hẳn** (green fee 1–3tr+/vòng, kênh đại lý/doanh nghiệp/hội viên, vận hành caddie), nên là **dòng sản phẩm riêng về go-to-market** — nhưng **vẫn chạy chung nền tảng này** (xem nguyên tắc "một hệ thống, nhiều dòng sản phẩm" ở đầu doc). Gộp vào *bán* sớm = loãng tiêu điểm ([`00-dinh-huong-va-danh-gia.md`](00-dinh-huong-va-danh-gia.md)). Ta *thiết kế để mở được cửa*, không *bước qua cửa* lúc này.
+> **Quan trọng — chừa cửa ≠ nên làm sớm, và "riêng" ≠ hệ thống khác.** Golf là dòng sản phẩm riêng về go-to-market nhưng vẫn chạy chung nền tảng. Ta thiết kế để mở được cửa, không bước qua cửa khi beachhead chưa có tín hiệu.
 
 ---
 
@@ -111,7 +111,7 @@ Court là trường hợp *đơn giản nhất* của cùng một engine (resour
 | Partition `booking_slots`, `payments` theo tháng | Khi bảng > ~chục triệu dòng | Partition theo `start_at`/`created_at`; query gần đây chỉ chạm partition mới. |
 | Tách DB / sharding theo tenant | **Gần như không bao giờ** cho quy mô này | Xem mục 6. |
 
-**Single-DB đủ tới cỡ nào (ước lượng):** một Postgres trên VPS tầm trung thừa sức cho **hàng nghìn tenant** và **hàng chục triệu booking**. Với mục tiêu indie 30–100 tenant ([`00-dinh-huong-va-danh-gia.md`](00-dinh-huong-va-danh-gia.md)), bạn còn cách ngưỡng cần partition/replica **rất xa** — có thể không bao giờ chạm. Việc cần làm sớm chỉ là: index đúng + cache availability + backup.
+**Single-DB đủ tới cỡ nào (ước lượng):** một Postgres trên VPS tầm trung thừa sức cho hàng nghìn tenant và hàng chục triệu booking. Việc cần làm sớm chỉ là index đúng, cache availability và backup.
 
 ---
 
@@ -145,4 +145,4 @@ Tín hiệu thật để cân nhắc tách: một phần hệ thống có SLA kh
 | **Làm golf sớm như Phase-2** | ❌ Không làm | Thị trường khác hẳn (giá/kênh/hội viên) — beachhead riêng, dễ loãng tiêu điểm (mục 3) |
 | Microservices, multi-DB, sharding, CQRS | ❌ Không làm | Over-engineer cho quy mô solo/indie |
 
-**Kết luận:** kiến trúc hiện tại là "monolith nhàm chán nhưng chừa cửa đúng chỗ" — mở rộng bằng cách thêm bảng/module, không đập lõi. Cụ thể hóa từng bước ở [`12-lo-trinh.md`](12-lo-trinh.md).
+**Kết luận:** kiến trúc hiện tại là "monolith nhàm chán nhưng chừa cửa đúng chỗ" — mở rộng bằng cách thêm bảng/module, không đập lõi. Ưu tiên hiện tại ở [`12-lo-trinh.md`](12-lo-trinh.md).

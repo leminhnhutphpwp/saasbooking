@@ -1,58 +1,40 @@
-# .claude — project agent configuration
+# Agent resources
 
-Claude Code configuration for the **SÂN** court-booking project. Project context and the non-negotiable invariants live in the root [`../CLAUDE.md`](../CLAUDE.md) (auto-loaded every session); the detailed rulebook is [`../AGENTS.md`](../AGENTS.md); the full design spec is in [`../docs/`](../docs/README.md) (Vietnamese). This folder holds the deeper, on-demand material those files point to. Agent-facing config here is in English.
+Load these files only when the task matches. Always-on context belongs in root `CLAUDE.md` and `AGENTS.md`; product truth belongs in `docs/`.
 
-## Layout
+## Skills
 
-```
-.claude/
-├── settings.json         # shared: permission allow/ask/deny (see below)
-├── settings.local.json   # personal overrides (git-ignored)
-│
-├── agents/               # subagents — invoke via the Agent tool (subagent_type: <name>)
-│   ├── invariant-reviewer.md  # reviews a diff against the 6 core invariants
-│   ├── planner.md             # turns a requirement into a phased, invariant-safe plan (no code)
-│   └── explorer.md            # read-only code/docs search → precise pointers
-│
-├── skills/               # on-demand domain knowledge (Skill tool) — SKILL.md per folder
-│   ├── architecture/          # modular monolith, 7 modules, multi-tenancy, two inventory shapes
-│   ├── booking-engine/        # the concurrency chokepoint, exclusion constraint, holds, series
-│   ├── payment-reconcile/     # VietQR + SePay/Casso, idempotency, 3 reconcile branches
-│   ├── vertical-dispatch/     # driver pattern — engine/calendar/pricing per tenant type
-│   └── planning/              # planning methodology
-│
-├── rules/                # coding standards (reference) — SKILL.md per folder
-│   ├── coding-rules/   laravel-inertia/   product-scope/
-│   ├── security/       testing/           logging? (n/a)
-│   ├── context-efficiency/    # read targeted, never bulk-read
-│   └── documentation/         # mandatory worklog rules
-│
-├── workflows/            # step-by-step processes — SKILL.md per folder
-│   ├── development/      # task routing, build order, verify, worklog
-│   ├── bugfix/           # red test first → localize → small fix → invariant check
-│   └── release-hardening/# Phase 1 pre go-live checklist
-│
-└── commands/             # slash commands
-    ├── check-invariants.md    # /check-invariants → run the invariant-reviewer on the diff
-    └── new-vertical.md        # /new-vertical <name> → add a vertical via the driver pattern
-```
+| Skill | Use for |
+|---|---|
+| `architecture` | Module boundaries, multi-tenancy, inventory shapes |
+| `booking-engine` | Holds, exclusion constraints, lifecycle, recurrence |
+| `court-catalog` | Courts, categories, opening and pricing rules |
+| `module-connections` | OWNS/REFERENCES, Services, domain events |
+| `notification-zalo` | ZNS templates, queueing, retry |
+| `payment-flow` | VietQR, webhook idempotency, reconciliation and refunds |
+| `tenant-isolation` | WorkingTenant, memberships, FK/RLS defense |
+| `vertical-dispatch` | Service/vertical registry and inventory drivers |
+| `planning` | Research-first phased plans and reserved doors |
 
-## How Claude Code uses this
+## Rules
 
-| Mechanism | What loads | When |
-|---|---|---|
-| `../CLAUDE.md` | Always-on project memory + invariants | Every session, automatic |
-| `../AGENTS.md` | Detailed rulebook (navigation, conventions, workflow, hand-off) | Read when working |
-| `agents/*.md` | Subagent definitions | When delegating via the Agent tool |
-| `skills/*/SKILL.md`, `commands/*.md` | Skill / command instructions | On demand via the Skill tool |
-| `rules/`, `workflows/` | Reference docs | Read when the task matches |
+- `coding-rules`, `laravel-inertia`: implementation conventions
+- `security`, `testing`: security boundaries and PostgreSQL test requirements
+- `ui-design`: existing visual system and responsive behavior
+- `product-scope`: Phase-1 scope guard
+- `context-efficiency`: targeted reading
+- `documentation`: worklog convention
+- `git-workflow`: branch and review flow
 
-## settings.json
+## Workflows
 
-- **allow** — routine Laravel/Docker/git commands run without a prompt.
-- **ask** — destructive/irreversible ops prompt first: `migrate:fresh`, `db:wipe`, `git push`.
-- **deny** — never read generated/vendored trees (`vendor/`, `node_modules/`, build output).
+- `development`: normal feature work
+- `bugfix`: failing test → localization → minimal fix
+- `release-hardening`: go-live checks
 
-## Conventions
+## Agents and commands
 
-Stack and patterns mirror the template project `/Users/nhut/Documents/appdhv` (Laravel + Inertia + PostgreSQL, `WorkingTenant`, `Auditable`, `id`+`uuid`, Horizon). Design docs are Vietnamese; this config and `CLAUDE.md`/`AGENTS.md` are English.
+- `explorer`, `planner`, `invariant-reviewer`, `module-reviewer`, `vertical-tester`
+- `/check-invariants`, `/new-vertical`
+
+Generated/vendor trees (`vendor`, `node_modules`, build output) are not sources of truth.

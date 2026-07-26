@@ -7,7 +7,7 @@ Wired the existing `scripts/backup.sh` into Laravel's scheduler so the database 
 | File | Change |
 |------|--------|
 | `apps/app/routes/console.php` | **MODIFIED** — Added `Schedule::exec('bash ' . base_path('../scripts/backup.sh'))->dailyAt('03:00')->timezone('Asia/Ho_Chi_Minh');` with environment guard (local/staging/production only). |
-| `tasks/T17-backup-cron.md` | **MODIFIED** — Updated status to in-review, refined scope to reflect actual work done. |
+| Task ledger | Updated the implementation handoff; the completed task file was later removed from the active ledger. |
 
 ## Key Decisions
 1. **Environment guard** — Wrapped the schedule in `if (app()->environment(['local', 'staging', 'production']))` so it only runs in environments where Docker is available. This prevents errors in testing environments where Docker isn't running.

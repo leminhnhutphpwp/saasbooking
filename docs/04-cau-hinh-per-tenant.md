@@ -59,7 +59,7 @@ Mục tiêu định nghĩa lại: **<15 phút có trang đặt sân nhận cọc
 | 5. Nối Zalo | Kết nối OA, chọn template nhắc | `zalo_oa_config` |
 | 6. Xuất trang | Xem trước `sub.datsan.vn`, bật nhận đặt | Trang live |
 
-**Setup tận tay (moat):** giai đoạn đầu bạn tự làm hộ bước 1–5 cho từng sân — vừa gỡ rào cản, vừa học khách hàng (xem [`12-lo-trinh.md`](12-lo-trinh.md)).
+**Setup tận tay:** giai đoạn đầu có thể cấu hình hộ từng sân để giảm rào cản onboarding.
 
 ---
 
@@ -81,4 +81,4 @@ Mục tiêu định nghĩa lại: **<15 phút có trang đặt sân nhận cọc
 - **Rate limit (throttle):** giới hạn theo key + IP, chống spam tạo hold.
 - **Bất biến:** widget/plugin **chỉ gọi Service công khai của `booking`** — không có đường chạm thẳng DB lõi; nên Zalo/subdomain/WordPress chia sẻ đúng một nguồn chống-trùng, một nguồn tiền.
 
-Chi tiết màn hình cấu hình các mục trên: [`03-giao-dien-quan-ly.md`](03-giao-dien-quan-ly.md).
+UI hiện hành nằm trong `apps/app/resources/js/Pages/Manager`; tài liệu này chỉ giữ contract cấu hình và dữ liệu.

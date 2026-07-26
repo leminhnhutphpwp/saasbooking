@@ -10,7 +10,7 @@ Implemented a real HTTP transport for Zalo ZNS (Zalo Notification Service) so bo
 | `apps/app/config/zalo.php` | **NEW** — Config for Zalo ZNS: driver (log/http), OA credentials (access_token, refresh_token), API endpoints, template IDs. All env-driven. |
 | `apps/app/app/Providers/AppServiceProvider.php` | **MODIFIED** — Changed `register()` to bind `ZaloZnsTransport::class` based on `config('zalo.driver')`. Default is `log`, prod uses `http`. |
 | `apps/app/tests/Feature/HttpZaloZnsTransportTest.php` | **NEW** — 5 tests covering: success, API error, 403 token expired, missing token, correct payload. Uses Http::fake() to mock Zalo API responses. |
-| `tasks/T16-zalo-zns-http.md` | **MODIFIED** — Updated status to in-review, refined scope to reflect actual implementation. |
+| Task ledger | Updated the implementation handoff; the completed task file was later removed from the active ledger. |
 
 ## Key Decisions
 1. **Config-driven transport selection** — Rather than a complex driver system, kept it simple: `ZALO_DRIVER` env var switches between `log` (default for dev) and `http` (for prod). This matches Laravel's convention and is easy to understand.
