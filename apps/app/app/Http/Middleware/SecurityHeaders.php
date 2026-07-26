@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  * - X-Content-Type-Options: nosniff (prevent MIME sniffing)
  * - Referrer-Policy: strict-origin-when-cross-origin
  * - Permissions-Policy: disable camera/mic/geolocation
+ * - Strict-Transport-Security: enforce HTTPS outside local/testing
  * - Content-Security-Policy: restrict resource origins
  *
  * CSP is environment-aware: local dev allows Vite HMR (ws://localhost:*),
@@ -36,6 +37,13 @@ final class SecurityHeaders
             'Permissions-Policy',
             'camera=(), microphone=(), geolocation=(), payment=()'
         );
+
+        if (! app()->environment('local', 'testing')) {
+            $response->headers->set(
+                'Strict-Transport-Security',
+                'max-age=31536000; includeSubDomains'
+            );
+        }
 
         $csp = $this->buildCsp();
         $response->headers->set('Content-Security-Policy', $csp);

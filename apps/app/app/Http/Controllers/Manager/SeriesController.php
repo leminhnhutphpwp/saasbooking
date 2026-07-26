@@ -30,6 +30,11 @@ use Inertia\Response;
 
 class SeriesController extends Controller
 {
+    public function __construct(
+        private SeriesService $series,
+        private BookingService $bookings,
+    ) {}
+
     public function index(Request $request): Response
     {
         $tenantId = WorkingTenant::id($request);
@@ -117,7 +122,7 @@ class SeriesController extends Controller
         $data['payment_mode'] = 'full';
 
         try {
-            $result = app(SeriesService::class)->create($tenant, $data);
+            $result = $this->series->create($tenant, $data);
         } catch (SlotTakenException) {
             return back()->with('error', Messages::get('series', 'first_slot_taken'));
         }
@@ -157,7 +162,7 @@ class SeriesController extends Controller
             return back()->with('error', Messages::get('series', 'occurrence_ended'));
         }
 
-        app(SeriesService::class)->cancelOccurrence($booking);
+        $this->series->cancelOccurrence($booking);
 
         return back()->with('success', Messages::get('series', 'occurrence_cancelled'));
     }
@@ -189,9 +194,8 @@ class SeriesController extends Controller
             ->where('status', BookingStatus::PendingDeposit)
             ->get();
 
-        $bookingsService = app(BookingService::class);
         foreach ($pendingBookings as $pending) {
-            $bookingsService->cancel($pending, CancelReason::OwnerCancel);
+            $this->bookings->cancel($pending, CancelReason::OwnerCancel);
         }
 
         return back()->with('success', Messages::get('series', 'ended'));
