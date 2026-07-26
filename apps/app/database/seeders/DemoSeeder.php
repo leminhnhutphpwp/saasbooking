@@ -66,9 +66,30 @@ class DemoSeeder extends Seeder
                 'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
+                'address' => '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
+                'phone' => '0901234567',
+                'email' => 'info@pickleball-mvp.vn',
+                'website' => 'https://pickleball-mvp.vn',
+                'lat' => 10.7769,
+                'lng' => 106.7009,
+                'description' => 'Sân pickleball cao cấp tại trung tâm Quận 1, hệ thống 4 sân indoor với đèn LED tiêu chuẩn thi đấu.',
                 'settings' => [
                     'branding' => [
                         'primary_color' => '#7C3AED',
+                    ],
+                    'social' => [
+                        'zalo' => 'https://zalo.me/0901234567',
+                        'facebook' => 'https://facebook.com/pickleballmvp',
+                    ],
+                    'cover_photo' => null,
+                    'business_hours' => [
+                        'mon' => ['open' => '06:00', 'close' => '23:00'],
+                        'tue' => ['open' => '06:00', 'close' => '23:00'],
+                        'wed' => ['open' => '06:00', 'close' => '23:00'],
+                        'thu' => ['open' => '06:00', 'close' => '23:00'],
+                        'fri' => ['open' => '06:00', 'close' => '23:00'],
+                        'sat' => ['open' => '06:00', 'close' => '23:00'],
+                        'sun' => ['open' => '06:00', 'close' => '22:00'],
                     ],
                 ],
             ]
@@ -87,7 +108,31 @@ class DemoSeeder extends Seeder
                 'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
-                'settings' => [],
+                'address' => '456 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM',
+                'phone' => '0912345678',
+                'email' => 'contact@caulong-nvh.vn',
+                'website' => null,
+                'lat' => 10.7725,
+                'lng' => 106.6980,
+                'description' => 'Sân cầu lông trong nhà, 6 sân tiêu chuẩn, phù hợp cả tập luyện và thi đấu.',
+                'settings' => [
+                    'branding' => [
+                        'primary_color' => '#059669',
+                    ],
+                    'social' => [
+                        'facebook' => 'https://facebook.com/caulongnvh',
+                    ],
+                    'cover_photo' => null,
+                    'business_hours' => [
+                        'mon' => ['open' => '06:00', 'close' => '22:00'],
+                        'tue' => ['open' => '06:00', 'close' => '22:00'],
+                        'wed' => ['open' => '06:00', 'close' => '22:00'],
+                        'thu' => ['open' => '06:00', 'close' => '22:00'],
+                        'fri' => ['open' => '06:00', 'close' => '22:00'],
+                        'sat' => ['open' => '06:00', 'close' => '22:00'],
+                        'sun' => ['open' => '07:00', 'close' => '21:00'],
+                    ],
+                ],
             ]
         );
     }
@@ -148,12 +193,27 @@ class DemoSeeder extends Seeder
     {
         // Tenant 1: 4 pickleball courts
         $courts1 = [];
+        $courtNames1 = ['Sân A', 'Sân B', 'Sân C', 'Sân D'];
+        $courtDescs1 = [
+            'Sân chính, ánh sáng tiêu chuẩn thi đấu',
+            'Sân training, phù hợp tập luyện',
+            'Sân VIP, có ghế ngồi khán giả',
+            'Sân thường, giá ưu đãi giờ thấp điểm',
+        ];
         for ($i = 1; $i <= 4; $i++) {
             $courts1[] = Court::forceCreate([
                 'tenant_id' => $tenant1->id,
-                'name' => 'Sân '.chr(64 + $i), // Sân A, B, C, D
+                'name' => $courtNames1[$i - 1],
                 'court_type' => CourtType::Pickleball->value,
                 'status' => CourtStatus::Active->value,
+                'description' => $courtDescs1[$i - 1],
+                'surface_type' => 'indoor',
+                'display_order' => $i,
+                'metadata' => [
+                    'amenities' => ['led', 'quạt', 'nước_free'],
+                    'photos' => [],
+                    'dimensions' => '13.4m x 6.1m',
+                ],
             ]);
         }
 
@@ -165,6 +225,14 @@ class DemoSeeder extends Seeder
                 'name' => "Sân $i",
                 'court_type' => CourtType::CauLong->value,
                 'status' => CourtStatus::Active->value,
+                'description' => $i <= 4 ? 'Sân tiêu chuẩn, phù hợp mọi trình độ' : 'Sân cao cấp, sàn gỗ chuyên dụng',
+                'surface_type' => 'indoor',
+                'display_order' => $i,
+                'metadata' => [
+                    'amenities' => ['đèn', 'quạt', 'tủ_locker'],
+                    'photos' => [],
+                    'dimensions' => '13.4m x 6.1m',
+                ],
             ]);
         }
 
@@ -213,11 +281,11 @@ class DemoSeeder extends Seeder
                 'price_per_hour' => 100_000,
                 'priority' => 0,
             ],
-            // Peak: 17:00-22:00 weekdays = 130k
+            // Peak: 17:00-23:00 weekdays = 130k
             [
                 'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '17:00:00',
-                'end_local' => '22:00:00',
+                'end_local' => '23:00:00',
                 'price_per_hour' => 130_000,
                 'priority' => 0,
             ],
@@ -243,7 +311,7 @@ class DemoSeeder extends Seeder
             [
                 'weekday' => [1, 2, 3, 4, 5],
                 'start_local' => '17:00:00',
-                'end_local' => '22:00:00',
+                'end_local' => '23:00:00',
                 'price_per_hour' => 120_000,
                 'priority' => 0,
             ],

@@ -4,6 +4,7 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -17,13 +18,13 @@ import {
     DialogTitle,
 } from '@/Components/ui/dialog';
 import { formatVND } from '@/lib/format';
-import { Trash2, Plus, AlertCircle, DollarSign, Info } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, DollarSign, Info, CalendarDays, Clock3 } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
 
 function getTierLabel(rule) {
-    const days = rule.weekday.sort((a, b) => a - b);
+    const days = [...rule.weekday].sort((a, b) => a - b);
     const isWeekend = days.length === 2 && days[0] === 6 && days[1] === 7;
     const isWeekday = days.length === 5 && days[0] === 1 && days[4] === 5;
     const isAllDays = days.length === 7 && days[0] === 1 && days[6] === 7;
@@ -35,14 +36,18 @@ function getTierLabel(rule) {
 }
 
 function getTierVariant(rule) {
-    const days = rule.weekday.sort((a, b) => a - b);
+    const days = [...rule.weekday].sort((a, b) => a - b);
     const isWeekend = days.length === 2 && days[0] === 6 && days[1] === 7;
     return isWeekend ? 'secondary' : 'outline';
 }
 
-export default function PricingRules({ court, rules }) {
+export default function PricingRules({ court, rules, venueRules = [], defaultPricePerHour = null }) {
+    const [scope, setScope] = useState('court');
+    const [formScope, setFormScope] = useState('court');
     const [open, setOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteProcessing, setDeleteProcessing] = useState(false);
     const form = useForm({
         weekday: [],
         start_local: '06:00',
@@ -73,6 +78,7 @@ export default function PricingRules({ court, rules }) {
     const openAdd = () => {
         form.reset();
         form.clearErrors();
+        setFormScope(scope);
         setEditingId(null);
         setOpen(true);
     };
@@ -86,15 +92,18 @@ export default function PricingRules({ court, rules }) {
             priority: String(rule.priority ?? 0),
         });
         form.clearErrors();
+        setFormScope(scope);
         setEditingId(rule.id);
         setOpen(true);
     };
 
     const submit = (e) => {
         e.preventDefault();
-        const url = editingId
-            ? `/manager/courts/${court.uuid}/pricing-rules/${editingId}`
+        if (form.data.start_local >= form.data.end_local) return;
+        const baseUrl = formScope === 'venue'
+            ? '/manager/pricing-rules'
             : `/manager/courts/${court.uuid}/pricing-rules`;
+        const url = editingId ? `${baseUrl}/${editingId}` : baseUrl;
         const method = editingId ? 'put' : 'post';
 
         form[method](url, {
@@ -103,28 +112,46 @@ export default function PricingRules({ court, rules }) {
         });
     };
 
-    const remove = (id) => {
-        if (confirm('Xóa bảng giá này?')) {
-            router.delete(`/manager/courts/${court.uuid}/pricing-rules/${id}`, { preserveScroll: true });
-        }
+    const remove = () => {
+        if (!deleteTarget) return;
+
+        setDeleteProcessing(true);
+        const baseUrl = deleteTarget.scope === 'venue'
+            ? '/manager/pricing-rules'
+            : `/manager/courts/${court.uuid}/pricing-rules`;
+        router.delete(`${baseUrl}/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDeleteTarget(null),
+            onFinish: () => setDeleteProcessing(false),
+        });
     };
 
-    const sortedRules = [...rules].sort((a, b) => {
+    const activeRules = scope === 'venue' ? venueRules : rules;
+    const sortedRules = [...activeRules].sort((a, b) => {
         const aStart = a.start_local.localeCompare(b.start_local);
         if (aStart !== 0) return aStart;
         return (b.priority ?? 0) - (a.priority ?? 0);
     });
+    const prices = activeRules.map((rule) => rule.price_per_hour);
+    const coveredDays = new Set(activeRules.flatMap((rule) => rule.weekday)).size;
+    const earliestStart = sortedRules[0]?.start_local ?? null;
+    const latestEnd = activeRules.length > 0
+        ? [...activeRules].sort((a, b) => b.end_local.localeCompare(a.end_local))[0].end_local
+        : null;
+    const timeError = form.data.start_local && form.data.end_local && form.data.start_local >= form.data.end_local
+        ? 'Giờ kết thúc phải sau giờ bắt đầu.'
+        : null;
 
     return (
         <ManagerLayout>
             <Head title={`Bảng giá — ${court.name}`} />
 
-            <PageContainer size="narrow">
+            <PageContainer>
                 <PageHeader
                     title={`Bảng giá — ${court.name}`}
                     backHref="/manager/courts"
                     backLabel="Danh sách sân"
-                    description={`${rules.length} mức giá`}
+                    description="Dùng giá chung cho phần lớn sân, chỉ tạo giá riêng khi cần ngoại lệ"
                     actions={
                         <Button onClick={openAdd} className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -133,83 +160,162 @@ export default function PricingRules({ court, rules }) {
                     }
                 />
 
-                {form.errors.start_local && (
+                {(form.errors.start_local || form.errors.end_local) && (
                     <div className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
-                            <p className="font-medium">Trùng khung giờ</p>
-                            <p>{form.errors.start_local}</p>
+                            <p className="font-medium">Không thể lưu bảng giá</p>
+                            <p>{form.errors.start_local ?? form.errors.end_local}</p>
                         </div>
                     </div>
                 )}
 
-                <Card className="overflow-hidden">
-                    {rules.length === 0 ? (
-                        <EmptyState
-                            icon={DollarSign}
-                            title="Chưa có bảng giá nào"
-                            description="Thiết lập giá cho từng khung giờ và ngày trong tuần."
-                            example="VD: 6–17h thường 100k, 17–22h giờ vàng 130k"
-                            action={
-                                <Button onClick={openAdd} className="gap-2">
-                                    <Plus className="h-4 w-4" />
-                                    Thêm giá
-                                </Button>
-                            }
-                        />
-                    ) : (
-                        <div className="divide-y">
-                            {sortedRules.map((r) => (
-                                <div key={r.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
-                                    <div className="flex-1 space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <Badge variant={getTierVariant(r)}>
-                                                {getTierLabel(r)}
-                                            </Badge>
-                                            <span className="font-mono text-sm text-muted-foreground">
-                                                {r.start_local} – {r.end_local}
-                                            </span>
-                                            {r.priority > 0 && (
-                                                <Badge variant="secondary" className="text-xs">
-                                                    Ưu tiên {r.priority}
+                <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/20 p-1.5">
+                    <Button type="button" size="sm" variant={scope === 'venue' ? 'default' : 'ghost'} onClick={() => setScope('venue')}>
+                        Giá chung toàn cơ sở
+                    </Button>
+                    <Button type="button" size="sm" variant={scope === 'court' ? 'default' : 'ghost'} onClick={() => setScope('court')}>
+                        Giá riêng — {court.name}
+                    </Button>
+                </div>
+
+                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+                    <Card className="overflow-hidden">
+                        <div className="flex items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4">
+                            <div>
+                                <h2 className="font-semibold text-foreground">Các mức giá đang áp dụng</h2>
+                                <p className="mt-0.5 text-sm text-muted-foreground">
+                                    {activeRules.length > 0 ? `${activeRules.length} quy tắc được sắp theo giờ bắt đầu` : 'Chưa có quy tắc giá'}
+                                </p>
+                            </div>
+                            {activeRules.length > 0 && <Badge variant="secondary">{activeRules.length} mức</Badge>}
+                        </div>
+
+                        {activeRules.length === 0 ? (
+                            <EmptyState
+                                icon={DollarSign}
+                                title="Chưa có bảng giá nào"
+                                description={scope === 'venue' ? 'Thiết lập một lần để áp dụng cho tất cả sân.' : 'Chỉ thêm mức giá khác với giá chung toàn cơ sở.'}
+                                example="VD: 6–17h thường 100k, 17–22h giờ vàng 130k"
+                                action={
+                                    <Button onClick={openAdd} className="gap-2">
+                                        <Plus className="h-4 w-4" />
+                                        Thêm giá
+                                    </Button>
+                                }
+                            />
+                        ) : (
+                            <div className="divide-y">
+                                {sortedRules.map((r) => (
+                                    <div key={r.id} className="flex flex-col gap-4 p-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge variant={getTierVariant(r)}>
+                                                    {getTierLabel(r)}
                                                 </Badge>
-                                            )}
+                                                {r.priority > 0 && (
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        Ưu tiên {r.priority}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                                                <div className="text-xl font-bold tracking-tight text-primary">
+                                                    {formatVND(r.price_per_hour)}
+                                                    <span className="ml-1 text-xs font-normal text-muted-foreground">/ giờ</span>
+                                                </div>
+                                                <div className="inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
+                                                    <Clock3 className="h-4 w-4" />
+                                                    {r.start_local} – {r.end_local}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="text-base font-bold text-primary">
-                                            {formatVND(r.price_per_hour)} <span className="text-xs font-normal text-muted-foreground">/ giờ</span>
+                                        <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
+                                            <Button variant="outline" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
+                                            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ ...r, scope })} aria-label="Xóa mức giá">
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
                                         </div>
                                     </div>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
-                                        <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </Card>
+                                ))}
+                            </div>
+                        )}
+                    </Card>
 
-                {rules.length > 0 && (
-                    <div className="flex items-start gap-3 rounded-xl border bg-muted/30 p-4 text-xs text-muted-foreground">
-                        <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <div>
-                            <p className="font-medium text-foreground">Giải thích</p>
-                            <ul className="mt-1 list-inside list-disc space-y-0.5">
-                                <li><strong>Ngày thường</strong> (T2–T6): giá chuẩn</li>
-                                <li><strong>Cuối tuần</strong> (T7–CN): giá cao hơn</li>
-                                <li><strong>Ưu tiên</strong>: số càng cao, rule càng được ưu tiên khi trùng khung giờ</li>
-                            </ul>
-                        </div>
-                    </div>
-                )}
+                    <aside className="space-y-4 lg:sticky lg:top-20">
+                        <Card className="p-5">
+                            <div className="flex items-center gap-3">
+                                <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                                    <DollarSign className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h2 className="font-semibold text-foreground">Tổng quan giá</h2>
+                                    <p className="text-xs text-muted-foreground">{scope === 'venue' ? 'Áp dụng cho mọi sân' : `Ngoại lệ cho ${court.name}`}</p>
+                                </div>
+                            </div>
+
+                            <dl className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl border bg-muted/20 p-3">
+                                    <dt className="text-xs text-muted-foreground">Thấp nhất</dt>
+                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                        {prices.length > 0 ? formatVND(Math.min(...prices)) : '—'}
+                                    </dd>
+                                </div>
+                                <div className="rounded-xl border bg-muted/20 p-3">
+                                    <dt className="text-xs text-muted-foreground">Cao nhất</dt>
+                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                        {prices.length > 0 ? formatVND(Math.max(...prices)) : '—'}
+                                    </dd>
+                                </div>
+                                <div className="rounded-xl border bg-muted/20 p-3">
+                                    <dt className="text-xs text-muted-foreground">Ngày có giá</dt>
+                                    <dd className="mt-1 flex items-center gap-1.5 text-sm font-bold text-foreground">
+                                        <CalendarDays className="h-4 w-4 text-primary" />
+                                        {coveredDays}/7 ngày
+                                    </dd>
+                                </div>
+                                <div className="rounded-xl border bg-muted/20 p-3">
+                                    <dt className="text-xs text-muted-foreground">Khung giờ</dt>
+                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                        {earliestStart && latestEnd ? `${earliestStart}–${latestEnd}` : '—'}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </Card>
+
+                        <Card className="p-5">
+                            <div className="flex items-start gap-3">
+                                <Info className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                                <div>
+                                    <h2 className="font-semibold text-foreground">Cách hệ thống chọn giá</h2>
+                                    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                                        <li><strong className="text-foreground">1. Giá riêng:</strong> rule của {court.name} thắng giá chung.</li>
+                                        <li><strong className="text-foreground">2. Giá chung:</strong> dùng cho mọi sân chưa có ngoại lệ.</li>
+                                        <li><strong className="text-foreground">3. Giá mặc định:</strong> {defaultPricePerHour != null ? `${formatVND(defaultPricePerHour)} / giờ` : 'chưa thiết lập'}.</li>
+                                        <li><strong className="text-foreground">Cùng phạm vi:</strong> priority lớn hơn dùng cho giờ cao điểm.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </Card>
+                    </aside>
+                </div>
             </PageContainer>
+
+            <ConfirmActionDialog
+                open={deleteTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setDeleteTarget(null)}
+                onConfirm={remove}
+                title="Xóa mức giá"
+                description={deleteTarget ? `Mức giá ${formatVND(deleteTarget.price_per_hour)} từ ${deleteTarget.start_local} đến ${deleteTarget.end_local} sẽ bị xóa. Hành động này không thể hoàn tác.` : ''}
+                confirmLabel="Xóa mức giá"
+                processingLabel="Đang xóa…"
+                processing={deleteProcessing}
+            />
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>{editingId ? 'Sửa bảng giá' : 'Thêm bảng giá'}</DialogTitle>
+                        <DialogTitle>{editingId ? 'Sửa bảng giá' : 'Thêm bảng giá'} · {formScope === 'venue' ? 'Toàn cơ sở' : court.name}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={submit} className="space-y-4">
                         <div className="space-y-2">
@@ -255,7 +361,7 @@ export default function PricingRules({ court, rules }) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="end">Đến giờ</Label>
                                 <Input id="end" type="time" value={form.data.end_local} onChange={(e) => form.setData('end_local', e.target.value)} />
-                                {form.errors.end_local && <p className="text-sm text-destructive">{form.errors.end_local}</p>}
+                                {(timeError || form.errors.end_local) && <p className="text-sm text-destructive">{timeError || form.errors.end_local}</p>}
                             </div>
                         </div>
 
@@ -287,7 +393,7 @@ export default function PricingRules({ court, rules }) {
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
-                            <Button type="submit" disabled={form.processing}>
+                            <Button type="submit" disabled={form.processing || Boolean(timeError) || form.data.weekday.length === 0}>
                                 {editingId ? 'Cập nhật' : 'Thêm'}
                             </Button>
                         </DialogFooter>

@@ -4,6 +4,7 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -16,7 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import { Trash2, Plus, AlertCircle, Clock } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, Clock, CalendarDays, Info } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -24,6 +25,8 @@ const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'T
 export default function OpeningRules({ court, rules }) {
     const [open, setOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleteProcessing, setDeleteProcessing] = useState(false);
     const form = useForm({
         weekday: [],
         open_local: '06:00',
@@ -76,24 +79,46 @@ export default function OpeningRules({ court, rules }) {
         });
     };
 
-    const remove = (id) => {
-        if (confirm('Xóa giờ mở cửa này?')) {
-            router.delete(`/manager/courts/${court.uuid}/opening-rules/${id}`, { preserveScroll: true });
-        }
+    const remove = () => {
+        if (!deleteTarget) return;
+
+        setDeleteProcessing(true);
+        router.delete(`/manager/courts/${court.uuid}/opening-rules/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setDeleteTarget(null),
+            onFinish: () => setDeleteProcessing(false),
+        });
     };
 
     const dayLabel = (days) => days.map((d) => DAY_FULL[d]).join(', ');
+    const sortedRules = [...rules].sort((a, b) => a.open_local.localeCompare(b.open_local));
+    const coveredDays = new Set(rules.flatMap((rule) => rule.weekday)).size;
+    const earliestOpen = sortedRules[0]?.open_local ?? null;
+    const latestClose = rules.length > 0
+        ? [...rules].sort((a, b) => b.close_local.localeCompare(a.close_local))[0].close_local
+        : null;
+    const permanentRules = rules.filter((rule) => !rule.effective_to).length;
+    const toMinutes = (time) => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+    const rulesByDay = Object.fromEntries(
+        [1, 2, 3, 4, 5, 6, 7].map((day) => [
+            day,
+            sortedRules.filter((rule) => rule.weekday.includes(day)),
+        ]),
+    );
 
     return (
         <ManagerLayout>
             <Head title={`Giờ mở cửa — ${court.name}`} />
 
-            <PageContainer size="narrow">
+            <PageContainer>
                 <PageHeader
                     title={`Giờ mở cửa — ${court.name}`}
                     backHref="/manager/courts"
                     backLabel="Danh sách sân"
-                    description={`${rules.length} khung giờ mở cửa`}
+                    description="Thiết lập thời gian nhận đặt sân theo ngày và khoảng hiệu lực"
                     actions={
                         <Button onClick={openAdd} className="gap-2">
                             <Plus className="h-4 w-4" />
@@ -112,8 +137,8 @@ export default function OpeningRules({ court, rules }) {
                     </div>
                 )}
 
-                <Card className="overflow-hidden">
-                    {rules.length === 0 ? (
+                {rules.length === 0 ? (
+                    <Card>
                         <EmptyState
                             icon={Clock}
                             title="Chưa có giờ mở cửa nào"
@@ -126,35 +151,118 @@ export default function OpeningRules({ court, rules }) {
                                 </Button>
                             }
                         />
-                    ) : (
-                        <div className="divide-y">
-                            {rules.map((r) => (
-                                <div key={r.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
-                                    <div className="flex-1 space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <div className="font-medium">{dayLabel(r.weekday)}</div>
-                                            <Badge variant="outline" className="font-mono text-xs">
-                                                {r.open_local} – {r.close_local}
-                                            </Badge>
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {r.effective_from && <>Từ {r.effective_from}</>}
-                                            {r.effective_to && <> · đến {r.effective_to}</>}
-                                            {!r.effective_from && !r.effective_to && <span className="italic">Vô thời hạn</span>}
-                                        </div>
-                                    </div>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
-                                        <Button variant="ghost" size="sm" onClick={() => remove(r.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
+                    </Card>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 overflow-hidden rounded-2xl border bg-card shadow-sm sm:grid-cols-4">
+                            {[
+                                ['Mở sớm nhất', earliestOpen ?? '—'],
+                                ['Đóng muộn nhất', latestClose ?? '—'],
+                                ['Ngày hoạt động', `${coveredDays}/7`],
+                                ['Khung dài hạn', permanentRules],
+                            ].map(([label, value], index) => (
+                                <div key={label} className={`px-5 py-4 ${index % 2 ? 'border-l' : ''} ${index > 1 ? 'border-t sm:border-t-0' : ''} sm:border-l sm:first:border-l-0`}>
+                                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+                                    <p className="mt-1 font-mono text-xl font-bold text-foreground">{value}</p>
                                 </div>
                             ))}
                         </div>
-                    )}
-                </Card>
+
+                        <Card className="overflow-hidden">
+                            <div className="flex flex-col gap-3 border-b bg-muted/20 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <CalendarDays className="h-5 w-5 text-primary" />
+                                        <h2 className="font-semibold text-foreground">Nhịp vận hành trong tuần</h2>
+                                    </div>
+                                    <p className="mt-1 text-sm text-muted-foreground">Mỗi thanh biểu diễn thời gian sân nhận đặt trong một ngày.</p>
+                                </div>
+                                <div className="hidden w-[calc(100%-7rem)] justify-between pl-3 font-mono text-[10px] text-muted-foreground sm:flex">
+                                    {['00:00', '06:00', '12:00', '18:00', '24:00'].map((time) => <span key={time}>{time}</span>)}
+                                </div>
+                            </div>
+
+                            <div className="divide-y">
+                                {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                                    <div key={day} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 px-4 py-3 sm:grid-cols-[6rem_minmax(0,1fr)] sm:px-5">
+                                        <div className="pt-1">
+                                            <p className="text-sm font-semibold text-foreground">{DAY_FULL[day]}</p>
+                                            <p className="text-xs text-muted-foreground">{rulesByDay[day].length > 0 ? `${rulesByDay[day].length} khung` : 'Đóng cửa'}</p>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {rulesByDay[day].length === 0 ? (
+                                                <div className="mt-1 h-8 rounded-lg border border-dashed bg-muted/20" />
+                                            ) : rulesByDay[day].map((rule) => {
+                                                const left = (toMinutes(rule.open_local) / 1440) * 100;
+                                                const width = ((toMinutes(rule.close_local) - toMinutes(rule.open_local)) / 1440) * 100;
+                                                return (
+                                                    <div key={rule.id} className="relative h-8 overflow-hidden rounded-lg bg-muted/50">
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            onClick={() => openEdit(rule)}
+                                                            className="absolute inset-y-0 h-8 min-w-16 rounded-lg px-1.5 font-mono text-[10px] shadow-sm sm:min-w-20 sm:px-2 sm:text-[11px]"
+                                                            style={{ left: `${left}%`, width: `${width}%` }}
+                                                            title={`${rule.open_local}–${rule.close_local}`}
+                                                        >
+                                                            {rule.open_local}–{rule.close_local}
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Card>
+
+                        <section>
+                            <div className="mb-3 flex items-end justify-between gap-3">
+                                <div>
+                                    <h2 className="font-semibold text-foreground">Giai đoạn hiệu lực</h2>
+                                    <p className="text-sm text-muted-foreground">Quản lý lịch dài hạn, lịch mùa vụ hoặc lịch tạm thời.</p>
+                                </div>
+                                <Badge variant="secondary">{rules.length} quy tắc</Badge>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                                {sortedRules.map((rule) => (
+                                    <Card key={rule.id} className="group p-4 transition-colors hover:bg-muted/20">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-mono text-lg font-bold text-primary">{rule.open_local}–{rule.close_local}</p>
+                                                <p className="mt-1 truncate text-sm font-medium text-foreground">{dayLabel(rule.weekday)}</p>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Button variant="ghost" size="sm" onClick={() => openEdit(rule)}>Sửa</Button>
+                                                <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(rule)} aria-label="Xóa khung giờ">
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+                                            <Info className="h-3.5 w-3.5 text-primary" />
+                                            {rule.effective_from && <>Từ {rule.effective_from}</>}
+                                            {rule.effective_to && <> đến {rule.effective_to}</>}
+                                            {!rule.effective_from && !rule.effective_to && 'Áp dụng vô thời hạn'}
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        </section>
+                    </>
+                )}
             </PageContainer>
+
+            <ConfirmActionDialog
+                open={deleteTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setDeleteTarget(null)}
+                onConfirm={remove}
+                title="Xóa khung giờ mở cửa"
+                description={deleteTarget ? `Khung giờ ${deleteTarget.open_local}–${deleteTarget.close_local} (${dayLabel(deleteTarget.weekday)}) sẽ bị xóa. Lịch trống có thể thay đổi ngay sau thao tác này.` : ''}
+                confirmLabel="Xóa khung giờ"
+                processingLabel="Đang xóa…"
+                processing={deleteProcessing}
+            />
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-lg">

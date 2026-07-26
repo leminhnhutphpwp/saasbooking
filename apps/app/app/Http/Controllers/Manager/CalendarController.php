@@ -13,7 +13,9 @@ use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\Tenant;
 use App\Services\Booking\BookingService;
+use App\Services\Catalog\PricingService;
 use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
@@ -22,6 +24,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 /**
  * Owner calendar: today's bookings per court + walk-in (cash) booking. Walk-ins are confirmed
@@ -29,12 +32,15 @@ use Inertia\Response;
  */
 class CalendarController extends Controller
 {
-    public function __construct(private BookingService $bookings) {}
+    public function __construct(
+        private BookingService $bookings,
+        private PricingService $pricing,
+    ) {}
 
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
-        $tenant = $request->user()->tenant()->firstOrFail();
+        $tenant = Tenant::findOrFail($tenantId);
 
         // Wall-as-UTC (single-tz Phase 1): "today" and the day bounds reference the VENUE wall-clock
         // day (slots are stored naive/wall-clock), never real UTC. An invalid ?date= falls back to
@@ -71,9 +77,6 @@ class CalendarController extends Controller
             ->sortBy('start')
             ->values();
 
-        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
-            ->get(['id', 'name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->name]);
-
         // Generate time slots 05:00–23:00 (30-min intervals) as the venue's default range.
         $timeSlots = [];
         for ($h = 5; $h < 23; $h++) {
@@ -81,6 +84,22 @@ class CalendarController extends Controller
                 $timeSlots[] = sprintf('%02d:%02d', $h, $m);
             }
         }
+
+        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(function (Court $court) use ($dateString, $tenantId, $timeSlots) {
+                $prices = [];
+                foreach ($timeSlots as $time) {
+                    $start = CarbonImmutable::parse("{$dateString} {$time}:00");
+                    try {
+                        $prices[$time] = $this->pricing->resolve($tenantId, $court->id, $start, $start->addMinutes(30));
+                    } catch (RuntimeException) {
+                        $prices[$time] = null;
+                    }
+                }
+
+                return ['id' => $court->id, 'name' => $court->name, 'prices' => $prices];
+            });
 
         return Inertia::render('Manager/Calendar/Index', [
             'date' => $dateString,
@@ -92,16 +111,19 @@ class CalendarController extends Controller
 
     public function storeWalkIn(Request $request): RedirectResponse
     {
-        $tenant = $request->user()->tenant()->firstOrFail();
         $tenantId = (int) WorkingTenant::id($request);
+        $tenant = Tenant::findOrFail($tenantId);
         abort_unless($tenant->id === $tenantId, 403);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'name' => ['required', 'string', 'min:2', 'max:255'],
+            'phone' => ['required', 'string', 'regex:/^(\+?84|0)[2-9]\d{7,8}$/'],
             'court_id' => ['required', 'integer', Rule::exists('courts', 'id')->where('tenant_id', $tenantId)],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after:start_at'],
+        ], [
+            'name.min' => 'Tên phải có ít nhất 2 ký tự.',
+            'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
         $customer = Customer::firstOrCreate(

@@ -29,7 +29,10 @@ class Tenant extends Model
         ];
     }
 
-    protected $fillable = ['service_id', 'name', 'slug', 'vertical', 'timezone', 'status', 'settings', 'is_ready', 'readiness_checked_at'];
+    protected $fillable = [
+        'service_id', 'name', 'slug', 'vertical', 'timezone', 'status', 'settings', 'is_ready', 'readiness_checked_at',
+        'address', 'phone', 'email', 'website', 'lat', 'lng', 'description',
+    ];
 
     public function getRouteKeyName(): string
     {

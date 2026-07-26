@@ -1,7 +1,7 @@
 ---
 id: T27
 title: Tenant-scoped resource category foundation
-status: in-review
+status: done
 owner: backend-agent
 priority: P0
 depends_on: [T26]

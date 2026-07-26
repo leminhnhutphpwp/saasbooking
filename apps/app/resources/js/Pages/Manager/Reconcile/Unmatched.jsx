@@ -4,6 +4,7 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Label } from '@/Components/ui/label';
@@ -27,6 +28,8 @@ import { GitBranch, CheckCircle2 } from 'lucide-react';
 
 export default function Unmatched({ txns, pendingBookings }) {
     const [matchTxn, setMatchTxn] = useState(null);
+    const [dismissTarget, setDismissTarget] = useState(null);
+    const [dismissProcessing, setDismissProcessing] = useState(false);
 
     const form = useForm({ booking_uuid: '' });
 
@@ -45,10 +48,15 @@ export default function Unmatched({ txns, pendingBookings }) {
         });
     };
 
-    const dismissTxn = (id) => {
-        if (confirm('Bỏ qua giao dịch này?')) {
-            router.post(`/manager/reconcile/${id}/dismiss`, {}, { preserveScroll: true });
-        }
+    const dismissTxn = () => {
+        if (!dismissTarget) return;
+
+        setDismissProcessing(true);
+        router.post(`/manager/reconcile/${dismissTarget.id}/dismiss`, {}, {
+            preserveScroll: true,
+            onSuccess: () => setDismissTarget(null),
+            onFinish: () => setDismissProcessing(false),
+        });
     };
 
     const unmatched = txns.filter((t) => t.note);
@@ -105,7 +113,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                                                     <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
                                                         Đối soát
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => dismissTxn(t.id)}>
+                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
                                                         Bỏ qua
                                                     </Button>
                                                 </div>
@@ -144,7 +152,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                                                     <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
                                                         Đối soát
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => dismissTxn(t.id)}>
+                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
                                                         Bỏ qua
                                                     </Button>
                                                 </div>
@@ -157,6 +165,17 @@ export default function Unmatched({ txns, pendingBookings }) {
                     </div>
                 )}
             </PageContainer>
+
+            <ConfirmActionDialog
+                open={dismissTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setDismissTarget(null)}
+                onConfirm={dismissTxn}
+                title="Bỏ qua giao dịch"
+                description={dismissTarget ? `Giao dịch ${formatVND(dismissTarget.amount)} với nội dung “${dismissTarget.memo}” sẽ được loại khỏi danh sách cần đối soát. Chỉ thực hiện khi bạn chắc chắn giao dịch này không thuộc đơn đặt sân nào.` : ''}
+                confirmLabel="Bỏ qua giao dịch"
+                processingLabel="Đang bỏ qua…"
+                processing={dismissProcessing}
+            />
 
             <Dialog open={matchTxn !== null} onOpenChange={(o) => !o && setMatchTxn(null)}>
                 <DialogContent className="sm:max-w-xl">

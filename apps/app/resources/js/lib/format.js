@@ -23,12 +23,12 @@ function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** 60000 → "60.000đ" (integer VND, vi-VN grouping). */
+/** 60000 → "60.000 vnđ" (integer VND, vi-VN grouping). */
 export function formatVND(n) {
   if (n === null || n === undefined || n === '') return '';
   const num = Number(n);
   if (Number.isNaN(num)) return '';
-  return VND.format(Math.round(num)) + 'đ';
+  return VND.format(Math.round(num)) + ' vnđ';
 }
 
 /** ISO → "22/07/2026". */

@@ -42,6 +42,20 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_login_validation_messages_are_in_vietnamese(): void
+    {
+        $response = $this->from('/login')->post('/login', [
+            'email' => '',
+            'password' => '',
+        ]);
+
+        $response->assertRedirect('/login');
+        $response->assertSessionHasErrors([
+            'email' => 'Email không được để trống.',
+            'password' => 'Mật khẩu không được để trống.',
+        ]);
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

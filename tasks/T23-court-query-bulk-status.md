@@ -1,7 +1,7 @@
 ---
 id: T23
 title: Court query and bulk status API
-status: in-review
+status: done
 owner: backend-agent
 priority: P1
 depends_on: []

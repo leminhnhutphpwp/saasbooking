@@ -1,7 +1,7 @@
 ---
 id: T22
 title: Modern court operations table
-status: in-review
+status: done
 owner: web-frontend
 priority: P1
 depends_on: []

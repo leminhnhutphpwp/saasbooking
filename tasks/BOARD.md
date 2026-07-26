@@ -8,7 +8,6 @@
 |----|------|--------|-------|------|-----------|---------------|
 | [T32](T32-public-booking-selection-remake.md) | Public booking read model and selection remake | todo | - | P1 | T31 | Public controller + Show page + worklog |
 | [T33](T33-public-booking-status-receipt.md) | Public booking payment status receipt remake | todo | - | P1 | T32 | Public Status page + worklog |
-| [T36](T36-service-registration.md) | Platform services and per-service tenant registration | claimed | opencode | P0 | - | Service catalog + memberships + registration + tenant switching + docs |
 
 ## Manager-only actions (not delegated)
 - [x] Merge T22, T23, T24, T27, T28, T29, T30 into `main` — all verified (200 tests + pint clean).
@@ -17,6 +16,8 @@
 - Backend / go-live: run `migrate` on deploy · real Zalo ZNS HTTP transport · `scripts/deploy.sh` · backup cron + restore test · security headers/CSP · error monitoring. (See `../worklogs/2026-07-23-m6-audit-fixes.md` handoff.)
 
 ## Done
+- **T36** Platform services and per-service tenant registration (feat/service-registration).
+- **T35** Smart pricing rules (feat/smart-pricing-rules).
 - **T30** Customer and recurrence operations (feat/customer-recurrence-operations).
 - **T29** Booking operations workbench (feat/booking-operations-workbench).
 - **T28** Venue readiness and money config (feat/venue-readiness-money-config).

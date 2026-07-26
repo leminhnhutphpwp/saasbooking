@@ -1,7 +1,7 @@
 ---
 id: T28
 title: Venue readiness and money configuration
-status: in-review
+status: done
 owner: backend-agent
 priority: P0
 depends_on: [T25, T27]
