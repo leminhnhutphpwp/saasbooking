@@ -10,7 +10,6 @@ use App\Models\Tenant;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class ResourceCategoryTest extends TestCase
@@ -126,7 +125,8 @@ class ResourceCategoryTest extends TestCase
 
     public function test_legacy_courts_are_backfilled_to_their_tenants_category_during_migration(): void
     {
-        Artisan::call('migrate:rollback', ['--step' => 2]);
+        $migration = require database_path('migrations/2026_07_25_100100_add_category_id_to_courts_table.php');
+        $migration->down();
 
         $tenant = $this->tenant('legacy');
         Court::forceCreate([
@@ -136,7 +136,7 @@ class ResourceCategoryTest extends TestCase
             'status' => 'active',
         ]);
 
-        Artisan::call('migrate');
+        $migration->up();
 
         $court = Court::withoutGlobalScopes()->where('name', 'Legacy court')->firstOrFail();
         $this->assertNotNull($court->resource_category_id);
@@ -145,7 +145,8 @@ class ResourceCategoryTest extends TestCase
 
     public function test_legacy_court_type_is_preserved_after_backfill(): void
     {
-        Artisan::call('migrate:rollback', ['--step' => 2]);
+        $migration = require database_path('migrations/2026_07_25_100100_add_category_id_to_courts_table.php');
+        $migration->down();
 
         $tenant = $this->tenant('legacy-preserve');
         Court::forceCreate([
@@ -155,7 +156,7 @@ class ResourceCategoryTest extends TestCase
             'status' => 'active',
         ]);
 
-        Artisan::call('migrate');
+        $migration->up();
 
         $court = Court::withoutGlobalScopes()->where('name', 'Legacy court')->firstOrFail();
         // Legacy column preserved for compatibility (cast to CourtType enum)

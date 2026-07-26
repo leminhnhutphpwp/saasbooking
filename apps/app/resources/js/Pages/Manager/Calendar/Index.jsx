@@ -7,6 +7,9 @@ import { StatusBadge } from '@/Components/StatusBadge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { validators } from '@/lib/validators';
+import { useFieldValidation } from '@/hooks/useFieldValidation';
+import { formatVND } from '@/lib/format';
 import {
     Select,
     SelectContent,
@@ -103,6 +106,11 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         duration: '60',
     });
 
+    const { fieldErrors, updateField, isFormValid, validateAll } = useFieldValidation(form, {
+        name: validators.name,
+        phone: validators.phone,
+    });
+
     const changeDate = (d) => {
         router.get('/manager/calendar', { date: d }, { preserveState: true, preserveScroll: true });
     };
@@ -128,6 +136,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
 
     const submit = (e) => {
         e.preventDefault();
+        if (!validateAll()) return;
         const [h, m] = form.data.time.split(':').map(Number);
         const endMin = h * 60 + m + Number(form.data.duration);
         const end = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
@@ -293,15 +302,16 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                             return (
                                                 <div
                                                     key={`empty-${slot}`}
-                                                    className="absolute left-0 right-0 z-5 cursor-pointer rounded opacity-0 transition-all hover:opacity-100 hover:bg-primary/5"
+                                                    className="absolute left-0 right-0 z-5 cursor-pointer rounded opacity-60 transition-all hover:bg-primary/5 hover:opacity-100"
                                                     style={{
                                                         top: `${pct(slotMin)}%`,
                                                         height: `${pct(slotMin + 30) - pct(slotMin)}%`,
                                                     }}
                                                     onClick={() => openWalkIn(court.id, slot)}
                                                 >
-                                                    <div className="flex h-full items-center justify-center text-xs text-primary">
+                                                    <div className="flex h-full items-center justify-center gap-1 text-[10px] font-medium text-primary">
                                                         <Plus className="h-3 w-3" />
+                                                        {court.prices?.[slot] != null && formatVND(court.prices[slot])}
                                                     </div>
                                                 </div>
                                             );
@@ -357,19 +367,19 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="name">Tên khách</Label>
-                            <Input id="name" placeholder="Nguyễn Văn A" value={form.data.name} onChange={(e) => form.setData('name', e.target.value)} />
-                            {form.errors.name && <p className="text-sm text-destructive">{form.errors.name}</p>}
+                            <Input id="name" placeholder="Nguyễn Văn A" value={form.data.name} onChange={(e) => updateField('name', e.target.value)} />
+                            {(fieldErrors.name || form.errors.name) && <p className="text-sm text-destructive">{fieldErrors.name || form.errors.name}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="phone">Số điện thoại</Label>
-                            <Input id="phone" type="tel" placeholder="0901 234 567" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
-                            {form.errors.phone && <p className="text-sm text-destructive">{form.errors.phone}</p>}
+                            <Input id="phone" type="tel" placeholder="0901 234 567" value={form.data.phone} onChange={(e) => updateField('phone', e.target.value)} />
+                            {(fieldErrors.phone || form.errors.phone) && <p className="text-sm text-destructive">{fieldErrors.phone || form.errors.phone}</p>}
                         </div>
                         {(form.errors.start_at || form.errors.court_id) && (
                             <p className="text-sm text-destructive">{form.errors.start_at ?? form.errors.court_id}</p>
                         )}
                         <DialogFooter>
-                            <Button type="submit" disabled={form.processing} className="w-full sm:w-auto">
+                            <Button type="submit" disabled={form.processing || !isFormValid} className="w-full sm:w-auto">
                                 Xác nhận đặt
                             </Button>
                         </DialogFooter>

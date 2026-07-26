@@ -30,11 +30,13 @@ class Court extends Model
     use SoftDeletes;
 
     // tenant_id / status are NOT mass-assignable (audit #10) — set via forceCreate/forceFill.
-    protected $fillable = ['name', 'court_type'];
+    protected $fillable = ['name', 'court_type', 'description', 'surface_type', 'display_order', 'metadata'];
 
     protected $casts = [
         'court_type' => CourtType::class,
         'status' => CourtStatus::class,
+        'display_order' => 'integer',
+        'metadata' => 'array',
     ];
 
     public function getRouteKeyName(): string

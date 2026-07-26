@@ -96,6 +96,11 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 | `.claude/skills/payment-reconcile` | VietQR + SePay/Casso, idempotency, 3 reconcile branches |
 | `.claude/skills/vertical-dispatch` | Driver pattern — engine/calendar/pricing per tenant type |
 | `.claude/skills/planning` | Planning methodology (research-first, door classification) |
+| `.claude/skills/module-connections` | OWNS/REFERENCES rules, Service calls, domain events, cross-module patterns |
+| `.claude/skills/court-catalog` | Pricing rules, opening rules, blackouts, court types |
+| `.claude/skills/payment-flow` | Payment flow — VietQR, reconcile, idempotency, 3 branches, refunds |
+| `.claude/skills/notification-zalo` | Zalo ZNS — confirmation, reminders, templates, retry |
+| `.claude/skills/tenant-isolation` | WorkingTenant, composite FK, RLS, query scoping |
 | `.claude/rules/coding-rules`, `laravel-inertia` | Coding standards; Laravel/Inertia patterns |
 | `.claude/rules/ui-design` | UI/design-system consistency (tokens, shared components, mobile-first) |
 | `tasks/` (`README.md`, `BOARD.md`) | Active work ledger + claim protocol for delegated agents |
@@ -110,5 +115,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 | `.claude/agents/explorer.md` | Read-only code/docs search → precise pointers |
 | `.claude/agents/planner.md` | Requirement → phased, invariant-safe plan (no code) |
 | `.claude/agents/invariant-reviewer.md` | Reviews a diff against the 6 principles |
+| `.claude/agents/module-reviewer.md` | Reviews code for OWNS/REFERENCES violations, cross-module SQL, tenant isolation |
+| `.claude/agents/vertical-tester.md` | Tests new verticals — config, driver, pricing, concurrency, lifecycle |
 | `.claude/commands/check-invariants.md` | `/check-invariants` — run invariant-reviewer on the diff |
 | `.claude/commands/new-vertical.md` | `/new-vertical <name>` — add a vertical via the driver pattern |

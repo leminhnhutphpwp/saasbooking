@@ -46,7 +46,7 @@ export default function Login({ status, canResetPassword }) {
                             type="email"
                             name="email"
                             value={data.email}
-                            className="h-10 pl-9"
+                            className="h-10 w-full pl-9"
                             autoComplete="username"
                             isFocused={true}
                             onChange={(e) => setData('email', e.target.value)}
@@ -74,7 +74,7 @@ export default function Login({ status, canResetPassword }) {
                             type="password"
                             name="password"
                             value={data.password}
-                            className="h-10 pl-9"
+                            className="h-10 w-full pl-9"
                             autoComplete="current-password"
                             onChange={(e) => setData('password', e.target.value)}
                         />

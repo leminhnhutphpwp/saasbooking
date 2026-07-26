@@ -1,9 +1,11 @@
 import { Head, router } from '@inertiajs/react';
+import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { StatusBadge } from '@/Components/StatusBadge';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Card } from '@/Components/ui/card';
 import { formatVND, formatDate } from '@/lib/format';
@@ -17,10 +19,18 @@ const REASON = {
 };
 
 export default function Index({ refunds }) {
-    const markDone = (uuid, code) => {
-        if (confirm(`Đã chuyển khoản hoàn cọc cho ${code}?`)) {
-            router.post(`/manager/refunds/${uuid}/done`, {}, { preserveScroll: true });
-        }
+    const [confirmTarget, setConfirmTarget] = useState(null);
+    const [processing, setProcessing] = useState(false);
+
+    const markDone = () => {
+        if (!confirmTarget) return;
+
+        setProcessing(true);
+        router.post(`/manager/refunds/${confirmTarget.uuid}/done`, {}, {
+            preserveScroll: true,
+            onSuccess: () => setConfirmTarget(null),
+            onFinish: () => setProcessing(false),
+        });
     };
 
     return (
@@ -59,7 +69,7 @@ export default function Index({ refunds }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => markDone(r.uuid, r.code)}>
+                                    <Button variant="outline" size="sm" onClick={() => setConfirmTarget(r)}>
                                         Đã chuyển khoản
                                     </Button>
                                 </div>
@@ -68,6 +78,18 @@ export default function Index({ refunds }) {
                     )}
                 </Card>
             </PageContainer>
+
+            <ConfirmActionDialog
+                open={confirmTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setConfirmTarget(null)}
+                onConfirm={markDone}
+                title="Xác nhận đã hoàn cọc"
+                description={confirmTarget ? `Xác nhận bạn đã chuyển ${formatVND(confirmTarget.amount)} hoàn cọc cho đơn ${confirmTarget.code}. Hệ thống sẽ đánh dấu khoản này là đã xử lý.` : ''}
+                confirmLabel="Đã chuyển khoản"
+                processingLabel="Đang xác nhận…"
+                processing={processing}
+                variant="default"
+            />
         </ManagerLayout>
     );
 }

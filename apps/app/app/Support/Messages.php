@@ -63,6 +63,12 @@ final class Messages
         'updated' => 'Đã cập nhật thương hiệu.',
     ];
 
+    // ─── Venue ───────────────────────────────────────────────────────
+
+    private static array $venue = [
+        'updated' => 'Đã cập nhật hồ sơ cơ sở.',
+    ];
+
     // ─── Customer ─────────────────────────────────────────────────────
 
     private static array $customer = [
@@ -138,6 +144,16 @@ final class Messages
         'verification_sent' => 'Liên kết xác minh đã được gửi đến email của bạn.',
     ];
 
+    // ─── Validation ─────────────────────────────────────────────────
+
+    private static array $validation = [
+        'name_required' => 'Tên không được để trống.',
+        'name_min' => 'Tên phải có ít nhất 2 ký tự.',
+        'phone_required' => 'Số điện thoại không được để trống.',
+        'phone_regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
+        'email_regex' => 'Email không hợp lệ.',
+    ];
+
     // ─── Domain maps (lazy-loaded to avoid PHP constant expression limitation) ──
 
     private static ?array $domains = null;
@@ -150,6 +166,7 @@ final class Messages
             'pricing' => self::$pricing,
             'opening' => self::$opening,
             'branding' => self::$branding,
+            'venue' => self::$venue,
             'customer' => self::$customer,
             'refund' => self::$refund,
             'reconcile' => self::$reconcile,
@@ -159,6 +176,7 @@ final class Messages
             'pricing_service' => self::$pricing_service,
             'webhook' => self::$webhook,
             'auth' => self::$auth,
+            'validation' => self::$validation,
         ];
     }
 

@@ -89,6 +89,76 @@ class PricingRuleControllerTest extends TestCase
         $this->assertSame(1, $court->pricingRules()->count());
     }
 
+    public function test_higher_priority_overlap_is_allowed_for_peak_pricing(): void
+    {
+        $t = $this->venue('venue-a');
+        $court = $this->court($t);
+        PricingRule::create([
+            'tenant_id' => $t->id, 'court_id' => $court->id, 'weekday' => [1],
+            'start_local' => '06:00:00', 'end_local' => '23:00:00', 'price_per_hour' => 60_000, 'priority' => 0,
+        ]);
+
+        $this->actingAs($this->owner($t))
+            ->post("/manager/courts/{$court->uuid}/pricing-rules", [
+                'weekday' => [1], 'start_local' => '17:00', 'end_local' => '22:00',
+                'price_per_hour' => 100_000, 'priority' => 10,
+            ])
+            ->assertRedirect()
+            ->assertSessionDoesntHaveErrors();
+
+        $this->assertSame(2, $court->pricingRules()->count());
+    }
+
+    public function test_owner_stores_venue_wide_pricing_rule(): void
+    {
+        $t = $this->venue('venue-a');
+
+        $this->actingAs($this->owner($t))
+            ->post('/manager/pricing-rules', [
+                'weekday' => [1, 2, 3, 4, 5], 'start_local' => '06:00', 'end_local' => '23:00',
+                'price_per_hour' => 80_000, 'priority' => 0,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('pricing_rules', [
+            'tenant_id' => $t->id, 'court_id' => null, 'price_per_hour' => 80_000,
+        ]);
+    }
+
+    public function test_venue_wide_rule_rejects_invalid_time_range(): void
+    {
+        $t = $this->venue('venue-a');
+
+        $this->actingAs($this->owner($t))
+            ->from('/manager/courts')
+            ->post('/manager/pricing-rules', [
+                'weekday' => [1], 'start_local' => '22:00', 'end_local' => '06:00',
+                'price_per_hour' => 80_000, 'priority' => 0,
+            ])
+            ->assertSessionHasErrors(['end_local']);
+
+        $this->assertDatabaseMissing('pricing_rules', ['tenant_id' => $t->id]);
+    }
+
+    public function test_owner_cannot_change_another_tenants_venue_rule(): void
+    {
+        $a = $this->venue('venue-a');
+        $b = $this->venue('venue-b');
+        $rule = PricingRule::create([
+            'tenant_id' => $b->id, 'court_id' => null, 'weekday' => [1],
+            'start_local' => '06:00:00', 'end_local' => '23:00:00', 'price_per_hour' => 80_000, 'priority' => 0,
+        ]);
+
+        $this->actingAs($this->owner($a))
+            ->put("/manager/pricing-rules/{$rule->id}", [
+                'weekday' => [1], 'start_local' => '06:00', 'end_local' => '23:00',
+                'price_per_hour' => 1, 'priority' => 0,
+            ])
+            ->assertNotFound();
+
+        $this->assertSame(80_000, $rule->fresh()->price_per_hour);
+    }
+
     public function test_owner_cannot_store_pricing_rule_on_other_tenants_court(): void
     {
         $a = $this->venue('venue-a');

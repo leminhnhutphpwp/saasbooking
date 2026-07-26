@@ -5,29 +5,39 @@ declare(strict_types=1);
 namespace App\Services\Catalog;
 
 use App\Models\PricingRule;
+use App\Services\Tenant\VenueSettingsService;
 use App\Support\Messages;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Collection;
 use RuntimeException;
 
 /**
  * Resolves the price for a slot from the tenant's pricing rules (peak / off-peak).
- * Precedence: a court-specific rule beats a venue-wide one; then higher `priority` wins.
+ * Precedence: court-specific rule, venue-wide rule, then the tenant's default hourly price.
  *
  * The caller (BookingService) SNAPSHOTs this value onto the booking at creation — historical
  * bookings never re-read live pricing (docs/11 #1).
  */
 class PricingService
 {
+    /** @var array<string, Collection<int, PricingRule>> */
+    private array $rulesByCourt = [];
+
+    public function __construct(private VenueSettingsService $venueSettings) {}
+
     /** @return int price in integer VND for the whole [$startAt, $endAt) slot */
     public function resolve(int $tenantId, int $courtId, CarbonInterface $startAt, CarbonInterface $endAt): int
     {
         $weekday = $startAt->dayOfWeekIso;           // 1..7
         $time = $startAt->format('H:i:s');           // local slot start
 
-        $rule = PricingRule::query()
+        $cacheKey = "{$tenantId}:{$courtId}";
+        $rules = $this->rulesByCourt[$cacheKey] ??= PricingRule::query()
             ->where('tenant_id', $tenantId)
-            ->where(fn ($q) => $q->where('court_id', $courtId)->orWhereNull('court_id'))
-            ->get()
+            ->where(fn ($query) => $query->where('court_id', $courtId)->orWhereNull('court_id'))
+            ->get();
+
+        $rule = $rules
             ->filter(fn (PricingRule $r) => in_array($weekday, $r->weekday, true)
                 && $time >= $r->start_local
                 && $time < $r->end_local)
@@ -44,11 +54,16 @@ class PricingService
             ->first();
 
         if (! $rule) {
-            throw new RuntimeException(Messages::get('pricing_service', 'no_rule', ['time' => $startAt->toDateTimeString()]));
+            $pricePerHour = $this->venueSettings->defaultPricePerHour($tenantId);
+            if ($pricePerHour === null) {
+                throw new RuntimeException(Messages::get('pricing_service', 'no_rule', ['time' => $startAt->toDateTimeString()]));
+            }
+        } else {
+            $pricePerHour = $rule->price_per_hour;
         }
 
-        $minutes = abs($startAt->diffInMinutes($endAt));
+        $minutes = (int) round(abs($startAt->diffInMinutes($endAt)));
 
-        return (int) round($rule->price_per_hour * $minutes / 60);
+        return intdiv(($pricePerHour * $minutes) + 30, 60);
     }
 }

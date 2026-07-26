@@ -159,6 +159,19 @@ class VenueReadinessTest extends TestCase
         $this->assertNotContains('missing_pricing', $codes);
     }
 
+    public function test_default_price_passes_pricing_check(): void
+    {
+        $tenant = $this->tenant();
+        $tenant->update(['settings' => ['pricing' => ['default_price_per_hour' => 100_000]]]);
+        $court = $this->court($tenant);
+        $this->openingRule($tenant, $court);
+
+        $state = VenueReadinessService::check($tenant->fresh());
+
+        $codes = array_map(fn ($blocker) => $blocker->code, $state->blockers);
+        $this->assertNotContains('missing_pricing', $codes);
+    }
+
     // ── Blocker: missing bank config ──────────────────────────────────
 
     public function test_no_active_bank_config_is_a_blocker(): void

@@ -4,6 +4,7 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -45,6 +46,8 @@ const STATUS_VARIANTS = {
 
 export default function Index({ series, customers, courts, weekdays }) {
     const [open, setOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState(null);
+    const [cancelProcessing, setCancelProcessing] = useState(false);
 
     const form = useForm({
         customer_id: '',
@@ -71,12 +74,15 @@ export default function Index({ series, customers, courts, weekdays }) {
         });
     };
 
-    const cancelSeries = (s) => {
-        if (confirm(`Hủy đặt cố định của "${s.customer_name}"?`)) {
-            router.delete(`/manager/series/${s.uuid}`, {
-                preserveScroll: true,
-            });
-        }
+    const cancelSeries = () => {
+        if (!cancelTarget) return;
+
+        setCancelProcessing(true);
+        router.delete(`/manager/series/${cancelTarget.uuid}`, {
+            preserveScroll: true,
+            onSuccess: () => setCancelTarget(null),
+            onFinish: () => setCancelProcessing(false),
+        });
     };
 
     return (
@@ -158,7 +164,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="gap-1.5 text-muted-foreground hover:text-destructive"
-                                                onClick={() => cancelSeries(s)}
+                                                onClick={() => setCancelTarget(s)}
                                             >
                                                 <XCircle className="h-3.5 w-3.5" />
                                                 Hủy
@@ -171,6 +177,17 @@ export default function Index({ series, customers, courts, weekdays }) {
                     </div>
                 )}
             </PageContainer>
+
+            <ConfirmActionDialog
+                open={cancelTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setCancelTarget(null)}
+                onConfirm={cancelSeries}
+                title="Hủy lịch đặt cố định"
+                description={cancelTarget ? `Lịch cố định của ${cancelTarget.customer_name} tại ${cancelTarget.court_name}, ${WEEKDAY_LABELS[cancelTarget.weekday]} hàng tuần sẽ kết thúc. Các buổi đã tạo cần được xử lý theo trạng thái hiện tại.` : ''}
+                confirmLabel="Hủy lịch cố định"
+                processingLabel="Đang hủy…"
+                processing={cancelProcessing}
+            />
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-xl">
