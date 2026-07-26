@@ -49,6 +49,10 @@ class ReportController extends Controller
         $dayStart = CarbonImmutable::parse($from.' 00:00:00');
         $dayEnd = CarbonImmutable::parse($to.' 23:59:59');
 
+        // --- Base query scope ---
+        $baseQuery = fn ($model) => $model::where('tenant_id', $tenantId)
+            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd));
+
         // --- Revenue by day (confirmed bookings only) ---
         $revenueByDay = Booking::query()
             ->where('bookings.tenant_id', $tenantId)
@@ -129,6 +133,46 @@ class ReportController extends Controller
                 'total_spent' => (int) ($c->total_spent ?? 0),
             ]);
 
+        // --- Booking status breakdown (for PieChart) ---
+        $statusBreakdown = Booking::where('tenant_id', $tenantId)
+            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
+            ->select('status', DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->mapWithKeys(fn ($r) => [$r->status->value => (int) $r->count]);
+
+        // --- Revenue by day of week (for BarChart) ---
+        $revenueByDow = Booking::query()
+            ->where('bookings.tenant_id', $tenantId)
+            ->where('status', BookingStatus::Confirmed)
+            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
+            ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
+            ->select(DB::raw('EXTRACT(DOW FROM booking_slots.start_at) as dow'), DB::raw('SUM(bookings.total_amount) as total'))
+            ->groupBy(DB::raw('EXTRACT(DOW FROM booking_slots.start_at)'))
+            ->get()
+            ->mapWithKeys(fn ($r) => [(int) $r->dow => (int) $r->total]);
+
+        $dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        $revenueByDayOfWeek = collect($dayNames)->map(fn ($name, $i) => [
+            'day' => $name,
+            'revenue' => $revenueByDow->get($i, 0),
+        ])->values();
+
+        // --- Hourly booking distribution (for BarChart) ---
+        $hourlyDist = Booking::query()
+            ->where('bookings.tenant_id', $tenantId)
+            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
+            ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
+            ->select(DB::raw('EXTRACT(HOUR FROM booking_slots.start_at) as hour'), DB::raw('COUNT(*) as count'))
+            ->groupBy(DB::raw('EXTRACT(HOUR FROM booking_slots.start_at)'))
+            ->get()
+            ->mapWithKeys(fn ($r) => [(int) $r->hour => (int) $r->count]);
+
+        $hourlyBookings = collect(range(6, 22))->map(fn ($h) => [
+            'hour' => sprintf('%02d:00', $h),
+            'bookings' => $hourlyDist->get($h, 0),
+        ])->values();
+
         // --- Fill missing days with 0 ---
         $dateRange = [];
         $cursor = CarbonImmutable::parse($from);
@@ -162,6 +206,9 @@ class ReportController extends Controller
                 'totalMinutes' => $totalMinutes,
             ],
             'topCustomers' => $topCustomers,
+            'statusBreakdown' => $statusBreakdown,
+            'revenueByDayOfWeek' => $revenueByDayOfWeek,
+            'hourlyBookings' => $hourlyBookings,
         ]);
     }
 }

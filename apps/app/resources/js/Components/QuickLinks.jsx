@@ -7,19 +7,16 @@ import {
     CalendarPlus,
     HandCoins,
     Settings2,
+    Users,
 } from 'lucide-react';
 
-/**
- * QwenCloud-style quick-link icon row.
- * Each item: icon on top in a soft rounded tile, label under, hover tint + lift.
- */
 const LINKS = [
     { key: 'calendar',  href: 'manager.calendar.index',  icon: CalendarDays,  label: 'Lịch đặt sân', tint: 'bg-orange-50 text-orange-600 group-hover:bg-orange-100 dark:bg-orange-950/40 dark:text-orange-400 dark:group-hover:bg-orange-950/70' },
-    { key: 'walkin',    href: 'manager.calendar.index',  icon: CalendarPlus,  label: 'Đặt hộ',       tint: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:group-hover:bg-amber-950/70' },
+    { key: 'walkin',    href: 'manager.bookings.index',   icon: CalendarPlus,  label: 'Đặt sân',      tint: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:group-hover:bg-amber-950/70' },
+    { key: 'customers', href: 'manager.customers.index',  icon: Users,         label: 'Khách hàng',    tint: 'bg-violet-50 text-violet-600 group-hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-400 dark:group-hover:bg-violet-950/70' },
     { key: 'refunds',   href: 'manager.refunds.index',   icon: HandCoins,     label: 'Hoàn cọc',     tint: 'bg-rose-50 text-rose-600 group-hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400 dark:group-hover:bg-rose-950/70' },
     { key: 'reconcile', href: 'manager.reconcile.index', icon: Building2,     label: 'Đối soát',     tint: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-400 dark:group-hover:bg-amber-950/70' },
     { key: 'reports',   href: 'manager.reports.index',   icon: BarChart3,     label: 'Báo cáo',      tint: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:group-hover:bg-emerald-950/70' },
-    { key: 'settings',  href: 'manager.courts.index',    icon: Settings2,     label: 'Cấu hình',     tint: 'bg-sky-50 text-sky-600 group-hover:bg-sky-100 dark:bg-sky-950/40 dark:text-sky-400 dark:group-hover:bg-sky-950/70' },
 ];
 
 export function QuickLinks({ className }) {
