@@ -52,7 +52,7 @@ export default function RegisterService({ services }) {
 
                 <div>
                     <InputLabel htmlFor="venue_name" value="Tên cơ sở" />
-                    <Input id="venue_name" value={form.data.venue_name} onChange={(event) => form.setData('venue_name', event.target.value)} className="mt-1.5" placeholder="Ví dụ: Sân Minh Anh" required autoFocus />
+                    <Input id="venue_name" value={form.data.venue_name} onChange={(event) => form.setData('venue_name', event.target.value)} className="mt-1.5 w-full" placeholder="Ví dụ: Sân Minh Anh" required autoFocus />
                     <InputError message={form.errors.venue_name} className="mt-2" />
                 </div>
 
