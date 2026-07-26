@@ -2,9 +2,9 @@
 
 ## Multi-tenant (theo pattern `WorkingSchool` của appdhv)
 
-**1 database, 1 schema, cột `tenant_id` (bigint FK) mọi bảng.** Một tenant = một cơ sở sân. Cách ly theo đúng khuôn mẫu appdhv, ba lớp từ ngoài vào:
+**1 database, 1 schema, cột `tenant_id` (bigint FK) mọi bảng nghiệp vụ.** Một tenant = một cơ sở của đúng một dịch vụ đã đăng ký. Một account có thể có nhiều `memberships`, nhưng mỗi lần đăng ký dịch vụ tạo tenant riêng; không bật nhiều dịch vụ tùy ý trong cùng tenant.
 
-1. **App-level scoping (lớp chính, như appdhv):** `App\Support\WorkingTenant::id($request)` là **nguồn duy nhất** quyết định request thuộc cơ sở nào; non-operator bị **kẹp cứng** vào `users.tenant_id` (bỏ qua mọi `?tenant_id`/cookie forge). Mọi query controller `->where('tenant_id', WorkingTenant::id($request))`.
+1. **App-level scoping (lớp chính):** `App\Support\WorkingTenant::id($request)` là **nguồn duy nhất** quyết định request thuộc cơ sở nào. Non-operator chỉ được chọn tenant active có trong `memberships`; `users.tenant_id` là primary/fallback tương thích. Query/cookie forge ngoài membership bị bỏ qua. Mọi query controller `->where('tenant_id', WorkingTenant::id($request))`.
 2. **Composite FK `(tenant_id, id)`** — bảng cha khai `UNIQUE(tenant_id, id)`, bảng con FK ghép, chống một dòng trỏ sang tenant khác kể cả khi code có bug.
 3. **Postgres RLS (lưới an toàn tùy chọn, cứng hơn appdhv):** bật policy `USING (tenant_id = current_setting('app.tenant_id')::bigint)` set trong middleware — khuyến nghị bật để phòng lỗi quên `where`.
 
@@ -12,7 +12,15 @@
 
 > ERD dưới đây vẽ khóa dạng khái niệm; khi hiện thực, PK là `id` bigint + `uuid` như trên.
 
-**Tên bảng khi hiện thực là SỐ NHIỀU (chuẩn Laravel):** `tenants, users, memberships, courts, opening_rules, blackouts, pricing_rules, customers, bookings, booking_slots, recurring_series, payments, bank_txn_inbox, refunds, tenant_bank_config, audit_logs`. Sơ đồ mermaid dưới dùng nhãn thực thể **số ít** cho dễ đọc; các câu `CREATE TABLE` và mọi doc khác dùng tên **số nhiều**.
+**Tên bảng khi hiện thực là SỐ NHIỀU (chuẩn Laravel):** `platform_services, tenants, users, memberships, courts, resource_categories, opening_rules, blackouts, pricing_rules, customers, bookings, booking_slots, recurring_series, payments, bank_txn_inbox, refunds, tenant_bank_config, audit_logs`.
+
+### Catalog dịch vụ và quyền truy cập
+
+- `platform_services` là catalog cấp nền tảng do operator cấu hình bằng seeder/backend: tên thương mại, `vertical_key`, trạng thái mở đăng ký, pricing model, giới hạn resource, feature flags và trial.
+- `tenants.service_id NOT NULL`: một tenant chỉ thuộc một dịch vụ. `tenants.vertical` là snapshot dispatch (`racket_court`, sau này `golf`...), lấy server-side từ service lúc đăng ký.
+- `memberships(user_id, tenant_id, role)` là nguồn quyền multi-tenant. UNIQUE `(user_id, tenant_id)`; một account đăng ký thêm dịch vụ bằng cách tạo thêm tenant + membership.
+- `users.tenant_id` tiếp tục là primary tenant để tương thích code cũ, không cấp quyền tới tenant ngoài membership.
+- `resource_categories` là catalog tài nguyên riêng của từng tenant; nó không phải catalog dịch vụ nền tảng.
 
 ## Mô hình cốt lõi
 
@@ -21,7 +29,9 @@ Sân = **tài nguyên bị chiếm dụng theo khung giờ**. Không materialize
 ```mermaid
 erDiagram
     tenant ||--o{ court : ""
-    tenant ||--o{ app_user : ""
+    platform_service ||--o{ tenant : "một đăng ký dịch vụ"
+    tenant ||--o{ membership : "quyền truy cập"
+    app_user ||--o{ membership : "một account nhiều tenant"
     court ||--o{ opening_rule : "giờ mở cửa"
     court ||--o{ blackout : "nghỉ lễ/bảo trì"
     tenant ||--o{ pricing_rule : "giá giờ vàng/thường"

@@ -12,6 +12,13 @@ Chốt trước một câu: với kiến trúc hiện tại (single-DB Postgres,
 >
 > **Quy tắc bất di khi thiết kế mới: LUÔN CHỪA ĐƯỜNG.** Thêm loại tenant / hình dạng tồn kho / vertical / tính năng mới phải làm được bằng cách **THÊM** (bảng, module, cấu hình, enum), **không ĐẬP** lõi. Mỗi đề xuất mới phải phân loại rõ **làm bây giờ / 🚪 chừa cửa / ❌ không làm** (mục 7) để người sau — và agent phiên sau — đọc là hiểu ngay đâu là cửa đã chừa.
 
+### Chốt mô hình đăng ký dịch vụ
+
+- **Làm ngay:** operator cấu hình `platform_services` bằng backend/seeder; mỗi service trỏ một `vertical_key` trong registry.
+- **Làm ngay:** mỗi lần khách đăng ký một service tạo một tenant riêng. Một account có thể có nhiều memberships và switch giữa các tenant đó.
+- **Không làm:** đăng ký một tenant rồi tùy ý bật/tắt nhiều service trong tenant. Ranh giới tenant vẫn là ranh giới dữ liệu, billing, branding và vận hành.
+- **Chừa cửa:** UI admin cho catalog, billing/trial enforcement và capacity-session service. Các cột đã có nhưng Phase 1 chưa thực thi billing/commission.
+
 ---
 
 ## 1. Các trục phát triển dự kiến
@@ -20,7 +27,7 @@ Chốt trước một câu: với kiến trúc hiện tại (single-DB Postgres,
 |---|---|---|
 | Nhiều tenant hơn | 10 → 100 → 1000 cơ sở sân | Thấp — single-DB thừa sức (mục 5) |
 | Vertical **cùng hình dạng** | Spa/nail: thêm lớp thợ × dịch vụ × thời lượng | Trung bình — thêm bảng, tái dùng engine (mục 4) |
-| Loại sân khác | Tennis, bóng đá mini, bi-a | Rất thấp — thêm `court_type` |
+| Dịch vụ cùng engine | Pickleball, cầu lông, tennis, bóng đá mini | Thấp — thêm `platform_service` cùng `vertical_key`; tài nguyên chi tiết dùng `resource_categories` |
 | Vertical **khác hình dạng** | **Golf (tee time), lớp học, sự kiện** — mô hình capacity/sức chứa | Trung bình–cao — thêm chế độ tồn kho song song (mục 3) |
 | Multi-resource / booking | Sân + trọng tài + đèn, caddie, buggy | Trung bình — thêm bảng nối (mục 2) |
 | Nhiều khu vực địa lý | Tenant ở nhiều tỉnh/timezone | Thấp — đã lưu `timestamptz` + `tz` sẵn ([`11-diem-vo.md`](11-diem-vo.md) #3) |
@@ -34,7 +41,7 @@ Map tới ERD hiện tại ([`06-erd.md`](06-erd.md)) — mỗi trục có **đ�
 
 | Trục | Cửa đã chừa | Đường di trú (không rewrite) |
 |---|---|---|
-| Loại sân mới | `courts.court_type` là enum/string tự do; `pricing_rule`, `opening_rule` gắn theo `court_id` | Thêm case enum `CourtType` + seed vài `pricing_rule`. **0 thay đổi schema.** |
+| Dịch vụ mới cùng engine | `platform_services.vertical_key` dispatch vào registry; `tenants.service_id` cố định dịch vụ đã đăng ký | Thêm service row; chỉ thêm code nếu cần vertical/engine mới. **Không sửa booking lifecycle.** |
 | Multi-resource (sân + trọng tài + đèn) | `booking_slot` giữ chỗ ở **mức item**, exclusion constraint gắn `(tenant_id, court_id, tstzrange)` | Thêm bảng nối `booking_slot_resource(booking_slot_id, resource_id, tstzrange)` + exclusion constraint riêng cho từng loại resource. **`bookings`/`booking_slots` không đổi.** |
 | Giá đổi theo mùa/khuyến mãi | Giá & cọc đã **snapshot** vào `booking_slot`/`recurring_series` ([`11-diem-vo.md`](11-diem-vo.md) #1) | Thêm cột/luật vào `pricing_rule`; đơn cũ không bị ảnh hưởng vì đọc snapshot. |
 | Webhook ra ngoài đảm bảo | Hiện dùng queued listener `afterCommit` ([`08-thiet-ke-module-chi-tiet.md`](08-thiet-ke-module-chi-tiet.md)) | Thêm bảng `event_outbox` + dispatcher khi cần *at-least-once* thật sự (agency tích hợp). Ghi sự kiện cùng transaction nghiệp vụ. |

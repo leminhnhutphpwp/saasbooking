@@ -1,7 +1,7 @@
 # T30 — Customer and recurrence operations
 
 ## Status
-**in-review**
+**done**
 
 ## Scope
 Deliver lightweight, phone-first customer operations and recurring-booking exception handling.

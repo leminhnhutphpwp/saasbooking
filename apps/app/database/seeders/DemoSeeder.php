@@ -18,6 +18,7 @@ use App\Models\Court;
 use App\Models\Customer;
 use App\Models\OpeningRule;
 use App\Models\Payment;
+use App\Models\PlatformService;
 use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
@@ -41,6 +42,7 @@ class DemoSeeder extends Seeder
     {
         // Ensure roles exist
         $this->call(RoleSeeder::class);
+        $this->call(PlatformServiceSeeder::class);
 
         $tenant1 = $this->seedTenant1();
         $tenant2 = $this->seedTenant2();
@@ -54,11 +56,14 @@ class DemoSeeder extends Seeder
 
     private function seedTenant1(): Tenant
     {
+        $service = PlatformService::where('slug', 'pickleball')->firstOrFail();
+
         return Tenant::firstOrCreate(
             ['slug' => 'pickleball-mvp'],
             [
                 'name' => 'Sân Pickleball MVP',
-                'vertical' => 'racket_court',
+                'service_id' => $service->id,
+                'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
                 'address' => '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
@@ -93,11 +98,14 @@ class DemoSeeder extends Seeder
 
     private function seedTenant2(): Tenant
     {
+        $service = PlatformService::where('slug', 'badminton')->firstOrFail();
+
         return Tenant::firstOrCreate(
             ['slug' => 'cau-long-nvh'],
             [
                 'name' => 'Sân Cầu Lông Nhà Văn Hóa',
-                'vertical' => 'racket_court',
+                'service_id' => $service->id,
+                'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
                 'address' => '456 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM',
@@ -155,6 +163,7 @@ class DemoSeeder extends Seeder
             ]
         );
         $owner1->syncRoles([$ownerRole]);
+        $owner1->tenants()->syncWithoutDetaching([$tenant1->id => ['role' => 'owner']]);
 
         $staff1 = User::firstOrCreate(
             ['email' => 'staff@pickleball.vn'],
@@ -165,6 +174,7 @@ class DemoSeeder extends Seeder
             ]
         );
         $staff1->syncRoles([$staffRole]);
+        $staff1->tenants()->syncWithoutDetaching([$tenant1->id => ['role' => 'staff']]);
 
         // Tenant 2 user
         $owner2 = User::firstOrCreate(
@@ -176,6 +186,7 @@ class DemoSeeder extends Seeder
             ]
         );
         $owner2->syncRoles([$ownerRole]);
+        $owner2->tenants()->syncWithoutDetaching([$tenant2->id => ['role' => 'owner']]);
     }
 
     private function seedCourtsAndRules(Tenant $tenant1, Tenant $tenant2): void

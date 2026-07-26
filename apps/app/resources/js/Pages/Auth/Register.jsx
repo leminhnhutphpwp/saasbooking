@@ -23,7 +23,7 @@ export default function Register() {
 
     return (
         <GuestLayout>
-            <Head title="Đăng ký" />
+            <Head title="Đăng ký tài khoản" />
 
             <form onSubmit={submit}>
                 <div>
@@ -111,7 +111,7 @@ export default function Register() {
                     </Link>
 
                     <PrimaryButton className="ms-4" disabled={processing}>
-                        Đăng ký
+                        Tiếp tục chọn dịch vụ
                     </PrimaryButton>
                 </div>
             </form>

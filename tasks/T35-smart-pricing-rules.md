@@ -1,7 +1,7 @@
 ---
 id: T35
 title: Smart pricing rules
-status: in-review
+status: done
 owner: opencode
 priority: P1
 depends_on: []

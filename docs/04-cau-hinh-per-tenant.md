@@ -9,8 +9,9 @@ Doc này đặc tả **chủ sân chỉnh được gì cho cơ sở của mình*
 | Nhóm | Chỉnh gì | Lưu ở đâu | Ràng buộc |
 |---|---|---|---|
 | **Thương hiệu trang** | Tên cơ sở, logo, màu chủ đạo, ảnh bìa, mô tả, địa chỉ + toạ độ bản đồ, hotline, link Zalo | `tenants.settings` (JSONB) + file lên `storage` | Trong khuôn khổ **template**: chọn màu từ palette, upload ảnh theo tỉ lệ cố định — không sửa layout/HTML |
-| **Loại hình (vertical)** | `tenants.vertical` — Phase 1 cố định `racket_court` (cầu lông/pickleball/tennis) | Cột `tenants.vertical` (bảng riêng, KHÔNG phải JSONB) | Quyết định **engine + UI + thuật ngữ**; thêm vertical khác (golf…) là chừa cửa — xem [`08-thiet-ke-module-chi-tiet.md`](08-thiet-ke-module-chi-tiet.md) §0 |
-| **Sân & loại sân** | Danh sách sân, `court_type` (cầu lông/pickleball), trạng thái (active/bảo trì) | Bảng `courts` | Soft-delete (archive), không xoá cứng khi còn booking |
+| **Dịch vụ đã đăng ký** | `tenants.service_id` — Pickleball hoặc Cầu lông; một tenant đúng một service | Bảng platform-scope `platform_services` + FK trên `tenants` | Operator mở/đóng đăng ký bằng backend/seeder; khách muốn thêm service phải đăng ký thêm tenant |
+| **Vertical dispatch** | `tenants.vertical` — Phase 1 là `racket_court`, snapshot từ service | Cột `tenants.vertical`, không phải payload/JSONB | Quyết định engine + UI; nhiều service có thể dùng chung vertical |
+| **Sân & phân loại tài nguyên** | Danh sách sân, trạng thái, category riêng của cơ sở | `courts` + `resource_categories` | Soft-delete; category tenant-scoped, không phải service platform |
 | **Giờ mở cửa** | Giờ mở theo thứ, ngày nghỉ/bảo trì | Bảng `opening_rules`, `blackouts` | Versioned `effective_from/to` (đổi giờ = đóng rule cũ) |
 | **Bảng giá** | Giá giờ vàng/giờ thường theo thứ + khoảng giờ, theo sân hoặc chung | Bảng `pricing_rules` | Luật ưu tiên (`priority`); giá **chụp snapshot** vào booking lúc đặt |
 | **Chính sách cọc** | Cọc một phần (vd 50k/giờ) hay trả đủ; mức cọc | `tenants.settings.deposit` | Số nguyên VND (`BIGINT`) |
@@ -51,7 +52,7 @@ Mục tiêu định nghĩa lại: **<15 phút có trang đặt sân nhận cọc
 
 | Bước | Làm gì | Kết quả |
 |---|---|---|
-| 1. Khai cơ sở | Tên, địa chỉ, giờ mở mặc định, upload logo | `tenants` + `settings` cơ bản (`vertical=racket_court` mặc định ở Phase 1) |
+| 1. Đăng ký dịch vụ + khai cơ sở | Chọn đúng một service đang active, nhập tên cơ sở; server tạo tenant + owner membership và snapshot vertical | `platform_services` + `tenants` + `memberships` |
 | 2. Thêm sân | Số sân + loại (cầu lông/pickleball) | Các dòng `courts` |
 | 3. Bảng giá | Giá giờ thường + đánh dấu khung giờ vàng | `pricing_rules` |
 | 4. Nối tiền | Nhập tài khoản nhận + nối SePay/Casso | `tenant_bank_config`, đối soát chạy |
