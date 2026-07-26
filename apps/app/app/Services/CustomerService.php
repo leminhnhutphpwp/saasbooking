@@ -86,17 +86,12 @@ class CustomerService
             return $existing->fresh();
         }
 
-        $customer = Customer::forceCreate([
+        $customer = Customer::create([
             'tenant_id' => $tenantId,
             'phone' => $normalizedPhone,
             'name' => $data['name'] ?? null,
             'email' => $data['email'] ?? null,
         ]);
-
-        // forceCreate() bypasses the creating event, so generate code manually.
-        if (empty($customer->code)) {
-            $customer->update(['code' => Customer::generateCode($tenantId)]);
-        }
 
         return $customer->fresh();
     }

@@ -19,6 +19,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * The ONLY concurrency chokepoint. Every path that holds a court+time — one-off, recurring,
@@ -126,7 +127,9 @@ class BookingService
 
     public function markNoShow(Booking $booking): void
     {
-        $booking->forceFill(['status' => BookingStatus::NoShow])->save();
+        DB::transaction(
+            fn () => $booking->forceFill(['status' => BookingStatus::NoShow])->save()
+        );
     }
 
     /**
@@ -198,7 +201,7 @@ class BookingService
         $class = $mode ? config("booking.modes.{$mode}") : null;
 
         if (! $class || ! class_exists($class)) {
-            abort(500, "No inventory driver registered for vertical [{$vertical}] mode [{$mode}].");
+            throw new RuntimeException("No inventory driver registered for vertical [{$vertical}] mode [{$mode}].");
         }
 
         return app($class);

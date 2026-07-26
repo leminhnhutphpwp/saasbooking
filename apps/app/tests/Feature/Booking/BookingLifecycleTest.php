@@ -102,4 +102,13 @@ class BookingLifecycleTest extends TestCase
         $this->assertSame(HoldStatus::Released, BookingSlot::first()->hold_status);
         Event::assertDispatched(BookingCancelled::class);
     }
+
+    public function test_mark_no_show_updates_booking(): void
+    {
+        $booking = $this->hold();
+
+        $this->svc->markNoShow($booking);
+
+        $this->assertSame(BookingStatus::NoShow, $booking->fresh()->status);
+    }
 }
