@@ -104,9 +104,11 @@ class CustomerController extends Controller
         abort_if($tenantId === null, 403);
 
         $data = $request->validate([
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'regex:/^[\d\s\-\.\(\)\+]{8,15}$/'],
             'name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
+        ], [
+            'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
         $this->customers->upsert($request, $data);
@@ -123,9 +125,11 @@ class CustomerController extends Controller
         abort_unless($customer->tenant_id === $tenantId, 403);
 
         $data = $request->validate([
-            'phone' => ['sometimes', 'required', 'string', 'max:20'],
+            'phone' => ['sometimes', 'required', 'string', 'regex:/^[\d\s\-\.\(\)\+]{8,15}$/'],
             'name' => ['nullable', 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
+        ], [
+            'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
         $this->customers->upsert($request, $data);

@@ -4,6 +4,7 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Input } from '@/Components/ui/input';
@@ -25,16 +26,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/Components/ui/select';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/Components/ui/alert-dialog';
 import {
     Dialog,
     DialogContent,
@@ -629,69 +620,30 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                 )}
             </PageContainer>
 
-            {/* ── Archive AlertDialog ─────────────────────────────────────── */}
-            <AlertDialog
+            <ConfirmActionDialog
                 open={!!archiveTarget}
                 onOpenChange={(open) => {
                     if (!open) setArchiveTarget(null);
                 }}
-            >
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Lưu trữ sân</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Bạn có chắc muốn lưu trữ sân{' '}
-                            <span className="font-semibold text-foreground">
-                                "{archiveTarget?.name}"
-                            </span>
-                            ? Sân sẽ ngừng hiển thị trên lịch đặt nhưng dữ liệu hiện tại vẫn được giữ lại.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={archiveProcessing}>
-                            Huỷ
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={confirmArchive}
-                            disabled={archiveProcessing}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                            {archiveProcessing ? 'Đang lưu trữ…' : 'Lưu trữ'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                onConfirm={confirmArchive}
+                title="Lưu trữ sân"
+                description={archiveTarget ? `Sân “${archiveTarget.name}” sẽ ngừng hiển thị trên lịch đặt, nhưng toàn bộ dữ liệu và lịch sử hiện tại vẫn được giữ lại.` : ''}
+                confirmLabel="Lưu trữ sân"
+                processingLabel="Đang lưu trữ…"
+                processing={archiveProcessing}
+            />
 
-            {/* ── Bulk status change AlertDialog ──────────────────────────── */}
-            <AlertDialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Xác nhận thay đổi trạng thái</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Bạn có chắc muốn chuyển{' '}
-                            <span className="font-semibold text-foreground">
-                                {selected.size} sân
-                            </span>{' '}
-                            thành{' '}
-                            <span className="font-semibold text-foreground">
-                                {bulkTargetLabel}
-                            </span>
-                            ?
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel disabled={bulkProcessing}>
-                            Huỷ
-                        </AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={confirmBulkStatus}
-                            disabled={bulkProcessing}
-                        >
-                            {bulkProcessing ? 'Đang xử lý…' : 'Xác nhận'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={bulkConfirmOpen}
+                onOpenChange={setBulkConfirmOpen}
+                onConfirm={confirmBulkStatus}
+                title="Xác nhận thay đổi trạng thái"
+                description={`Chuyển ${selected.size} sân sang trạng thái “${bulkTargetLabel}”. Thay đổi sẽ áp dụng đồng thời cho tất cả sân đã chọn.`}
+                confirmLabel="Áp dụng thay đổi"
+                processingLabel="Đang xử lý…"
+                processing={bulkProcessing}
+                variant="default"
+            />
 
             {/* ── Create / Edit Dialog ────────────────────────────────────── */}
             <Dialog open={open} onOpenChange={setOpen}>

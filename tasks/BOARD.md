@@ -8,6 +8,7 @@
 |----|------|--------|-------|------|-----------|---------------|
 | [T32](T32-public-booking-selection-remake.md) | Public booking read model and selection remake | todo | - | P1 | T31 | Public controller + Show page + worklog |
 | [T33](T33-public-booking-status-receipt.md) | Public booking payment status receipt remake | todo | - | P1 | T32 | Public Status page + worklog |
+| [T35](T35-smart-pricing-rules.md) | Smart pricing rules | in-review | opencode | P1 | - | Catalog pricing + opening rules + venue settings + manager calendar |
 
 ## Manager-only actions (not delegated)
 - [x] Merge T22, T23, T24, T27, T28, T29, T30 into `main` — all verified (200 tests + pint clean).

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Court;
-use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
+use App\Services\Catalog\PricingRuleService;
+use App\Services\Tenant\VenueSettingsService;
 use App\Support\Messages;
 use Illuminate\Support\Carbon;
 
@@ -71,9 +72,10 @@ final class VenueReadinessService
         }
 
         // 3. At least one pricing rule (baseline price)
-        $pricingRuleCount = PricingRule::where('tenant_id', $tenant->id)->count();
+        $hasPricingRules = app(PricingRuleService::class)->hasRules($tenant->id);
+        $defaultPrice = app(VenueSettingsService::class)->defaultPricePerHour($tenant->id);
 
-        if ($pricingRuleCount === 0) {
+        if (! $hasPricingRules && $defaultPrice === null) {
             $blockers[] = new ReadinessBlocker(
                 code: 'missing_pricing',
                 message: Messages::get('readiness', 'no_pricing'),

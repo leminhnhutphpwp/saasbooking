@@ -188,7 +188,18 @@ class BookingService
     {
         $vertical = $tenant->vertical ?: config('booking.default_vertical');
         $mode = config("booking.verticals.{$vertical}.mode");
-        $class = config("booking.modes.{$mode}");
+
+        // Fall back to default_vertical if the tenant's vertical isn't registered
+        if (! $mode) {
+            $vertical = config('booking.default_vertical');
+            $mode = config("booking.verticals.{$vertical}.mode");
+        }
+
+        $class = $mode ? config("booking.modes.{$mode}") : null;
+
+        if (! $class || ! class_exists($class)) {
+            abort(500, "No inventory driver registered for vertical [{$vertical}] mode [{$mode}].");
+        }
 
         return app($class);
     }

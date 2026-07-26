@@ -21,7 +21,7 @@ class PricingServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->svc = new PricingService;
+        $this->svc = app(PricingService::class);
     }
 
     private function tenant(): Tenant
@@ -80,5 +80,28 @@ class PricingServiceTest extends TestCase
 
         $slot = CarbonImmutable::parse('2026-07-21 10:00:00');
         $this->assertSame(30_000, $this->svc->resolve($t->id, $c->id, $slot, $slot->addMinutes(30)));
+    }
+
+    public function test_default_price_is_used_when_no_rule_matches(): void
+    {
+        $t = $this->tenant();
+        $t->update(['settings' => ['pricing' => ['default_price_per_hour' => 70_000]]]);
+        $c = $this->court($t);
+
+        $slot = CarbonImmutable::parse('2026-07-21 10:00:00');
+
+        $this->assertSame(35_000, $this->svc->resolve($t->id, $c->id, $slot, $slot->addMinutes(30)));
+    }
+
+    public function test_venue_rule_beats_default_price(): void
+    {
+        $t = $this->tenant();
+        $t->update(['settings' => ['pricing' => ['default_price_per_hour' => 70_000]]]);
+        $c = $this->court($t);
+        $this->rule($t, null, '06:00:00', '23:00:00', 90_000, 0);
+
+        $slot = CarbonImmutable::parse('2026-07-21 10:00:00');
+
+        $this->assertSame(90_000, $this->svc->resolve($t->id, $c->id, $slot, $slot->addHour()));
     }
 }
