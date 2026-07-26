@@ -36,10 +36,14 @@ export default function Status({ tenant, booking, qr, account, token }) {
     const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_deposit;
     const Icon = status.icon;
 
-    const copy = (text, label) => {
-        navigator.clipboard.writeText(text);
-        setCopied(label);
-        setTimeout(() => setCopied(null), 2000);
+    const copy = async (text, label) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopied(label);
+            setTimeout(() => setCopied(null), 2000);
+        } catch {
+            window.prompt('Không thể tự động sao chép. Vui lòng sao chép nội dung bên dưới:', text);
+        }
     };
 
     return (

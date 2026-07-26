@@ -104,7 +104,7 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        {/* Social Links */}
+                        {/* Default Pricing */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
