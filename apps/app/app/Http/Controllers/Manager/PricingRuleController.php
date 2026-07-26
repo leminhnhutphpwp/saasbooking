@@ -81,7 +81,7 @@ class PricingRuleController extends Controller
 
         $pricingRule->update($data);
 
-        return back()->with('success', 'Đã cập nhật bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'updated'));
     }
 
     public function destroy(Request $request, Court $court, PricingRule $pricingRule): RedirectResponse
@@ -91,7 +91,7 @@ class PricingRuleController extends Controller
 
         $pricingRule->delete();
 
-        return back()->with('success', 'Đã xóa bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'deleted'));
     }
 
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void
@@ -129,7 +129,7 @@ class PricingRuleController extends Controller
 
             if ($newStart < $exEnd && $exStart < $newEnd) {
                 throw ValidationException::withMessages([
-                    'start_local' => 'Bảng giá này trùng khung giờ với một bảng giá đã có (cùng sân, cùng ngày trong tuần).',
+                    'start_local' => Messages::get('pricing', 'conflict'),
                 ]);
             }
         }

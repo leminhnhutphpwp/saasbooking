@@ -17,6 +17,7 @@ use App\Models\RecurringSeries;
 use App\Models\Tenant;
 use App\Services\Booking\BookingService;
 use App\Services\Booking\SeriesService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -109,7 +110,7 @@ class SeriesController extends Controller
 
         if ($this->countWeekdaysBetween((int) $data['weekday'], $start, $end) === 0) {
             throw ValidationException::withMessages([
-                'end_date' => 'Khoảng ngày đã chọn không chứa ngày nào trùng thứ trong tuần đã chọn.',
+                'end_date' => Messages::get('series', 'date_range_invalid'),
             ]);
         }
 
@@ -118,12 +119,12 @@ class SeriesController extends Controller
         try {
             $result = app(SeriesService::class)->create($tenant, $data);
         } catch (SlotTakenException) {
-            return back()->with('error', 'Khung giờ đầu tiên đã có người đặt.');
+            return back()->with('error', Messages::get('series', 'first_slot_taken'));
         }
 
-        $message = 'Đã tạo đặt cố định.';
+        $message = Messages::get('series', 'created');
         if (! empty($result->conflicts)) {
-            $message .= ' Có '.count($result->conflicts).' ngày bị trùng, đã bỏ qua.';
+            $message .= Messages::get('series', 'conflicts', ['count' => count($result->conflicts)]);
         }
 
         return Redirect::back()->with('success', $message);
@@ -134,7 +135,7 @@ class SeriesController extends Controller
         $this->assertOwnedByWorkingTenant($request, $series);
         $series->forceFill(['status' => SeriesStatus::Cancelled])->save();
 
-        return Redirect::back()->with('success', 'Đã hủy đặt cố định.');
+        return Redirect::back()->with('success', Messages::get('series', 'cancelled'));
     }
 
     /**
@@ -153,12 +154,12 @@ class SeriesController extends Controller
 
         // Only pending_deposit or confirmed occurrences can be cancelled.
         if (! in_array($booking->status, [BookingStatus::PendingDeposit, BookingStatus::Confirmed], true)) {
-            return back()->with('error', 'Buổi này đã kết thúc hoặc đã bị hủy.');
+            return back()->with('error', Messages::get('series', 'occurrence_ended'));
         }
 
         app(SeriesService::class)->cancelOccurrence($booking);
 
-        return back()->with('success', 'Đã hủy buổi trong chuỗi.');
+        return back()->with('success', Messages::get('series', 'occurrence_cancelled'));
     }
 
     /**
@@ -172,7 +173,7 @@ class SeriesController extends Controller
         $this->assertOwnedByWorkingTenant($request, $series);
 
         if ($series->status !== SeriesStatus::Active) {
-            return back()->with('error', 'Chuỗi đặt cố định không ở trạng thái актив.');
+            return back()->with('error', Messages::get('series', 'not_active'));
         }
 
         // Set end_date to today (or yesterday) so no future occurrences are generated.
@@ -193,7 +194,7 @@ class SeriesController extends Controller
             $bookingsService->cancel($pending, CancelReason::OwnerCancel);
         }
 
-        return back()->with('success', 'Đã kết thúc chuỗi đặt cố định.');
+        return back()->with('success', Messages::get('series', 'ended'));
     }
 
     private function countWeekdaysBetween(int $weekday, Carbon $start, Carbon $end): int

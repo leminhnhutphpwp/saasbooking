@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Public;
 
 use App\Exceptions\SlotTakenException;
 use App\Http\Controllers\Controller;
+use App\Support\Messages;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
@@ -111,8 +112,8 @@ class PublicBookingController extends Controller
                     'end_at' => CarbonImmutable::parse($data['end_at']),
                 ]],
             ]);
-        } catch (SlotTakenException $e) {
-            return back()->with('error', $e->getMessage());
+        } catch (SlotTakenException) {
+            return back()->with('error', Messages::error('booking', 'slot_taken'));
         }
 
         $this->payments->initDeposit($booking);

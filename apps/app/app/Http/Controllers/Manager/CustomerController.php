@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\CustomerService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -110,7 +111,7 @@ class CustomerController extends Controller
 
         $this->customers->upsert($request, $data);
 
-        return back()->with('success', 'Đã lưu khách hàng.');
+        return back()->with('success', Messages::get('customer', 'created'));
     }
 
     /**
@@ -129,6 +130,6 @@ class CustomerController extends Controller
 
         $this->customers->upsert($request, $data);
 
-        return back()->with('success', 'Đã cập nhật khách hàng.');
+        return back()->with('success', Messages::get('customer', 'updated'));
     }
 }

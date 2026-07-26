@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Manager;
 
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,6 @@ class BrandingController extends Controller
         $tenant->settings = $settings;
         $tenant->save();
 
-        return back()->with('success', 'Đã cập nhật thương hiệu.');
+        return back()->with('success', Messages::get('branding', 'updated'));
     }
 }

@@ -12,6 +12,7 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\TenantBankConfig;
 use App\Services\Payment\ReconcileService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -94,12 +95,12 @@ class ReconcileController extends Controller
             ->first();
 
         if (! $payment) {
-            return back()->with('error', 'Đơn này không còn chờ cọc.');
+            return back()->with('error', Messages::get('reconcile', 'not_pending'));
         }
 
         $this->reconcile->manualMatch($inbox, $payment);
 
-        return back()->with('success', 'Đã đối soát thành công.');
+        return back()->with('success', Messages::get('reconcile', 'matched'));
     }
 
     public function dismissTxn(Request $request, BankTxnInbox $inbox): RedirectResponse
@@ -108,7 +109,7 @@ class ReconcileController extends Controller
 
         $this->reconcile->dismissTxn($inbox);
 
-        return back()->with('success', 'Đã bỏ qua giao dịch.');
+        return back()->with('success', Messages::get('reconcile', 'skip'));
     }
 
     private function assertTxnBelongsToTenant(BankTxnInbox $inbox, int $tenantId): void

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Court;
 use App\Models\OpeningRule;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -60,7 +61,7 @@ class OpeningRuleController extends Controller
             'effective_to' => $data['effective_to'] ?? null,
         ]);
 
-        return back()->with('success', 'Đã thêm giờ mở cửa.');
+        return back()->with('success', Messages::get('opening', 'created'));
     }
 
     public function update(Request $request, Court $court, OpeningRule $openingRule): RedirectResponse
@@ -81,7 +82,7 @@ class OpeningRuleController extends Controller
 
         $openingRule->update($data);
 
-        return back()->with('success', 'Đã cập nhật giờ mở cửa.');
+        return back()->with('success', Messages::get('opening', 'updated'));
     }
 
     public function destroy(Request $request, Court $court, OpeningRule $openingRule): RedirectResponse
@@ -91,7 +92,7 @@ class OpeningRuleController extends Controller
 
         $openingRule->delete();
 
-        return back()->with('success', 'Đã xóa giờ mở cửa.');
+        return back()->with('success', Messages::get('opening', 'deleted'));
     }
 
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void
@@ -145,7 +146,7 @@ class OpeningRuleController extends Controller
 
             if ($datesOverlap) {
                 throw ValidationException::withMessages([
-                    'open_local' => 'Giờ mở cửa này trùng với một khung giờ đã có (cùng sân, cùng ngày trong tuần, cùng khoảng hiệu lực).',
+                    'open_local' => Messages::get('opening', 'conflict'),
                 ]);
             }
         }

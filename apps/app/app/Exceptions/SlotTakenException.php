@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Exceptions;
 
+use App\Support\Messages;
 use RuntimeException;
 
 /**
@@ -13,9 +14,9 @@ use RuntimeException;
  */
 class SlotTakenException extends RuntimeException
 {
-    public function __construct(string $message = 'Khung giờ này vừa có người giữ.')
+    public function __construct(string $message = null)
     {
-        parent::__construct($message);
+        parent::__construct($message ?? Messages::error('booking', 'slot_taken'));
     }
 
     public function getStatusCode(): int
