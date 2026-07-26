@@ -3,12 +3,11 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
-import { Badge } from '@/Components/ui/badge';
 import { formatVND } from '@/lib/format';
-import { MapPin, X, Check, Loader2, ShieldCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShieldCheck, X, Loader2, Check, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 
+/* ─── Constants ─── */
 const DAY_NAMES = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-const MONTHS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
 
 function hhmm(iso) {
     return iso.slice(11, 16);
@@ -18,14 +17,8 @@ function toDateStr(d) {
     return d.toISOString().slice(0, 10);
 }
 
-function slotGroup(h) {
-    if (h < 12) return 'Sáng';
-    if (h < 18) return 'Chiều';
-    return 'Tối';
-}
-
-// Date strip component
-function DateStrip({ date, tenantSlug, onChange }) {
+/* ─── Date Strip ─── */
+function DateStrip({ date, onChange }) {
     const scrollRef = useRef(null);
     const days = [];
     const today = toDateStr(new Date());
@@ -34,8 +27,6 @@ function DateStrip({ date, tenantSlug, onChange }) {
         d.setDate(d.getDate() + i);
         days.push(d);
     }
-
-    const currentMonth = MONTHS[new Date(date + 'T00:00:00').getMonth()];
 
     useEffect(() => {
         const idx = days.findIndex((d) => toDateStr(d) === date);
@@ -46,29 +37,28 @@ function DateStrip({ date, tenantSlug, onChange }) {
     }, [date]);
 
     return (
-        <div>
-            <p className="mb-2 text-xs font-medium text-muted-foreground">{currentMonth}</p>
-            <div ref={scrollRef} className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+        <div className="px-4 py-3">
+            <div ref={scrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                 {days.map((d) => {
                     const ds = toDateStr(d);
                     const active = ds === date;
                     const isToday = ds === today;
                     const dayNum = d.getDate();
                     const dayName = DAY_NAMES[d.getDay()];
-                    const isWeekend = d.getDay() === 0 || d.getDay() === 6;
                     return (
                         <button
                             key={ds}
                             onClick={() => onChange(ds)}
-                            className={`flex min-w-[52px] flex-col items-center rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+                            className={`flex min-w-[54px] flex-col items-center rounded-xl px-2 py-2 text-xs font-semibold transition-all duration-200 shrink-0 ${
                                 active
-                                    ? 'text-white shadow-md'
-                                    : 'border border-border bg-card text-muted-foreground hover:bg-accent'
-                            } ${isWeekend && !active ? 'bg-muted/30' : ''}`}
-                            style={active ? { backgroundColor: 'var(--brand, #059669)' } : {}}
+                                    ? 'bg-white text-black shadow-lg scale-105'
+                                    : 'bg-white/10 text-white/80 hover:bg-white/20'
+                            }`}
                         >
-                            <span className="text-[10px] uppercase">{isToday ? 'Hôm nay' : dayName}</span>
-                            <span className="text-lg font-bold leading-tight">{dayNum}</span>
+                            <span className="text-[10px] uppercase tracking-wide mb-0.5">
+                                {isToday ? 'Nay' : dayName}
+                            </span>
+                            <span className="text-lg font-bold leading-none">{dayNum}</span>
                         </button>
                     );
                 })}
@@ -77,169 +67,189 @@ function DateStrip({ date, tenantSlug, onChange }) {
     );
 }
 
-// Loading skeleton
-function LoadingSkeleton() {
-    return (
-        <div className="animate-pulse space-y-4 p-4">
-            <div className="h-8 w-48 rounded bg-muted" />
-            <div className="flex gap-2">
-                {Array.from({ length: 7 }).map((_, i) => (
-                    <div key={i} className="h-16 w-[52px] rounded-xl bg-muted" />
-                ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="h-32 rounded-xl bg-muted" />
-                ))}
-            </div>
-        </div>
-    );
-}
-
-// SVG Court component
-function CourtSVG({ court, x, y, width, height, isSelected, brandColor, onSelect }) {
+/* ─── SVG Court Card ─── */
+function CourtCard({ court, isSelected, isSoldOut, brandColor, onSelect }) {
     const freeCount = court.free.length;
-    const isSoldOut = freeCount === 0;
 
-    const bgColor = isSoldOut
-        ? '#f3f4f6' // gray-100
-        : isSelected
-            ? brandColor
-            : `${brandColor}15`; // 15 = ~8% opacity
-
-    const borderColor = isSoldOut
-        ? '#e5e7eb' // gray-200
-        : isSelected
-            ? brandColor
-            : `${brandColor}40`; // 40 = ~25% opacity
-
-    const textColor = isSoldOut
-        ? '#9ca3af' // gray-400
-        : isSelected
-            ? '#ffffff'
-            : '#1f2937'; // gray-800
-
-    return (
-        <g
-            onClick={() => !isSoldOut && onSelect(court)}
-            style={{ cursor: isSoldOut ? 'default' : 'pointer' }}
-            className="court-group"
-        >
-            {/* Court rectangle */}
-            <rect
-                x={x}
-                y={y}
-                width={width}
-                height={height}
-                rx={12}
-                ry={12}
-                fill={bgColor}
-                stroke={borderColor}
-                strokeWidth={2}
-                className="court-rect"
-            />
-
-            {/* Court name */}
-            <text
-                x={x + width / 2}
-                y={y + height / 2 - 8}
-                textAnchor="middle"
-                fill={textColor}
-                fontSize={14}
-                fontWeight={600}
-                fontFamily="system-ui, sans-serif"
-            >
-                {court.court_name}
-            </text>
-
-            {/* Slot count badge */}
-            {!isSoldOut ? (
-                <g>
-                    <rect
-                        x={x + width / 2 - 24}
-                        y={y + height / 2 + 6}
-                        width={48}
-                        height={20}
-                        rx={10}
-                        fill={isSelected ? 'rgba(255,255,255,0.2)' : `${brandColor}20`}
-                    />
-                    <text
-                        x={x + width / 2}
-                        y={y + height / 2 + 20}
-                        textAnchor="middle"
-                        fill={isSelected ? '#ffffff' : brandColor}
-                        fontSize={11}
-                        fontWeight={500}
-                        fontFamily="system-ui, sans-serif"
-                    >
-                        Còn {freeCount} khung
-                    </text>
-                </g>
-            ) : (
-                <text
-                    x={x + width / 2}
-                    y={y + height / 2 + 14}
-                    textAnchor="middle"
-                    fill="#9ca3af"
-                    fontSize={12}
-                    fontFamily="system-ui, sans-serif"
-                >
-                    Hết chỗ
-                </text>
-            )}
-
-            {/* Hover effect overlay */}
-            {!isSoldOut && (
-                <rect
-                    x={x}
-                    y={y}
-                    width={width}
-                    height={height}
-                    rx={12}
-                    ry={12}
-                    fill="transparent"
-                    className="court-hover"
-                />
-            )}
-        </g>
-    );
-}
-
-// Time slot pill component
-function SlotPill({ slot, isSelected, brandColor, onSelect }) {
-    const isPeak = slot.peak;
+    // Pick a price from the first available slot for display
+    const priceRange = useMemo(() => {
+        if (court.free.length === 0) return null;
+        const prices = court.free.map((s) => s.price);
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        if (min === max) return formatVND(min);
+        return `${formatVND(min)} – ${formatVND(max)}`;
+    }, [court.free]);
 
     return (
         <button
-            onClick={() => onSelect(slot)}
-            className={`inline-flex flex-col items-center rounded-xl border px-3 py-2 text-sm font-medium transition-all min-w-[72px] ${
-                isSelected
-                    ? 'text-white shadow-md'
-                    : isPeak
-                        ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                        : 'border-border bg-card hover:border-foreground/30 hover:bg-accent'
+            onClick={() => !isSoldOut && onSelect(court)}
+            disabled={isSoldOut}
+            className={`court-card group relative w-full text-left rounded-2xl overflow-hidden transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                isSoldOut
+                    ? 'cursor-not-allowed opacity-60'
+                    : isSelected
+                        ? 'ring-3 ring-white/90 shadow-2xl scale-[1.02] z-10'
+                        : 'hover:scale-[1.03] hover:shadow-xl hover:shadow-black/20 cursor-pointer'
             }`}
             style={
                 isSelected
-                    ? { backgroundColor: brandColor, borderColor: brandColor }
+                    ? { animation: 'court-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }
                     : {}
             }
         >
-            <span className="text-base font-bold">{hhmm(slot.start)}</span>
-            <span className="text-xs opacity-70">{formatVND(slot.price)}</span>
-            {isPeak && (
-                <Badge variant="secondary" className="mt-1 h-4 px-1 text-[9px]">
-                    Cao
-                </Badge>
+            {/* SVG Court Surface */}
+            <svg
+                viewBox="0 0 240 150"
+                className="w-full h-auto block"
+                xmlns="http://www.w3.org/2000/svg"
+            >
+                <defs>
+                    {/* Court surface gradient */}
+                    <linearGradient id={`court-grad-${court.court_id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor={isSoldOut ? '#9ca3af' : '#4ade80'} />
+                        <stop offset="50%" stopColor={isSoldOut ? '#6b7280' : '#22c55e'} />
+                        <stop offset="100%" stopColor={isSoldOut ? '#4b5563' : '#16a34a'} />
+                    </linearGradient>
+                    {/* Selected glow */}
+                    <filter id={`glow-${court.court_id}`}>
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                {/* Court surface */}
+                <rect
+                    x="4"
+                    y="4"
+                    width="232"
+                    height="142"
+                    rx="12"
+                    fill={`url(#court-grad-${court.court_id})`}
+                    className="transition-all duration-300"
+                />
+
+                {/* Court boundary */}
+                <rect
+                    x="4"
+                    y="4"
+                    width="232"
+                    height="142"
+                    rx="12"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth={isSelected ? "3" : "2"}
+                    opacity={isSelected ? 1 : 0.85}
+                />
+
+                {/* Service lines - vertical */}
+                <line x1="68" y1="4" x2="68" y2="146" stroke="white" strokeWidth="1" opacity="0.4" />
+                <line x1="172" y1="4" x2="172" y2="146" stroke="white" strokeWidth="1" opacity="0.4" />
+
+                {/* Center line - horizontal */}
+                <line x1="4" y1="75" x2="236" y2="75" stroke="white" strokeWidth="1.2" opacity="0.5" />
+
+                {/* Net line (center vertical, dashed) */}
+                <line x1="120" y1="4" x2="120" y2="146" stroke="white" strokeWidth="1.8" strokeDasharray="6,4" opacity="0.7" />
+
+                {/* Corner markers */}
+                <circle cx="16" cy="16" r="3" fill="white" opacity="0.5" />
+                <circle cx="224" cy="16" r="3" fill="white" opacity="0.5" />
+                <circle cx="16" cy="134" r="3" fill="white" opacity="0.5" />
+                <circle cx="224" cy="134" r="3" fill="white" opacity="0.5" />
+
+                {/* Center service line - small segments */}
+                <line x1="120" y1="4" x2="120" y2="75" stroke="white" strokeWidth="1.5" opacity="0.5" />
+                <line x1="120" y1="75" x2="120" y2="146" stroke="white" strokeWidth="1.5" opacity="0.5" />
+            </svg>
+
+            {/* Info overlay */}
+            <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
+                {/* Top: Court name */}
+                <div className="flex items-start justify-between">
+                    <span
+                        className="font-bold text-lg text-white drop-shadow-md"
+                        style={{ textShadow: '0 1px 4px rgba(0,0,0,0.4)' }}
+                    >
+                        {court.court_name}
+                    </span>
+                    {isSelected && (
+                        <span className="bg-white text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
+                            ĐANG CHỌN
+                        </span>
+                    )}
+                </div>
+
+                {/* Bottom: Status + price */}
+                <div className="flex items-end justify-between">
+                    {isSoldOut ? (
+                        <span className="bg-black/50 text-white/70 text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm">
+                            Hết chỗ
+                        </span>
+                    ) : (
+                        <div className="flex flex-col gap-1">
+                            <span
+                                className="bg-black/40 text-white text-xs font-semibold px-3 py-1 rounded-full backdrop-blur-sm"
+                            >
+                                Còn {freeCount} khung
+                            </span>
+                            {priceRange && (
+                                <span
+                                    className="bg-white/90 text-black text-[11px] font-bold px-3 py-1 rounded-full shadow-sm"
+                                >
+                                    {priceRange}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Sold out overlay */}
+            {isSoldOut && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
+                    <span className="text-white/90 font-bold text-sm tracking-wide">HẾT CHỖ</span>
+                </div>
             )}
         </button>
     );
 }
 
-// Bottom panel for court selection
-function CourtPanel({ court, selectedSlot, brandColor, onSlotSelect, onClose, children }) {
-    const [isExpanded, setIsExpanded] = useState(true);
+/* ─── Time Slot Pill ─── */
+function SlotPill({ slot, isSelected, brandColor, onSelect }) {
+    const isPeak = slot.peak;
+    const priceLabel = slot.price >= 1000 ? `${Math.round(slot.price / 1000)}k` : formatVND(slot.price);
 
+    return (
+        <button
+            onClick={() => onSelect(slot)}
+            className={`slot-pill inline-flex flex-col items-center rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-200 min-w-[68px] shrink-0 ${
+                isSelected
+                    ? 'text-white shadow-lg scale-105'
+                    : isPeak
+                        ? 'bg-amber-400/20 text-amber-300 border border-amber-400/30 hover:bg-amber-400/30'
+                        : 'bg-white/10 text-white/80 border border-white/20 hover:bg-white/20 hover:border-white/40'
+            }`}
+            style={
+                isSelected
+                    ? { backgroundColor: brandColor, borderColor: brandColor, boxShadow: `0 4px 20px ${brandColor}60` }
+                    : {}
+            }
+        >
+            <span className="text-sm font-bold leading-none">{hhmm(slot.start)}</span>
+            <span className="text-[10px] opacity-75 mt-1">{priceLabel}</span>
+            {isPeak && (
+                <span className="text-[8px] font-bold tracking-wider mt-1 uppercase opacity-80">Cao</span>
+            )}
+        </button>
+    );
+}
+
+/* ─── Bottom Sheet ─── */
+function BottomSheet({ court, selectedSlot, brandColor, onSlotSelect, onClose, children }) {
     if (!court) return null;
 
     const freeCount = court.free.length;
@@ -248,146 +258,105 @@ function CourtPanel({ court, selectedSlot, brandColor, onSlotSelect, onClose, ch
     const groups = { Sáng: [], Chiều: [], Tối: [] };
     court.free.forEach((slot) => {
         const h = parseInt(slot.start.slice(11, 13), 10);
-        const g = slotGroup(h);
-        groups[g].push(slot);
+        if (h < 12) groups['Sáng'].push(slot);
+        else if (h < 18) groups['Chiều'].push(slot);
+        else groups['Tối'].push(slot);
     });
 
     return (
-        <div className="fixed inset-x-0 bottom-0 z-50 bg-white border-t border-border shadow-2xl rounded-t-2xl transition-all duration-300 ease-out">
-            {/* Handle bar for mobile */}
-            <div className="flex justify-center pt-2 pb-1 md:hidden">
-                <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        <div className="bottom-sheet fixed inset-x-0 bottom-0 z-50 bg-gradient-to-b from-gray-950 to-black border-t border-white/10 shadow-2xl rounded-t-3xl">
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 rounded-full bg-white/30" />
             </div>
 
-            {/* Panel header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 border-b border-white/10">
                 <div className="flex items-center gap-3">
                     <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: `${brandColor}20` }}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: `${brandColor}30` }}
                     >
-                        <MapPin className="h-5 w-5" style={{ color: brandColor }} />
+                        <MapPin className="h-4 w-4" style={{ color: brandColor }} />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-foreground">{court.court_name}</h3>
-                        <p className="text-xs text-muted-foreground">
+                        <h3 className="font-bold text-white text-base">{court.court_name}</h3>
+                        <p className="text-xs text-white/50">
                             Còn {freeCount} khung giờ trống
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-accent transition-colors"
-                    >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="rounded-lg p-2 text-muted-foreground hover:bg-accent transition-colors"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
-                </div>
+                <button
+                    onClick={onClose}
+                    className="rounded-full p-2 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                    <X className="h-5 w-5" />
+                </button>
             </div>
 
-            {/* Slot selection */}
-            {isExpanded && (
-                <div className="px-4 py-3 max-h-[40vh] overflow-y-auto">
-                    {['Sáng', 'Chiều', 'Tối'].map((group) => {
-                        const slots = groups[group];
-                        if (slots.length === 0) return null;
-                        return (
-                            <div key={group} className="mb-3 last:mb-0">
-                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                                    {group} ({hhmm(slots[0].start)?.split(':')[0]}h – {hhmm(slots[slots.length - 1].end)?.split(':')[0]}h)
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {slots.map((slot, i) => (
-                                        <SlotPill
-                                            key={i}
-                                            slot={slot}
-                                            isSelected={selectedSlot?.start === slot.start}
-                                            brandColor={brandColor}
-                                            onSelect={onSlotSelect}
-                                        />
-                                    ))}
-                                </div>
+            {/* Timeline scroll */}
+            <div className="px-5 py-4">
+                {['Sáng', 'Chiều', 'Tối'].map((group) => {
+                    const slots = groups[group];
+                    if (slots.length === 0) return null;
+                    return (
+                        <div key={group} className="mb-3 last:mb-0">
+                            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-white/30">
+                                {group}
+                            </p>
+                            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                                {slots.map((slot, i) => (
+                                    <SlotPill
+                                        key={i}
+                                        slot={slot}
+                                        isSelected={selectedSlot?.start === slot.start}
+                                        brandColor={brandColor}
+                                        onSelect={onSlotSelect}
+                                    />
+                                ))}
                             </div>
-                        );
-                    })}
-                </div>
-            )}
+                        </div>
+                    );
+                })}
+            </div>
 
-            {/* Booking form (rendered as children) */}
+            {/* Booking form */}
             {children}
         </div>
     );
 }
 
-// Empty state
+/* ─── Empty State ─── */
 function EmptyState() {
     return (
-        <div className="rounded-xl border bg-card p-10 text-center">
-            <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-muted/80">
-                <MapPin className="h-8 w-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
+            <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-4 backdrop-blur-sm">
+                <MapPin className="h-10 w-10 text-white/40" />
             </div>
-            <p className="font-semibold text-foreground">Hôm nay không còn chỗ trống</p>
-            <p className="mt-1 text-sm text-muted-foreground">Vui lòng chọn ngày khác</p>
+            <p className="text-white font-bold text-lg mb-1">Không còn chỗ trống</p>
+            <p className="text-white/50 text-sm">Vui lòng chọn ngày khác</p>
         </div>
     );
 }
 
+/* ─── Main Component ─── */
 export default function Show({ tenant, date, courts }) {
     const [selectedCourt, setSelectedCourt] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [sheetOpen, setSheetOpen] = useState(false);
     const form = useForm({ name: '', phone: '', court_id: null, start_at: '', end_at: '' });
+
     const brand = tenant.settings?.branding ?? {};
     const pc = brand.primary_color || '#059669';
 
     const isSoldOut = courts.length === 0 || courts.every((c) => c.free.length === 0);
 
-    // Calculate court positions for SVG layout
-    const courtLayout = useMemo(() => {
-        if (courts.length === 0) return { courts: [], viewBox: '0 0 400 300' };
-
-        const COURT_WIDTH = 160;
-        const COURT_HEIGHT = 100;
-        const GAP = 16;
-        const PADDING = 20;
-
-        // Calculate columns based on screen width (responsive)
-        const cols = courts.length === 1 ? 1 : 2;
-        const rows = Math.ceil(courts.length / cols);
-
-        const totalWidth = cols * COURT_WIDTH + (cols - 1) * GAP + PADDING * 2;
-        const totalHeight = rows * COURT_HEIGHT + (rows - 1) * GAP + PADDING * 2;
-
-        const positionedCourts = courts.map((court, index) => {
-            const col = index % cols;
-            const row = Math.floor(index / cols);
-            return {
-                court,
-                x: PADDING + col * (COURT_WIDTH + GAP),
-                y: PADDING + row * (COURT_HEIGHT + GAP),
-                width: COURT_WIDTH,
-                height: COURT_HEIGHT,
-            };
-        });
-
-        return {
-            courts: positionedCourts,
-            viewBox: `0 0 ${totalWidth} ${totalHeight}`,
-        };
-    }, [courts]);
-
     const changeDate = (d) => {
         setLoading(true);
         setSelectedCourt(null);
         setSelectedSlot(null);
-        setIsPanelOpen(false);
+        setSheetOpen(false);
         router.get(`/book/${tenant.slug}`, { date: d }, {
             preserveState: false,
             preserveScroll: true,
@@ -398,7 +367,7 @@ export default function Show({ tenant, date, courts }) {
     const handleCourtSelect = useCallback((court) => {
         setSelectedCourt(court);
         setSelectedSlot(null);
-        setIsPanelOpen(true);
+        setSheetOpen(true);
     }, []);
 
     const handleSlotSelect = useCallback((slot) => {
@@ -412,8 +381,8 @@ export default function Show({ tenant, date, courts }) {
         });
     }, [selectedCourt, form]);
 
-    const handlePanelClose = useCallback(() => {
-        setIsPanelOpen(false);
+    const handleSheetClose = useCallback(() => {
+        setSheetOpen(false);
         setSelectedCourt(null);
         setSelectedSlot(null);
         form.setData({ court_id: null, start_at: '', end_at: '' });
@@ -425,196 +394,222 @@ export default function Show({ tenant, date, courts }) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 pb-28">
+        <div className="min-h-screen bg-black text-white">
             <Head title={`Đặt sân — ${tenant.name}`} />
 
             <style>{`
                 :root { --brand: ${pc}; }
+
                 .scrollbar-hide::-webkit-scrollbar { display: none; }
                 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-                
-                .court-rect {
-                    transition: all 0.2s ease;
+
+                /* Background pattern */
+                .venue-bg {
+                    background:
+                        radial-gradient(ellipse at 20% 50%, ${pc}22 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, ${pc}18 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, ${pc}12 0%, transparent 50%),
+                        linear-gradient(160deg, #0a0a0a 0%, #111 40%, #0a0a0a 100%);
                 }
-                .court-group:hover .court-rect {
-                    filter: brightness(0.95);
-                    transform: scale(1.02);
-                    transform-origin: center;
-                }
-                .court-hover {
+
+                /* Animated subtle dots */
+                .venue-bg::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background-image: radial-gradient(${pc}15 1px, transparent 1px);
+                    background-size: 24px 24px;
+                    animation: pattern-drift 60s linear infinite;
                     pointer-events: none;
-                    opacity: 0;
-                    transition: opacity 0.2s ease;
                 }
-                .court-group:hover .court-hover {
-                    opacity: 1;
-                    fill: rgba(0, 0, 0, 0.03);
+
+                @keyframes pattern-drift {
+                    0% { background-position: 0 0; }
+                    100% { background-position: 24px 24px; }
                 }
-                
-                @keyframes slideUp {
-                    from { transform: translateY(100%); }
-                    to { transform: translateY(0); }
+
+                /* Court pulse animation */
+                @keyframes court-pulse {
+                    0%, 100% { box-shadow: 0 0 0 0 ${pc}80; }
+                    50% { box-shadow: 0 0 0 8px ${pc}00; }
                 }
-                .panel-slide-up {
-                    animation: slideUp 0.3s ease-out;
+
+                /* Bottom sheet */
+                .bottom-sheet {
+                    transform: translateY(100%);
+                    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+                }
+                .bottom-sheet.open {
+                    transform: translateY(0);
+                }
+
+                /* Slot pill hover */
+                .slot-pill:hover:not(.selected) {
+                    transform: translateY(-1px);
+                }
+
+                /* Court card hover glow */
+                .court-card:not(:disabled):hover {
+                    box-shadow: 0 8px 40px ${pc}30;
                 }
             `}</style>
 
-            {/* Hero */}
-            <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${pc}dd 0%, ${pc} 100%)` }}>
-                <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-5">
-                    {brand.logo_path && (
-                        <img src={`/storage/${brand.logo_path}`} alt={tenant.name} className="h-12 w-12 rounded-xl border-2 border-white/30 object-cover bg-white" />
-                    )}
-                    <div className="text-white">
-                        <h1 className="text-xl font-bold">{tenant.name}</h1>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-white/70">
-                            <span className="flex items-center gap-1">
-                                <ShieldCheck className="h-3 w-3" />
-                                Giữ sân 15 phút · cọc VietQR chống bom
-                            </span>
+            {/* ─── Layer 1: Full-Screen Background ─── */}
+            <div className="venue-bg relative min-h-screen flex flex-col">
+                {/* Venue Header */}
+                <header className="relative z-10 px-5 pt-6 pb-2">
+                    <div className="flex items-center gap-4">
+                        {brand.logo_path && (
+                            <img
+                                src={`/storage/${brand.logo_path}`}
+                                alt={tenant.name}
+                                className="h-12 w-12 rounded-xl border-2 border-white/20 object-cover bg-white/10 backdrop-blur-sm"
+                            />
+                        )}
+                        <div>
+                            <h1 className="text-xl font-bold text-white tracking-tight">{tenant.name}</h1>
+                            <div className="flex items-center gap-1.5 mt-1">
+                                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                                <span className="text-[11px] text-white/50 font-medium">
+                                    Giữ sân 15 phút · cọc VietQR chống bom
+                                </span>
+                            </div>
                         </div>
                     </div>
+                </header>
+
+                {/* Date Strip */}
+                <div className="relative z-10">
+                    <DateStrip date={date} onChange={changeDate} />
                 </div>
-            </div>
 
-            {loading ? (
-                <LoadingSkeleton />
-            ) : (
-                <div className="mx-auto max-w-3xl space-y-4 p-4">
-                    <DateStrip date={date} tenantSlug={tenant.slug} onChange={changeDate} />
-
-                    {isSoldOut ? (
+                {/* ─── Layer 2: Venue Map ─── */}
+                <main className="relative z-10 flex-1 px-4 pb-4">
+                    {loading ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                            {Array.from({ length: 4 }).map((_, i) => (
+                                <div key={i} className="animate-pulse rounded-2xl bg-white/5 h-[200px]" />
+                            ))}
+                        </div>
+                    ) : isSoldOut ? (
                         <EmptyState />
                     ) : (
-                        <div className="space-y-4">
-                            {/* SVG Venue Map */}
-                            <div className="rounded-2xl border bg-white p-2 shadow-sm">
-                                <svg
-                                    viewBox={courtLayout.viewBox}
-                                    className="w-full h-auto"
-                                    style={{ minHeight: '200px' }}
-                                >
-                                    {/* Background pattern for floor plan feel */}
-                                    <defs>
-                                        <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                                            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" strokeWidth="0.5" />
-                                        </pattern>
-                                    </defs>
-                                    <rect width="100%" height="100%" fill="url(#grid)" />
-
-                                    {/* Courts */}
-                                    {courtLayout.courts.map(({ court, x, y, width, height }) => (
-                                        <CourtSVG
-                                            key={court.court_id}
-                                            court={court}
-                                            x={x}
-                                            y={y}
-                                            width={width}
-                                            height={height}
-                                            isSelected={selectedCourt?.court_id === court.court_id}
-                                            brandColor={pc}
-                                            onSelect={handleCourtSelect}
-                                        />
-                                    ))}
-                                </svg>
+                        <>
+                            {/* Courts Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+                                {courts.map((court) => (
+                                    <CourtCard
+                                        key={court.court_id}
+                                        court={court}
+                                        isSelected={selectedCourt?.court_id === court.court_id}
+                                        isSoldOut={court.free.length === 0}
+                                        brandColor={pc}
+                                        onSelect={handleCourtSelect}
+                                    />
+                                ))}
                             </div>
 
                             {/* Legend */}
-                            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded" style={{ backgroundColor: `${pc}15`, border: `1px solid ${pc}40` }} />
+                            <div className="flex flex-wrap items-center justify-center gap-5 mt-6 text-[11px] text-white/40 font-medium">
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-sm bg-gradient-to-br from-emerald-400 to-emerald-600" />
                                     <span>Còn chỗ</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded" style={{ backgroundColor: pc }} />
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-sm bg-white/20 border border-white/40" />
                                     <span>Đang chọn</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded bg-gray-100 border border-gray-200" />
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-sm bg-gray-500/60" />
                                     <span>Hết chỗ</span>
                                 </div>
                             </div>
-                        </div>
+                        </>
+                    )}
+                </main>
+
+                {/* ─── Layer 3: Bottom Sheet ─── */}
+                <div className={`bottom-sheet ${sheetOpen ? 'open' : ''}`}>
+                    {sheetOpen && selectedCourt && (
+                        <BottomSheet
+                            court={selectedCourt}
+                            selectedSlot={selectedSlot}
+                            brandColor={pc}
+                            onSlotSelect={handleSlotSelect}
+                            onClose={handleSheetClose}
+                        >
+                            {/* Booking Form */}
+                            {selectedSlot && (
+                                <div className="px-5 pb-6 pt-2 border-t border-white/10">
+                                    <form onSubmit={submit} className="space-y-3">
+                                        {/* Price summary */}
+                                        <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3">
+                                            <div>
+                                                <p className="text-white font-bold text-sm">
+                                                    {selectedCourt.court_name}
+                                                </p>
+                                                <p className="text-white/50 text-xs mt-0.5">
+                                                    {new Date(date + 'T00:00:00').toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })} · {hhmm(selectedSlot.start)}–{hhmm(selectedSlot.end)}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-white font-bold text-base">{formatVND(selectedSlot.price)}</p>
+                                                <p className="text-white/40 text-[10px]">Tiền cọc giữ chỗ</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Name + Phone inline */}
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <Input
+                                                    placeholder="Họ tên"
+                                                    value={form.data.name}
+                                                    onChange={(e) => form.setData('name', e.target.value)}
+                                                    className="h-10 bg-white/10 border-white/15 text-white placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-white/30"
+                                                />
+                                                {form.errors.name && (
+                                                    <p className="text-[10px] text-red-400 mt-1">{form.errors.name}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <Input
+                                                    placeholder="Số điện thoại"
+                                                    type="tel"
+                                                    value={form.data.phone}
+                                                    onChange={(e) => form.setData('phone', e.target.value)}
+                                                    className="h-10 bg-white/10 border-white/15 text-white placeholder:text-white/30 text-sm rounded-xl focus-visible:ring-white/30"
+                                                />
+                                                {form.errors.phone && (
+                                                    <p className="text-[10px] text-red-400 mt-1">{form.errors.phone}</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Submit */}
+                                        <Button
+                                            type="submit"
+                                            disabled={form.processing || !form.data.name || !form.data.phone}
+                                            className="w-full h-12 rounded-xl text-base font-bold shadow-lg transition-all duration-200 hover:brightness-110 active:scale-[0.98]"
+                                            style={{
+                                                backgroundColor: pc,
+                                                boxShadow: `0 4px 20px ${pc}50`,
+                                                color: '#fff',
+                                            }}
+                                        >
+                                            {form.processing ? (
+                                                <Loader2 className="h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <Check className="h-5 w-5 mr-1" />
+                                            )}
+                                            Giữ chỗ
+                                        </Button>
+                                    </form>
+                                </div>
+                            )}
+                        </BottomSheet>
                     )}
                 </div>
-            )}
-
-            {/* Bottom Panel */}
-            {isPanelOpen && selectedCourt && (
-                <CourtPanel
-                    court={selectedCourt}
-                    selectedSlot={selectedSlot}
-                    brandColor={pc}
-                    onSlotSelect={handleSlotSelect}
-                    onClose={handlePanelClose}
-                >
-                    {/* Booking Form */}
-                    {selectedSlot && (
-                        <div className="px-4 py-4 border-t border-border bg-white">
-                            <form onSubmit={submit} className="space-y-3">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <p className="font-semibold text-foreground">
-                                            {selectedCourt.court_name}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {new Date(date + 'T00:00:00').toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })} · {hhmm(selectedSlot.start)}–{hhmm(selectedSlot.end)}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-3 text-sm">
-                                    <span className="text-muted-foreground">Giá sân:</span>
-                                    <span className="font-semibold">{formatVND(selectedSlot.price)}</span>
-                                    <span className="text-muted-foreground">·</span>
-                                    <span className="text-muted-foreground">Cọc:</span>
-                                    <span className="font-semibold">{formatVND(Math.round(selectedSlot.price))}</span>
-                                </div>
-
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                                    <div className="flex-1 space-y-1">
-                                        <Label htmlFor="name" className="text-xs">Họ tên</Label>
-                                        <Input
-                                            id="name"
-                                            placeholder="Nguyễn Văn A"
-                                            value={form.data.name}
-                                            onChange={(e) => form.setData('name', e.target.value)}
-                                            className="h-9 text-sm"
-                                        />
-                                        {form.errors.name && <p className="text-xs text-destructive">{form.errors.name}</p>}
-                                    </div>
-                                    <div className="flex-1 space-y-1">
-                                        <Label htmlFor="phone" className="text-xs">Số điện thoại</Label>
-                                        <Input
-                                            id="phone"
-                                            type="tel"
-                                            placeholder="0901 234 567"
-                                            value={form.data.phone}
-                                            onChange={(e) => form.setData('phone', e.target.value)}
-                                            className="h-9 text-sm"
-                                        />
-                                        {form.errors.phone && <p className="text-xs text-destructive">{form.errors.phone}</p>}
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={form.processing || !form.data.name || !form.data.phone}
-                                        className="mt-2 h-11 w-full gap-2 text-base font-semibold sm:mt-0 sm:w-auto"
-                                        style={{ backgroundColor: pc }}
-                                    >
-                                        {form.processing ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Check className="h-4 w-4" />
-                                        )}
-                                        Giữ chỗ
-                                    </Button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-                </CourtPanel>
-            )}
+            </div>
         </div>
     );
 }
