@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Manager\BookingWorkbenchController;
 use App\Http\Controllers\Manager\BrandingController;
 use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
@@ -79,6 +80,12 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::post('/reconcile/{inbox}/dismiss', [ReconcileController::class, 'dismissTxn'])->name('reconcile.dismiss');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    // Booking operations workbench (owner/receptionist daily tool).
+    Route::get('/bookings', [BookingWorkbenchController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/{booking}', [BookingWorkbenchController::class, 'show'])->name('bookings.show');
+    Route::post('/bookings', [BookingWorkbenchController::class, 'store'])->name('bookings.store');
+    Route::patch('/bookings/{booking}/status', [BookingWorkbenchController::class, 'updateStatus'])->name('bookings.status');
 });
 
 // Public booking page (resolved by tenant slug — no auth).
