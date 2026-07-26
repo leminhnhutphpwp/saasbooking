@@ -7,31 +7,40 @@ namespace App\Http\Controllers\Manager;
 use App\Http\Controllers\Controller;
 use App\Models\Court;
 use App\Models\PricingRule;
+use App\Services\Catalog\PricingRuleService;
+use App\Services\Tenant\VenueSettingsService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class PricingRuleController extends Controller
 {
+    public function __construct(
+        private PricingRuleService $pricingRules,
+        private VenueSettingsService $venueSettings,
+    ) {}
+
     public function index(Request $request, Court $court): Response
     {
         $this->assertOwnedByWorkingTenant($request, $court);
 
         $rules = $court->pricingRules()->orderByDesc('priority')->orderBy('start_local')->get();
+        $tenantId = (int) WorkingTenant::id($request);
 
         return Inertia::render('Manager/Courts/PricingRules', [
             'court' => ['uuid' => $court->uuid, 'name' => $court->name],
-            'rules' => $rules->map(fn (PricingRule $r) => [
-                'id' => $r->id,
-                'weekday' => $r->weekday,
-                'start_local' => $r->start_local,
-                'end_local' => $r->end_local,
-                'price_per_hour' => $r->price_per_hour,
-                'priority' => $r->priority,
-            ]),
+            'rules' => $rules->map(fn (PricingRule $rule) => $this->ruleData($rule)),
+            'venueRules' => PricingRule::query()
+                ->where('tenant_id', $tenantId)
+                ->whereNull('court_id')
+                ->orderByDesc('priority')
+                ->orderBy('start_local')
+                ->get()
+                ->map(fn (PricingRule $rule) => $this->ruleData($rule)),
+            'defaultPricePerHour' => $this->venueSettings->defaultPricePerHour($tenantId),
         ]);
     }
 
@@ -40,26 +49,18 @@ class PricingRuleController extends Controller
         $this->assertOwnedByWorkingTenant($request, $court);
 
         $data = $request->validate([
-            'weekday' => ['required', 'array'],
-            'weekday.*' => ['integer', 'between:1,7'],
-            'start_local' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'end_local' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'price_per_hour' => ['required', 'integer', 'min:0'],
-            'priority' => ['nullable', 'integer', 'min:0'],
+            'weekday' => ['required', 'array', 'min:1', 'max:7'],
+            'weekday.*' => ['integer', 'between:1,7', 'distinct'],
+            'start_local' => ['required', 'date_format:H:i'],
+            'end_local' => ['required', 'date_format:H:i', 'after:start_local'],
+            'price_per_hour' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'priority' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
+        $data['priority'] ??= 0;
 
-        $this->assertNoOverlap($request, $court, $data);
+        $this->pricingRules->create((int) WorkingTenant::id($request), $court->id, $data);
 
-        $court->pricingRules()->create([
-            'tenant_id' => WorkingTenant::id($request),
-            'weekday' => $data['weekday'],
-            'start_local' => $data['start_local'],
-            'end_local' => $data['end_local'],
-            'price_per_hour' => $data['price_per_hour'],
-            'priority' => $data['priority'] ?? 0,
-        ]);
-
-        return back()->with('success', 'Đã thêm bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'created'));
     }
 
     public function update(Request $request, Court $court, PricingRule $pricingRule): RedirectResponse
@@ -68,19 +69,18 @@ class PricingRuleController extends Controller
         abort_unless($pricingRule->court_id === $court->id, 404);
 
         $data = $request->validate([
-            'weekday' => ['required', 'array'],
-            'weekday.*' => ['integer', 'between:1,7'],
-            'start_local' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'end_local' => ['required', 'string', 'regex:/^\d{2}:\d{2}$/'],
-            'price_per_hour' => ['required', 'integer', 'min:0'],
-            'priority' => ['nullable', 'integer', 'min:0'],
+            'weekday' => ['required', 'array', 'min:1', 'max:7'],
+            'weekday.*' => ['integer', 'between:1,7', 'distinct'],
+            'start_local' => ['required', 'date_format:H:i'],
+            'end_local' => ['required', 'date_format:H:i', 'after:start_local'],
+            'price_per_hour' => ['required', 'integer', 'min:0', 'max:1000000000'],
+            'priority' => ['nullable', 'integer', 'min:0', 'max:1000000'],
         ]);
+        $data['priority'] ??= 0;
 
-        $this->assertNoOverlap($request, $court, $data, $pricingRule->id);
+        $this->pricingRules->update($pricingRule, $data);
 
-        $pricingRule->update($data);
-
-        return back()->with('success', 'Đã cập nhật bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'updated'));
     }
 
     public function destroy(Request $request, Court $court, PricingRule $pricingRule): RedirectResponse
@@ -90,7 +90,7 @@ class PricingRuleController extends Controller
 
         $pricingRule->delete();
 
-        return back()->with('success', 'Đã xóa bảng giá.');
+        return back()->with('success', Messages::get('pricing', 'deleted'));
     }
 
     private function assertOwnedByWorkingTenant(Request $request, Court $court): void
@@ -98,39 +98,16 @@ class PricingRuleController extends Controller
         abort_unless($court->tenant_id === WorkingTenant::id($request), 403);
     }
 
-    /**
-     * Reject a pricing rule that OVERLAPS an existing effective rule for the same
-     * court (scope): shares at least one weekday AND its [start, end) time window
-     * intersects. Equal-priority overlaps make resolution ambiguous, so we forbid
-     * them up front. Tenant-scoped; on update, the rule being edited is ignored.
-     *
-     * @param  array{weekday: array<int>, start_local: string, end_local: string}  $data
-     */
-    private function assertNoOverlap(Request $request, Court $court, array $data, ?int $ignoreId = null): void
+    /** @return array{id:int, weekday:array<int>, start_local:string, end_local:string, price_per_hour:int, priority:int} */
+    private function ruleData(PricingRule $rule): array
     {
-        $newStart = substr($data['start_local'], 0, 5);
-        $newEnd = substr($data['end_local'], 0, 5);
-        $weekdays = array_map('intval', $data['weekday']);
-
-        $existing = PricingRule::query()
-            ->where('tenant_id', WorkingTenant::id($request))
-            ->where('court_id', $court->id)
-            ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
-            ->get();
-
-        foreach ($existing as $rule) {
-            if (array_intersect($weekdays, $rule->weekday) === []) {
-                continue;
-            }
-
-            $exStart = substr($rule->start_local, 0, 5);
-            $exEnd = substr($rule->end_local, 0, 5);
-
-            if ($newStart < $exEnd && $exStart < $newEnd) {
-                throw ValidationException::withMessages([
-                    'start_local' => 'Bảng giá này trùng khung giờ với một bảng giá đã có (cùng sân, cùng ngày trong tuần).',
-                ]);
-            }
-        }
+        return [
+            'id' => $rule->id,
+            'weekday' => $rule->weekday,
+            'start_local' => substr($rule->start_local, 0, 5),
+            'end_local' => substr($rule->end_local, 0, 5),
+            'price_per_hour' => $rule->price_per_hour,
+            'priority' => $rule->priority,
+        ];
     }
 }

@@ -13,6 +13,7 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\TenantBankConfig;
+use App\Support\Messages;
 use App\Support\VietQr;
 use RuntimeException;
 
@@ -31,7 +32,7 @@ class PaymentService
             ->first();
 
         if (! $config) {
-            throw new RuntimeException('Chưa cấu hình tài khoản nhận cọc cho cơ sở này.');
+            throw new RuntimeException(Messages::get('payment', 'no_bank_config'));
         }
 
         // amount/status/tenant_id are not mass-assignable (audit #10) — build explicitly.

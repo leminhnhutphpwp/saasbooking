@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Manager\BookingWorkbenchController;
 use App\Http\Controllers\Manager\BrandingController;
 use App\Http\Controllers\Manager\CalendarController;
 use App\Http\Controllers\Manager\CourtController;
+use App\Http\Controllers\Manager\CustomerController;
 use App\Http\Controllers\Manager\HomeController;
 use App\Http\Controllers\Manager\OpeningRuleController;
 use App\Http\Controllers\Manager\PricingRuleController;
@@ -10,6 +12,9 @@ use App\Http\Controllers\Manager\ReconcileController;
 use App\Http\Controllers\Manager\RefundController;
 use App\Http\Controllers\Manager\ReportController;
 use App\Http\Controllers\Manager\SeriesController;
+use App\Http\Controllers\Manager\TenantSwitchController;
+use App\Http\Controllers\Manager\VenueController;
+use App\Http\Controllers\Manager\VenuePricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
@@ -38,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/switch-tenant', TenantSwitchController::class)->name('tenant.switch');
 });
 
 // Manager console — court owner (tenant-scoped via WorkingTenant).
@@ -48,6 +54,7 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::get('/courts', [CourtController::class, 'index'])->name('courts.index');
     Route::get('/courts/config', [CourtController::class, 'config'])->name('courts.config');
     Route::post('/courts', [CourtController::class, 'store'])->name('courts.store');
+    Route::patch('/courts/status', [CourtController::class, 'updateStatus'])->name('courts.status');
     Route::put('/courts/{court}', [CourtController::class, 'update'])->name('courts.update');
     Route::delete('/courts/{court}', [CourtController::class, 'destroy'])->name('courts.destroy');
 
@@ -70,15 +77,37 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::post('/courts/{court}/pricing-rules', [PricingRuleController::class, 'store'])->name('courts.pricing-rules.store');
     Route::put('/courts/{court}/pricing-rules/{pricingRule}', [PricingRuleController::class, 'update'])->name('courts.pricing-rules.update');
     Route::delete('/courts/{court}/pricing-rules/{pricingRule}', [PricingRuleController::class, 'destroy'])->name('courts.pricing-rules.destroy');
+    Route::post('/pricing-rules', [VenuePricingController::class, 'store'])->name('pricing-rules.store');
+    Route::put('/pricing-rules/{pricingRule}', [VenuePricingController::class, 'update'])->name('pricing-rules.update');
+    Route::delete('/pricing-rules/{pricingRule}', [VenuePricingController::class, 'destroy'])->name('pricing-rules.destroy');
 
     Route::get('/branding', [BrandingController::class, 'edit'])->name('branding.edit');
     Route::post('/branding', [BrandingController::class, 'update'])->name('branding.update');
+
+    Route::get('/venue', [VenueController::class, 'edit'])->name('venue.edit');
+    Route::post('/venue', [VenueController::class, 'update'])->name('venue.update');
 
     Route::get('/reconcile', [ReconcileController::class, 'unmatched'])->name('reconcile.index');
     Route::post('/reconcile/match', [ReconcileController::class, 'manualMatch'])->name('reconcile.match');
     Route::post('/reconcile/{inbox}/dismiss', [ReconcileController::class, 'dismissTxn'])->name('reconcile.dismiss');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+
+    // Customer management (phone-first operations).
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+
+    // Recurrence operations — cancel one occurrence or end remaining series.
+    Route::post('/series/{series}/cancel-occurrence/{booking}', [SeriesController::class, 'cancelOccurrence'])->name('series.cancel-occurrence');
+    Route::post('/series/{series}/end', [SeriesController::class, 'endSeries'])->name('series.end');
+
+    // Booking operations workbench (owner/receptionist daily tool).
+    Route::get('/bookings', [BookingWorkbenchController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/{booking}', [BookingWorkbenchController::class, 'show'])->name('bookings.show');
+    Route::post('/bookings', [BookingWorkbenchController::class, 'store'])->name('bookings.store');
+    Route::patch('/bookings/{booking}/status', [BookingWorkbenchController::class, 'updateStatus'])->name('bookings.status');
 });
 
 // Public booking page (resolved by tenant slug — no auth).
@@ -87,6 +116,7 @@ Route::middleware('throttle:public-booking')->prefix('book')->name('public.')->g
     Route::get('/{tenant:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
     Route::post('/{tenant:slug}/hold', [PublicBookingController::class, 'hold'])->name('booking.hold');
     Route::get('/{tenant:slug}/status/{code}', [PublicBookingController::class, 'status'])->name('booking.status');
+    Route::get('/{tenant:slug}/cus-{code}', [PublicBookingController::class, 'customerHistory'])->name('booking.customer-history');
 });
 
 require __DIR__.'/auth.php';

@@ -12,15 +12,14 @@ use App\Enums\HoldStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentStatus;
-use App\Enums\SeriesStatus;
 use App\Models\Booking;
 use App\Models\BookingSlot;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\OpeningRule;
 use App\Models\Payment;
+use App\Models\PlatformService;
 use App\Models\PricingRule;
-use App\Models\RecurringSeries;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
 use App\Models\User;
@@ -29,541 +28,494 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
+/**
+ * Reproducible demo data — 2 tenants, 4 users, 10 courts, sample bookings.
+ *
+ * Idempotent: uses firstOrCreate/firstOrNew + natural keys.
+ * No truncate/wipe — safe to re-run.
+ *
+ * Run: php artisan db:seed --class=DemoSeeder
+ */
 class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->seedRoles();
+        // Ensure roles exist
+        $this->call(RoleSeeder::class);
+        $this->call(PlatformServiceSeeder::class);
 
         $tenant1 = $this->seedTenant1();
         $tenant2 = $this->seedTenant2();
 
         $this->seedUsers($tenant1, $tenant2);
-        $this->seedBankConfigs($tenant1, $tenant2);
-
-        $courts1 = $this->seedCourts1($tenant1);
-        $courts2 = $this->seedCourts2($tenant2);
-
-        $this->seedOpeningRules1($tenant1, $courts1);
-        $this->seedOpeningRules2($tenant2, $courts2);
-
-        $this->seedPricingRules1($tenant1);
-        $this->seedPricingRules2($tenant2);
-
-        $customers1 = $this->seedCustomers1($tenant1);
-
-        $this->seedBookings1($tenant1, $courts1, $customers1);
-        $this->seedSeries1($tenant1, $courts1, $customers1);
-    }
-
-    private function seedRoles(): void
-    {
-        foreach (['super_admin', 'owner', 'staff'] as $role) {
-            Role::firstOrCreate(['name' => $role, 'guard_name' => 'web']);
-        }
+        $this->seedCourtsAndRules($tenant1, $tenant2);
+        $this->seedCustomers($tenant1);
+        $this->seedBankConfig($tenant1, $tenant2);
+        $this->seedBookings($tenant1);
     }
 
     private function seedTenant1(): Tenant
     {
+        $service = PlatformService::where('slug', 'pickleball')->firstOrFail();
+
         return Tenant::firstOrCreate(
             ['slug' => 'pickleball-mvp'],
             [
                 'name' => 'Sân Pickleball MVP',
-                'vertical' => 'racket_court',
+                'service_id' => $service->id,
+                'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
-                'settings' => ['branding' => ['primary_color' => '#F06020']],
-            ],
+                'address' => '123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
+                'phone' => '0901234567',
+                'email' => 'info@pickleball-mvp.vn',
+                'website' => 'https://pickleball-mvp.vn',
+                'lat' => 10.7769,
+                'lng' => 106.7009,
+                'description' => 'Sân pickleball cao cấp tại trung tâm Quận 1, hệ thống 4 sân indoor với đèn LED tiêu chuẩn thi đấu.',
+                'settings' => [
+                    'branding' => [
+                        'primary_color' => '#7C3AED',
+                    ],
+                    'social' => [
+                        'zalo' => 'https://zalo.me/0901234567',
+                        'facebook' => 'https://facebook.com/pickleballmvp',
+                    ],
+                    'cover_photo' => null,
+                    'business_hours' => [
+                        'mon' => ['open' => '06:00', 'close' => '23:00'],
+                        'tue' => ['open' => '06:00', 'close' => '23:00'],
+                        'wed' => ['open' => '06:00', 'close' => '23:00'],
+                        'thu' => ['open' => '06:00', 'close' => '23:00'],
+                        'fri' => ['open' => '06:00', 'close' => '23:00'],
+                        'sat' => ['open' => '06:00', 'close' => '23:00'],
+                        'sun' => ['open' => '06:00', 'close' => '22:00'],
+                    ],
+                ],
+            ]
         );
     }
 
     private function seedTenant2(): Tenant
     {
+        $service = PlatformService::where('slug', 'badminton')->firstOrFail();
+
         return Tenant::firstOrCreate(
             ['slug' => 'cau-long-nvh'],
             [
                 'name' => 'Sân Cầu Lông Nhà Văn Hóa',
-                'vertical' => 'racket_court',
+                'service_id' => $service->id,
+                'vertical' => $service->vertical_key,
                 'timezone' => 'Asia/Ho_Chi_Minh',
                 'status' => 'active',
-                'settings' => ['branding' => ['primary_color' => '#2563EB']],
-            ],
+                'address' => '456 Lê Lợi, Phường Bến Thành, Quận 1, TP.HCM',
+                'phone' => '0912345678',
+                'email' => 'contact@caulong-nvh.vn',
+                'website' => null,
+                'lat' => 10.7725,
+                'lng' => 106.6980,
+                'description' => 'Sân cầu lông trong nhà, 6 sân tiêu chuẩn, phù hợp cả tập luyện và thi đấu.',
+                'settings' => [
+                    'branding' => [
+                        'primary_color' => '#059669',
+                    ],
+                    'social' => [
+                        'facebook' => 'https://facebook.com/caulongnvh',
+                    ],
+                    'cover_photo' => null,
+                    'business_hours' => [
+                        'mon' => ['open' => '06:00', 'close' => '22:00'],
+                        'tue' => ['open' => '06:00', 'close' => '22:00'],
+                        'wed' => ['open' => '06:00', 'close' => '22:00'],
+                        'thu' => ['open' => '06:00', 'close' => '22:00'],
+                        'fri' => ['open' => '06:00', 'close' => '22:00'],
+                        'sat' => ['open' => '06:00', 'close' => '22:00'],
+                        'sun' => ['open' => '07:00', 'close' => '21:00'],
+                    ],
+                ],
+            ]
         );
     }
 
-    private function seedUsers(Tenant $t1, Tenant $t2): void
+    private function seedUsers(Tenant $tenant1, Tenant $tenant2): void
     {
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@san.vn'],
-            ['name' => 'Super Admin', 'password' => Hash::make('password')],
-        );
-        $admin->update(['tenant_id' => null]);
-        if (! $admin->hasRole('super_admin')) {
-            $admin->assignRole('super_admin');
-        }
+        $ownerRole = Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        $staffRole = Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web']);
+        $superAdminRole = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
 
+        // super_admin (no tenant)
+        $superAdmin = User::firstOrCreate(
+            ['email' => 'admin@san.vn'],
+            [
+                'name' => 'Platform Admin',
+                'password' => Hash::make('password'),
+            ]
+        );
+        $superAdmin->syncRoles([$superAdminRole]);
+
+        // Tenant 1 users
         $owner1 = User::firstOrCreate(
             ['email' => 'owner@pickleball.vn'],
-            ['name' => 'Chủ sân Pickleball', 'password' => Hash::make('password')],
+            [
+                'name' => 'Chủ Sân Pickleball',
+                'password' => Hash::make('password'),
+                'tenant_id' => $tenant1->id,
+            ]
         );
-        $owner1->update(['tenant_id' => $t1->id]);
-        if (! $owner1->hasRole('owner')) {
-            $owner1->assignRole('owner');
-        }
+        $owner1->syncRoles([$ownerRole]);
+        $owner1->tenants()->syncWithoutDetaching([$tenant1->id => ['role' => 'owner']]);
 
         $staff1 = User::firstOrCreate(
             ['email' => 'staff@pickleball.vn'],
-            ['name' => 'Nhân viên Pickleball', 'password' => Hash::make('password')],
+            [
+                'name' => 'Nhân Viên Pickleball',
+                'password' => Hash::make('password'),
+                'tenant_id' => $tenant1->id,
+            ]
         );
-        $staff1->update(['tenant_id' => $t1->id]);
-        if (! $staff1->hasRole('staff')) {
-            $staff1->assignRole('staff');
-        }
+        $staff1->syncRoles([$staffRole]);
+        $staff1->tenants()->syncWithoutDetaching([$tenant1->id => ['role' => 'staff']]);
 
+        // Tenant 2 user
         $owner2 = User::firstOrCreate(
             ['email' => 'owner@caulong.vn'],
-            ['name' => 'Chủ sân Cầu Lông', 'password' => Hash::make('password')],
-        );
-        $owner2->update(['tenant_id' => $t2->id]);
-        if (! $owner2->hasRole('owner')) {
-            $owner2->assignRole('owner');
-        }
-    }
-
-    private function seedBankConfigs(Tenant $t1, Tenant $t2): void
-    {
-        TenantBankConfig::firstOrCreate(
-            ['provider' => 'sepay', 'account_number' => '0123456789'],
             [
-                'tenant_id' => $t1->id,
-                'bank_bin' => '970422',
-                'account_name' => 'SAN PICKLEBALL MVP',
-                'webhook_secret' => 'demo-secret-1',
-                'active' => true,
-            ],
+                'name' => 'Chủ Sân Cầu Lông',
+                'password' => Hash::make('password'),
+                'tenant_id' => $tenant2->id,
+            ]
         );
-
-        TenantBankConfig::firstOrCreate(
-            ['provider' => 'sepay', 'account_number' => '9876543210'],
-            [
-                'tenant_id' => $t2->id,
-                'bank_bin' => '970422',
-                'account_name' => 'SAN CAU LONG NVH',
-                'webhook_secret' => 'demo-secret-2',
-                'active' => true,
-            ],
-        );
+        $owner2->syncRoles([$ownerRole]);
+        $owner2->tenants()->syncWithoutDetaching([$tenant2->id => ['role' => 'owner']]);
     }
 
-    private function seedCourts1(Tenant $t): array
+    private function seedCourtsAndRules(Tenant $tenant1, Tenant $tenant2): void
     {
-        $courts = [];
-        foreach (['Sân A1', 'Sân A2', 'Sân B1', 'Sân B2'] as $name) {
-            $existing = Court::where('tenant_id', $t->id)->where('name', $name)->first();
-            if ($existing) {
-                $courts[$name] = $existing;
-                continue;
-            }
-            $courts[$name] = Court::forceCreate([
-                'tenant_id' => $t->id,
-                'name' => $name,
-                'court_type' => CourtType::Pickleball,
-                'status' => CourtStatus::Active,
-            ]);
-        }
-
-        return $courts;
-    }
-
-    private function seedCourts2(Tenant $t): array
-    {
-        $courts = [];
-        for ($i = 1; $i <= 6; $i++) {
-            $name = "Sân {$i}";
-            $existing = Court::where('tenant_id', $t->id)->where('name', $name)->first();
-            if ($existing) {
-                $courts[$name] = $existing;
-                continue;
-            }
-            $courts[$name] = Court::forceCreate([
-                'tenant_id' => $t->id,
-                'name' => $name,
-                'court_type' => CourtType::CauLong,
-                'status' => CourtStatus::Active,
-            ]);
-        }
-
-        return $courts;
-    }
-
-    private function seedOpeningRules1(Tenant $t, array $courts): void
-    {
-        foreach ($courts as $court) {
-            $exists = OpeningRule::where('tenant_id', $t->id)
-                ->where('court_id', $court->id)
-                ->exists();
-            if ($exists) {
-                continue;
-            }
-            OpeningRule::create([
-                'tenant_id' => $t->id,
-                'court_id' => $court->id,
-                'weekday' => [1, 2, 3, 4, 5, 6, 7],
-                'open_local' => '06:00:00',
-                'close_local' => '23:00:00',
-                'tz' => 'Asia/Ho_Chi_Minh',
-                'effective_from' => now()->subMonth()->toDateString(),
-                'effective_to' => null,
-            ]);
-        }
-    }
-
-    private function seedOpeningRules2(Tenant $t, array $courts): void
-    {
-        foreach ($courts as $court) {
-            $exists = OpeningRule::where('tenant_id', $t->id)
-                ->where('court_id', $court->id)
-                ->exists();
-            if ($exists) {
-                continue;
-            }
-            OpeningRule::create([
-                'tenant_id' => $t->id,
-                'court_id' => $court->id,
-                'weekday' => [1, 2, 3, 4, 5, 6, 7],
-                'open_local' => '06:00:00',
-                'close_local' => '22:00:00',
-                'tz' => 'Asia/Ho_Chi_Minh',
-                'effective_from' => now()->subMonth()->toDateString(),
-                'effective_to' => null,
-            ]);
-        }
-    }
-
-    private function seedPricingRules1(Tenant $t): void
-    {
-        $exists = PricingRule::where('tenant_id', $t->id)->exists();
-        if ($exists) {
-            return;
-        }
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [1, 2, 3, 4, 5],
-            'start_local' => '06:00:00',
-            'end_local' => '17:00:00',
-            'price_per_hour' => 100_000,
-            'priority' => 0,
-        ]);
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [1, 2, 3, 4, 5],
-            'start_local' => '17:00:00',
-            'end_local' => '22:00:00',
-            'price_per_hour' => 130_000,
-            'priority' => 1,
-        ]);
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [6, 7],
-            'start_local' => '06:00:00',
-            'end_local' => '23:00:00',
-            'price_per_hour' => 150_000,
-            'priority' => 0,
-        ]);
-    }
-
-    private function seedPricingRules2(Tenant $t): void
-    {
-        $exists = PricingRule::where('tenant_id', $t->id)->exists();
-        if ($exists) {
-            return;
-        }
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [1, 2, 3, 4, 5],
-            'start_local' => '06:00:00',
-            'end_local' => '17:00:00',
-            'price_per_hour' => 80_000,
-            'priority' => 0,
-        ]);
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [1, 2, 3, 4, 5],
-            'start_local' => '17:00:00',
-            'end_local' => '22:00:00',
-            'price_per_hour' => 120_000,
-            'priority' => 1,
-        ]);
-
-        PricingRule::create([
-            'tenant_id' => $t->id,
-            'court_id' => null,
-            'weekday' => [6, 7],
-            'start_local' => '06:00:00',
-            'end_local' => '22:00:00',
-            'price_per_hour' => 120_000,
-            'priority' => 0,
-        ]);
-    }
-
-    private function seedCustomers1(Tenant $t): array
-    {
-        $data = [
-            ['phone' => '0901111111', 'name' => 'Nguyễn Văn An'],
-            ['phone' => '0902222222', 'name' => 'Trần Thị Bình'],
-            ['phone' => '0903333333', 'name' => 'Lê Hoàng Cường'],
-            ['phone' => '0904444444', 'name' => 'Phạm Minh Đức'],
-            ['phone' => '0905555555', 'name' => 'Hoàng Thị Lan'],
+        // Tenant 1: 4 pickleball courts
+        $courts1 = [];
+        $courtNames1 = ['Sân A', 'Sân B', 'Sân C', 'Sân D'];
+        $courtDescs1 = [
+            'Sân chính, ánh sáng tiêu chuẩn thi đấu',
+            'Sân training, phù hợp tập luyện',
+            'Sân VIP, có ghế ngồi khán giả',
+            'Sân thường, giá ưu đãi giờ thấp điểm',
         ];
+        for ($i = 1; $i <= 4; $i++) {
+            $courts1[] = Court::forceCreate([
+                'tenant_id' => $tenant1->id,
+                'name' => $courtNames1[$i - 1],
+                'court_type' => CourtType::Pickleball->value,
+                'status' => CourtStatus::Active->value,
+                'description' => $courtDescs1[$i - 1],
+                'surface_type' => 'indoor',
+                'display_order' => $i,
+                'metadata' => [
+                    'amenities' => ['led', 'quạt', 'nước_free'],
+                    'photos' => [],
+                    'dimensions' => '13.4m x 6.1m',
+                ],
+            ]);
+        }
 
-        $customers = [];
-        foreach ($data as $row) {
-            $customers[$row['phone']] = Customer::firstOrCreate(
-                ['tenant_id' => $t->id, 'phone' => $row['phone']],
-                ['name' => $row['name']],
+        // Tenant 2: 6 badminton courts
+        $courts2 = [];
+        for ($i = 1; $i <= 6; $i++) {
+            $courts2[] = Court::forceCreate([
+                'tenant_id' => $tenant2->id,
+                'name' => "Sân $i",
+                'court_type' => CourtType::CauLong->value,
+                'status' => CourtStatus::Active->value,
+                'description' => $i <= 4 ? 'Sân tiêu chuẩn, phù hợp mọi trình độ' : 'Sân cao cấp, sàn gỗ chuyên dụng',
+                'surface_type' => 'indoor',
+                'display_order' => $i,
+                'metadata' => [
+                    'amenities' => ['đèn', 'quạt', 'tủ_locker'],
+                    'photos' => [],
+                    'dimensions' => '13.4m x 6.1m',
+                ],
+            ]);
+        }
+
+        // Opening rules for tenant 1 (all courts, 06:00-23:00, all weekdays)
+        $today = Carbon::today();
+        foreach ($courts1 as $court) {
+            OpeningRule::firstOrCreate(
+                [
+                    'tenant_id' => $court->tenant_id,
+                    'court_id' => $court->id,
+                    'effective_from' => $today->toDateString(),
+                ],
+                [
+                    'weekday' => [1, 2, 3, 4, 5, 6, 7], // Mon-Sun
+                    'open_local' => '06:00:00',
+                    'close_local' => '23:00:00',
+                    'tz' => 'Asia/Ho_Chi_Minh',
+                ]
             );
         }
 
-        return $customers;
+        // Opening rules for tenant 2 (06:00-22:00)
+        foreach ($courts2 as $court) {
+            OpeningRule::firstOrCreate(
+                [
+                    'tenant_id' => $court->tenant_id,
+                    'court_id' => $court->id,
+                    'effective_from' => $today->toDateString(),
+                ],
+                [
+                    'weekday' => [1, 2, 3, 4, 5, 6, 7],
+                    'open_local' => '06:00:00',
+                    'close_local' => '22:00:00',
+                    'tz' => 'Asia/Ho_Chi_Minh',
+                ]
+            );
+        }
+
+        // Pricing rules for tenant 1 (court_id null = all courts)
+        $this->seedPricingRules($tenant1->id, [
+            // Off-peak: 06:00-17:00 weekdays = 100k
+            [
+                'weekday' => [1, 2, 3, 4, 5],
+                'start_local' => '06:00:00',
+                'end_local' => '17:00:00',
+                'price_per_hour' => 100_000,
+                'priority' => 0,
+            ],
+            // Peak: 17:00-23:00 weekdays = 130k
+            [
+                'weekday' => [1, 2, 3, 4, 5],
+                'start_local' => '17:00:00',
+                'end_local' => '23:00:00',
+                'price_per_hour' => 130_000,
+                'priority' => 0,
+            ],
+            // Weekend: all day = 150k
+            [
+                'weekday' => [6, 7],
+                'start_local' => '06:00:00',
+                'end_local' => '23:00:00',
+                'price_per_hour' => 150_000,
+                'priority' => 0,
+            ],
+        ]);
+
+        // Pricing rules for tenant 2 (80k / 120k)
+        $this->seedPricingRules($tenant2->id, [
+            [
+                'weekday' => [1, 2, 3, 4, 5],
+                'start_local' => '06:00:00',
+                'end_local' => '17:00:00',
+                'price_per_hour' => 80_000,
+                'priority' => 0,
+            ],
+            [
+                'weekday' => [1, 2, 3, 4, 5],
+                'start_local' => '17:00:00',
+                'end_local' => '23:00:00',
+                'price_per_hour' => 120_000,
+                'priority' => 0,
+            ],
+        ]);
     }
 
-    private function seedBookings1(Tenant $t, array $courts, array $customers): void
+    private function seedPricingRules(int $tenantId, array $rules): void
     {
-        $today = Carbon::today();
-        $a1 = $courts['Sân A1'];
-        $a2 = $courts['Sân A2'];
-        $b1 = $courts['Sân B1'];
-        $cust1 = $customers['0901111111'];
-        $cust2 = $customers['0902222222'];
-        $cust3 = $customers['0903333333'];
-
-        $this->seedConfirmedBooking(
-            $t, $a1, $cust1,
-            code: 'SAN-10001',
-            start: $today->copy()->setTime(8, 0),
-            end: $today->copy()->setTime(10, 0),
-            pricePerHour: 100_000,
-            bankTxnId: 'DEMO-TXN-10001',
-        );
-
-        $this->seedConfirmedBooking(
-            $t, $a2, $cust2,
-            code: 'SAN-10002',
-            start: $today->copy()->setTime(17, 0),
-            end: $today->copy()->setTime(19, 0),
-            pricePerHour: 130_000,
-            bankTxnId: 'DEMO-TXN-10002',
-        );
-
-        $this->seedPendingBooking(
-            $t, $b1, $cust3,
-            code: 'SAN-10003',
-            start: $today->copy()->setTime(19, 0),
-            end: $today->copy()->setTime(21, 0),
-            pricePerHour: 130_000,
-        );
-
-        $this->seedWalkInBooking(
-            $t, $a1, $cust2,
-            code: 'SAN-10004',
-            start: $today->copy()->setTime(14, 0),
-            end: $today->copy()->setTime(16, 0),
-            pricePerHour: 100_000,
-        );
-    }
-
-    private function seedConfirmedBooking(
-        Tenant $t,
-        Court $court,
-        Customer $customer,
-        string $code,
-        Carbon $start,
-        Carbon $end,
-        int $pricePerHour,
-        string $bankTxnId,
-    ): void {
-        $existing = Booking::where('tenant_id', $t->id)->where('code', $code)->first();
-        if ($existing) {
-            return;
+        foreach ($rules as $rule) {
+            PricingRule::firstOrCreate(
+                [
+                    'tenant_id' => $tenantId,
+                    'court_id' => null,
+                    'weekday' => $rule['weekday'],
+                    'start_local' => $rule['start_local'],
+                    'end_local' => $rule['end_local'],
+                ],
+                [
+                    'price_per_hour' => $rule['price_per_hour'],
+                    'priority' => $rule['priority'],
+                ]
+            );
         }
-
-        $hours = $start->diffInHours($end);
-        $total = $pricePerHour * $hours;
-        $deposit = (int) ceil($total * 0.3);
-
-        $booking = Booking::forceCreate([
-            'tenant_id' => $t->id,
-            'code' => $code,
-            'customer_id' => $customer->id,
-            'status' => BookingStatus::Confirmed,
-            'channel' => BookingChannel::Zalo,
-            'payment_mode' => PaymentMode::Deposit,
-            'total_amount' => $total,
-            'deposit_amount' => $deposit,
-            'cancel_policy_snapshot' => ['free_cancel_hours' => 2],
-        ]);
-
-        BookingSlot::create([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'court_id' => $court->id,
-            'start_at' => $start,
-            'end_at' => $end,
-            'price_snapshot' => $pricePerHour,
-            'hold_status' => HoldStatus::Committed,
-        ]);
-
-        Payment::forceCreate([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'method' => PaymentMethod::VietQr,
-            'amount' => $deposit,
-            'status' => PaymentStatus::Matched,
-            'memo_ref' => $code,
-            'bank_txn_id' => $bankTxnId,
-            'matched_at' => now(),
-        ]);
     }
 
-    private function seedPendingBooking(
-        Tenant $t,
-        Court $court,
-        Customer $customer,
-        string $code,
-        Carbon $start,
-        Carbon $end,
-        int $pricePerHour,
-    ): void {
-        $existing = Booking::where('tenant_id', $t->id)->where('code', $code)->first();
-        if ($existing) {
-            return;
-        }
-
-        $hours = $start->diffInHours($end);
-        $total = $pricePerHour * $hours;
-        $deposit = (int) ceil($total * 0.3);
-
-        $booking = Booking::forceCreate([
-            'tenant_id' => $t->id,
-            'code' => $code,
-            'customer_id' => $customer->id,
-            'status' => BookingStatus::PendingDeposit,
-            'channel' => BookingChannel::Zalo,
-            'payment_mode' => PaymentMode::Deposit,
-            'total_amount' => $total,
-            'deposit_amount' => $deposit,
-            'hold_expires_at' => now()->addMinutes(15),
-            'cancel_policy_snapshot' => ['free_cancel_hours' => 2],
-        ]);
-
-        BookingSlot::create([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'court_id' => $court->id,
-            'start_at' => $start,
-            'end_at' => $end,
-            'price_snapshot' => $pricePerHour,
-            'hold_status' => HoldStatus::Holding,
-        ]);
-
-        Payment::forceCreate([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'method' => PaymentMethod::VietQr,
-            'amount' => $deposit,
-            'status' => PaymentStatus::Awaiting,
-            'memo_ref' => $code,
-        ]);
-    }
-
-    private function seedWalkInBooking(
-        Tenant $t,
-        Court $court,
-        Customer $customer,
-        string $code,
-        Carbon $start,
-        Carbon $end,
-        int $pricePerHour,
-    ): void {
-        $existing = Booking::where('tenant_id', $t->id)->where('code', $code)->first();
-        if ($existing) {
-            return;
-        }
-
-        $hours = $start->diffInHours($end);
-        $total = $pricePerHour * $hours;
-
-        $booking = Booking::forceCreate([
-            'tenant_id' => $t->id,
-            'code' => $code,
-            'customer_id' => $customer->id,
-            'status' => BookingStatus::Confirmed,
-            'channel' => BookingChannel::OwnerManual,
-            'payment_mode' => PaymentMode::Cash,
-            'total_amount' => $total,
-            'deposit_amount' => 0,
-            'cancel_policy_snapshot' => ['free_cancel_hours' => 2],
-        ]);
-
-        BookingSlot::create([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'court_id' => $court->id,
-            'start_at' => $start,
-            'end_at' => $end,
-            'price_snapshot' => $pricePerHour,
-            'hold_status' => HoldStatus::Committed,
-        ]);
-
-        Payment::forceCreate([
-            'tenant_id' => $t->id,
-            'booking_id' => $booking->id,
-            'method' => PaymentMethod::Cash,
-            'amount' => $total,
-            'status' => PaymentStatus::Matched,
-            'memo_ref' => $code . '-CASH',
-            'matched_at' => now(),
-        ]);
-    }
-
-    private function seedSeries1(Tenant $t, array $courts, array $customers): void
+    private function seedCustomers(Tenant $tenant1): void
     {
-        $court = $courts['Sân A1'];
-        $customer = $customers['0904444444'];
+        $customers = [
+            ['name' => 'Nguyễn Văn A', 'phone' => '0901234567'],
+            ['name' => 'Trần Thị B', 'phone' => '0912345678'],
+            ['name' => 'Lê Văn C', 'phone' => '0923456789'],
+            ['name' => 'Phạm Thị D', 'phone' => '0934567890'],
+            ['name' => 'Hoàng Văn E', 'phone' => '0945678901'],
+        ];
 
-        $existing = RecurringSeries::where('tenant_id', $t->id)
-            ->where('court_id', $court->id)
-            ->where('weekday', 3)
-            ->where('start_local', '18:00:00')
+        foreach ($customers as $customer) {
+            Customer::firstOrCreate(
+                ['tenant_id' => $tenant1->id, 'phone' => $customer['phone']],
+                [
+                    'name' => $customer['name'],
+                    'email' => null,
+                ]
+            );
+        }
+    }
+
+    private function seedBankConfig(Tenant $tenant1, Tenant $tenant2): void
+    {
+        TenantBankConfig::firstOrCreate(
+            ['tenant_id' => $tenant1->id, 'provider' => 'sepay'],
+            [
+                'bank_bin' => '970422',
+                'account_number' => '1234567890',
+                'account_name' => 'SAN PICKLEBALL MVP',
+                'webhook_secret' => 'demo_webhook_secret_1',
+                'active' => true,
+            ]
+        );
+
+        TenantBankConfig::firstOrCreate(
+            ['tenant_id' => $tenant2->id, 'provider' => 'sepay'],
+            [
+                'bank_bin' => '970422',
+                'account_number' => '0987654321',
+                'account_name' => 'SAN CAU LONG NVH',
+                'webhook_secret' => 'demo_webhook_secret_2',
+                'active' => true,
+            ]
+        );
+    }
+
+    private function seedBookings(Tenant $tenant1): void
+    {
+        $court = Court::where('tenant_id', $tenant1->id)->first();
+        if (! $court) {
+            return;
+        }
+
+        $customer1 = Customer::where('tenant_id', $tenant1->id)
+            ->where('phone', '0901234567')
+            ->first();
+        $customer2 = Customer::where('tenant_id', $tenant1->id)
+            ->where('phone', '0912345678')
             ->first();
 
-        if ($existing) {
+        if (! $customer1 || ! $customer2) {
             return;
         }
 
-        RecurringSeries::forceCreate([
-            'tenant_id' => $t->id,
-            'customer_id' => $customer->id,
-            'court_id' => $court->id,
-            'weekday' => 3,
-            'start_local' => '18:00:00',
-            'end_local' => '20:00:00',
-            'tz' => 'Asia/Ho_Chi_Minh',
-            'start_date' => now()->toDateString(),
-            'end_date' => now()->addMonths(3)->toDateString(),
-            'price_per_session_snapshot' => 260_000,
-            'deposit_per_session' => 78_000,
-            'status' => SeriesStatus::Active,
+        $today = Carbon::today();
+
+        // Booking 1: Confirmed with matched payment
+        $booking1 = $this->createBookingWithSlots(
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking1'), 0, 5)),
+            tenant_id: $tenant1->id,
+            customer_id: $customer1->id,
+            court_id: $court->id,
+            status: BookingStatus::Confirmed,
+            start_at: $today->copy()->setTime(18, 0),
+            end_at: $today->copy()->setTime(20, 0),
+            total_amount: 260_000,
+            deposit_amount: 100_000,
+            payment_mode: PaymentMode::Deposit,
+        );
+
+        if ($booking1) {
+            $memoRef = 'SAN-'.substr(md5($tenant1->id.'payment1'), 0, 8);
+            $bankTxnId = 'DEMO_TXN_'.$booking1->id;
+
+            Payment::firstOrCreate(
+                ['bank_txn_id' => $bankTxnId],
+                [
+                    'tenant_id' => $tenant1->id,
+                    'booking_id' => $booking1->id,
+                    'method' => PaymentMethod::VietQr,
+                    'amount' => 100_000,
+                    'status' => PaymentStatus::Matched,
+                    'memo_ref' => $memoRef,
+                    'matched_at' => $today->copy()->setTime(17, 30),
+                ]
+            );
+        }
+
+        // Booking 2: Pending deposit (awaiting payment)
+        $this->createBookingWithSlots(
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking2'), 0, 5)),
+            tenant_id: $tenant1->id,
+            customer_id: $customer2->id,
+            court_id: $court->id,
+            status: BookingStatus::PendingDeposit,
+            start_at: $today->copy()->setTime(20, 0),
+            end_at: $today->copy()->setTime(22, 0),
+            total_amount: 260_000,
+            deposit_amount: 100_000,
+            payment_mode: PaymentMode::Deposit,
+        );
+
+        // Booking 3: Walk-in cash (confirmed)
+        $this->createBookingWithSlots(
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking3'), 0, 5)),
+            tenant_id: $tenant1->id,
+            customer_id: $customer1->id,
+            court_id: $court->id,
+            status: BookingStatus::Confirmed,
+            start_at: $today->copy()->addDay()->setTime(10, 0),
+            end_at: $today->copy()->addDay()->setTime(12, 0),
+            total_amount: 200_000,
+            deposit_amount: 0,
+            channel: BookingChannel::OwnerManual,
+            payment_mode: PaymentMode::Cash,
+        );
+    }
+
+    private function createBookingWithSlots(
+        string $code,
+        int $tenant_id,
+        int $customer_id,
+        int $court_id,
+        BookingStatus $status,
+        Carbon $start_at,
+        Carbon $end_at,
+        int $total_amount,
+        int $deposit_amount,
+        ?BookingChannel $channel = null,
+        PaymentMode $payment_mode = PaymentMode::Deposit,
+    ): ?Booking {
+        // Check if booking already exists (idempotent)
+        $existing = Booking::where('code', $code)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $booking = Booking::forceCreate([
+            'tenant_id' => $tenant_id,
+            'code' => $code,
+            'customer_id' => $customer_id,
+            'status' => $status,
+            'total_amount' => $total_amount,
+            'deposit_amount' => $deposit_amount,
+            'channel' => $channel ?? BookingChannel::Zalo,
+            'payment_mode' => $payment_mode,
+            'series_id' => null,
+            'hold_expires_at' => null,
+            'cancel_policy_snapshot' => [],
+            'reminded_at' => null,
         ]);
+
+        if (! $booking) {
+            return null;
+        }
+
+        // Create booking slot
+        BookingSlot::create([
+            'tenant_id' => $tenant_id,
+            'booking_id' => $booking->id,
+            'court_id' => $court_id,
+            'start_at' => $start_at,
+            'end_at' => $end_at,
+            'price_snapshot' => $total_amount,
+            'hold_status' => $status === BookingStatus::Confirmed
+                ? HoldStatus::Committed
+                : HoldStatus::Holding,
+        ]);
+
+        return $booking;
     }
 }

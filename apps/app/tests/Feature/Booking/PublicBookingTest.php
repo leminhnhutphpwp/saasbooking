@@ -72,12 +72,20 @@ class PublicBookingTest extends TestCase
     public function test_status_page_shows_qr_and_booking(): void
     {
         $this->post('/book/venue-a/hold', [
-            'name' => 'A', 'phone' => '0912345678', 'court_id' => $this->court->id,
+            'name' => 'An', 'phone' => '0912345678', 'court_id' => $this->court->id,
             'start_at' => '2026-07-21 18:00:00', 'end_at' => '2026-07-21 19:00:00',
         ]);
         $code = Booking::where('tenant_id', $this->tenant->id)->value('code');
 
-        $this->get("/book/venue-a/status/{$code}")
+        // Get customer code for token generation
+        $booking = Booking::with('customer')->where('tenant_id', $this->tenant->id)
+            ->where('code', $code)->first();
+        $customerCode = $booking->customer->code;
+
+        // Generate HMAC token
+        $token = hash_hmac('sha256', "{$code}:{$customerCode}", config('app.key'));
+
+        $this->get("/book/venue-a/status/{$code}?token={$token}")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Public/Booking/Status')

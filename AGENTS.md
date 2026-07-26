@@ -28,7 +28,7 @@ Every proposal and every line of code MUST respect these (from CLAUDE.md):
 
 1. **One system, many product lines** — a new vertical is configuration on the shared platform, never a new app ([`docs/09`](docs/09-kien-truc-mo-rong.md)).
 2. **Extend by ADDING** — new tables/modules/config/enums only, never break the core; classify each item **do now / 🚪 reserved door / ❌ not doing** ([`docs/09`](docs/09-kien-truc-mo-rong.md)).
-3. **`WorkingTenant` = single tenant truth** — never trust payload; non-operators hard-clamped to `users.tenant_id`; every business query scoped by `tenant_id` ([`docs/06`](docs/06-erd.md), [`docs/08`](docs/08-thiet-ke-module-chi-tiet.md)).
+3. **`WorkingTenant` = single tenant truth** — never trust payload; non-operators may select only active tenants in server-side `memberships` (`users.tenant_id` is primary/fallback); every business query scoped by `tenant_id` ([`docs/06`](docs/06-erd.md), [`docs/08`](docs/08-thiet-ke-module-chi-tiet.md)).
 4. **`BookingService` = ONLY concurrency chokepoint** — anti-double-book via Postgres **exclusion constraint** (courts) / conditional counter UPDATE (capacity). No check-then-act, no second anti-overlap path ([`docs/05`](docs/05-module-map.md), [`docs/06`](docs/06-erd.md), [`docs/08` §3](docs/08-thiet-ke-module-chi-tiet.md)).
 5. **Two inventory shapes meet at `booking`** — resource-time-slot (courts, spa) and capacity/session (golf, classes); core reused for both via the `InventoryDriver` registry ([`docs/08` §0](docs/08-thiet-ke-module-chi-tiet.md)).
 6. **Data invariants** — snapshot price/deposit at booking time · money `BIGINT` (integer VND) · `timestamptz` + `tz` · status = ENUM state machine · refunds are a separate ledger, `payments.amount` immutable ([`docs/11`](docs/11-diem-vo.md)).
@@ -80,6 +80,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 
 ### Sub-agent discipline (a delegated agent MUST NOT)
 
+- ❌ **Merge source code into `main`.** Push your code to your task branch and stop. Your ONLY write to `main` is your task's own `.md` (status/handoff signal). The **manager** reviews the branch and merges the code. (`tasks/README.md` → "separation of merge duties".)
 - ❌ **Work outside its task's `scope`** — no side-effect edits to seeders, routes, config, or "unrelated improvements". Need a file outside scope → stop, mark `blocked`, flag the manager (`tasks/README.md`).
 - ❌ **Rewrite a working file wholesale** — extend by adding; smallest change that meets the acceptance criteria (principle #2).
 - ❌ **Add dependencies or external CDNs**, or commit **self-generated binary assets** (logos/images/fonts), without manager approval.
@@ -95,6 +96,11 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 | `.claude/skills/payment-reconcile` | VietQR + SePay/Casso, idempotency, 3 reconcile branches |
 | `.claude/skills/vertical-dispatch` | Driver pattern — engine/calendar/pricing per tenant type |
 | `.claude/skills/planning` | Planning methodology (research-first, door classification) |
+| `.claude/skills/module-connections` | OWNS/REFERENCES rules, Service calls, domain events, cross-module patterns |
+| `.claude/skills/court-catalog` | Pricing rules, opening rules, blackouts, court types |
+| `.claude/skills/payment-flow` | Payment flow — VietQR, reconcile, idempotency, 3 branches, refunds |
+| `.claude/skills/notification-zalo` | Zalo ZNS — confirmation, reminders, templates, retry |
+| `.claude/skills/tenant-isolation` | WorkingTenant, composite FK, RLS, query scoping |
 | `.claude/rules/coding-rules`, `laravel-inertia` | Coding standards; Laravel/Inertia patterns |
 | `.claude/rules/ui-design` | UI/design-system consistency (tokens, shared components, mobile-first) |
 | `tasks/` (`README.md`, `BOARD.md`) | Active work ledger + claim protocol for delegated agents |
@@ -109,5 +115,7 @@ Details: `docs/12` "Chiến lược test" + `.claude/rules/testing`.
 | `.claude/agents/explorer.md` | Read-only code/docs search → precise pointers |
 | `.claude/agents/planner.md` | Requirement → phased, invariant-safe plan (no code) |
 | `.claude/agents/invariant-reviewer.md` | Reviews a diff against the 6 principles |
+| `.claude/agents/module-reviewer.md` | Reviews code for OWNS/REFERENCES violations, cross-module SQL, tenant isolation |
+| `.claude/agents/vertical-tester.md` | Tests new verticals — config, driver, pricing, concurrency, lifecycle |
 | `.claude/commands/check-invariants.md` | `/check-invariants` — run invariant-reviewer on the diff |
 | `.claude/commands/new-vertical.md` | `/new-vertical <name>` — add a vertical via the driver pattern |

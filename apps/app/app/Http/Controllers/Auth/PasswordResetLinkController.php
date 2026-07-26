@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Messages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
@@ -41,11 +42,11 @@ class PasswordResetLinkController extends Controller
         );
 
         if ($status == Password::RESET_LINK_SENT) {
-            return back()->with('status', __($status));
+            return back()->with('status', Messages::get('auth', 'reset_sent'));
         }
 
         throw ValidationException::withMessages([
-            'email' => [trans($status)],
+            'email' => [Messages::get('auth', 'invalid_user')],
         ]);
     }
 }

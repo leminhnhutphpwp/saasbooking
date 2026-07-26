@@ -8,6 +8,7 @@ use App\Enums\RefundStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Refund;
 use App\Services\Payment\PaymentService;
+use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,6 @@ class RefundController extends Controller
 
         $this->payments->markRefundDone($refund, $request->user()?->id);
 
-        return back()->with('success', 'Đã đánh dấu hoàn cọc.');
+        return back()->with('success', Messages::get('refund', 'marked'));
     }
 }

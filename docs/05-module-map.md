@@ -8,7 +8,7 @@ Quy ước: **OWNS** = bảng chỉ module này được INSERT/UPDATE · **REFE
 
 | # | Module | Trách nhiệm duy nhất | OWNS | REFERENCES | Phase |
 |---|--------|---------------------|------|------------|-------|
-| 1 | **identity** | Chủ sân, nhân viên, phân quyền, phiên; mỗi tenant = một cơ sở | `tenants`, `users`, `memberships` | `plan_id` | **1** |
+| 1 | **identity** | Catalog dịch vụ nền tảng, đăng ký dịch vụ, chủ sân, nhân viên, phân quyền, phiên; mỗi tenant = một cơ sở của đúng một dịch vụ | `platform_services`, `tenants`, `users`, `memberships` | `plan_id` | **1** |
 | 2 | **court-catalog** | Sân, loại sân, giờ mở cửa, ngày nghỉ, **bảng giá giờ vàng/thường** | `courts`, `opening_rules`, `blackouts`, `pricing_rules` | — | **1** |
 | 3 | **booking** | Nguồn sự thật về "sân còn trống"; đặt một lần + **đặt cố định**; giữ chỗ; máy trạng thái | `customers`, `bookings`, `booking_slots`, `recurring_series` | `courts` (giữ chỗ *qua exclusion constraint*), `payment_id` | **1** |
 | 4 | **payment** | Cọc VietQR, hộp thư đối soát ngân hàng (Casso/SePay), hoàn cọc | `payments`, `bank_txn_inbox`, `refunds`, `tenant_bank_config` | `booking_id` | **1** |

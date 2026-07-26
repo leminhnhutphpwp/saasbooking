@@ -7,6 +7,8 @@ namespace App\Models;
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -27,7 +29,10 @@ class Tenant extends Model
         ];
     }
 
-    protected $fillable = ['name', 'slug', 'vertical', 'timezone', 'status', 'settings'];
+    protected $fillable = [
+        'service_id', 'name', 'slug', 'vertical', 'timezone', 'status', 'settings', 'is_ready', 'readiness_checked_at',
+        'address', 'phone', 'email', 'website', 'lat', 'lng', 'description',
+    ];
 
     public function getRouteKeyName(): string
     {
@@ -39,6 +44,12 @@ class Tenant extends Model
         static::creating(function (Tenant $tenant) {
             if (empty($tenant->uuid)) {
                 $tenant->uuid = (string) Str::uuid();
+            }
+
+            if (empty($tenant->service_id)) {
+                $service = PlatformService::active()->orderBy('display_order')->firstOrFail();
+                $tenant->service_id = $service->id;
+                $tenant->vertical = $service->vertical_key;
             }
         });
     }
@@ -56,5 +67,32 @@ class Tenant extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'memberships')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(PlatformService::class, 'service_id');
+    }
+
+    public function courts(): HasMany
+    {
+        return $this->hasMany(Court::class);
+    }
+
+    public function bankConfigs(): HasMany
+    {
+        return $this->hasMany(TenantBankConfig::class);
+    }
+
+    public function activeBankConfig()
+    {
+        return $this->hasOne(TenantBankConfig::class)->where('active', true);
     }
 }

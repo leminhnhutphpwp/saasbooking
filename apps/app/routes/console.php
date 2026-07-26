@@ -19,3 +19,12 @@ Schedule::job(new GenerateSeriesOccurrences)->dailyAt('01:00');
 
 // Send Zalo ZNS reminders (1 day / 2 hours before), de-duped per booking.
 Schedule::job(new SendBookingReminders)->everyTenMinutes();
+
+// Daily database backup at 03:00 ICT (local time). The script runs pg_dump
+// inside the db container and rotates old backups (keeps last 7 days).
+// Requires Docker; the script uses `docker compose exec db pg_dump`.
+if (app()->environment(['local', 'staging', 'production'])) {
+    Schedule::exec('bash '.base_path('../scripts/backup.sh'))
+        ->dailyAt('03:00')
+        ->timezone('Asia/Ho_Chi_Minh');
+}

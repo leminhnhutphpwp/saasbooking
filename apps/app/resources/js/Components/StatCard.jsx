@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 
 const ACCENTS = {
   default: 'text-foreground',
-  violet: 'text-orange-600 dark:text-orange-400',
-  emerald: 'text-orange-600 dark:text-orange-400',
+  orange: 'text-orange-600 dark:text-orange-400',
+  emerald: 'text-emerald-600 dark:text-emerald-400',
   amber: 'text-amber-600 dark:text-amber-400',
   rose: 'text-rose-600 dark:text-rose-400',
   primary: 'text-primary',
@@ -12,8 +12,8 @@ const ACCENTS = {
 
 const ICON_BG = {
   default: 'bg-muted text-muted-foreground',
-  violet: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
-  emerald: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
+  orange: 'bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400',
+  emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
   amber: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
   rose: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
   primary: 'bg-primary/10 text-primary',

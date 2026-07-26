@@ -1,10 +1,15 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
+import { PageHeader } from '@/Components/PageHeader';
+import { PageContainer } from '@/Components/PageContainer';
+import { EmptyState } from '@/Components/EmptyState';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Badge } from '@/Components/ui/badge';
+import { Card } from '@/Components/ui/card';
 import {
     Select,
     SelectContent,
@@ -19,6 +24,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
+import { formatVND } from '@/lib/format';
+import { RefreshCw, Plus, XCircle } from 'lucide-react';
 
 const WEEKDAY_LABELS = {
     1: 'Thứ Hai', 2: 'Thứ Ba', 3: 'Thứ Tư', 4: 'Thứ Năm',
@@ -37,10 +44,10 @@ const STATUS_VARIANTS = {
     cancelled: 'outline',
 };
 
-const vnd = (n) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
-
 export default function Index({ series, customers, courts, weekdays }) {
     const [open, setOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState(null);
+    const [cancelProcessing, setCancelProcessing] = useState(false);
 
     const form = useForm({
         customer_id: '',
@@ -67,75 +74,120 @@ export default function Index({ series, customers, courts, weekdays }) {
         });
     };
 
-    const cancelSeries = (s) => {
-        if (confirm(`Hủy đặt cố định của “${s.customer_name}”?`)) {
-            router.delete(`/manager/series/${s.uuid}`, {
-                preserveScroll: true,
-            });
-        }
+    const cancelSeries = () => {
+        if (!cancelTarget) return;
+
+        setCancelProcessing(true);
+        router.delete(`/manager/series/${cancelTarget.uuid}`, {
+            preserveScroll: true,
+            onSuccess: () => setCancelTarget(null),
+            onFinish: () => setCancelProcessing(false),
+        });
     };
 
     return (
-        <ManagerLayout
-            header={<h2 className="text-xl font-semibold leading-tight">Đặt cố định</h2>}
-        >
+        <ManagerLayout>
             <Head title="Đặt cố định" />
 
-            <div className="p-4 sm:p-6 lg:px-8">
-                <div className="mb-4 flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">
-                        {series.length} lịch đặt cố định
-                    </p>
-                    <Button onClick={openCreate}>+ Tạo đặt cố định</Button>
-                </div>
+            <PageContainer>
+                <PageHeader
+                    title="Đặt cố định"
+                    description={`${series.length} lịch đặt cố định · Thiết lập lịch lặp hàng tuần cho khách quen`}
+                    actions={
+                        <Button onClick={openCreate} className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            Tạo đặt cố định
+                        </Button>
+                    }
+                />
 
-                <div className="divide-y rounded-lg border bg-card">
-                    {series.length === 0 && (
-                        <p className="p-6 text-center text-sm text-muted-foreground">
-                            Chưa có lịch đặt cố định nào.
-                        </p>
-                    )}
-                    {series.map((s) => (
-                        <div key={s.uuid} className="flex items-center justify-between p-4">
-                            <div className="space-y-1">
-                                <div className="font-medium">
-                                    {s.customer_name}
-                                    <span className="ml-2 text-sm font-normal text-muted-foreground">
-                                        {s.customer_phone}
-                                    </span>
+                {series.length === 0 ? (
+                    <EmptyState
+                        icon={RefreshCw}
+                        title="Chưa có lịch đặt cố định nào"
+                        description="Đặt cố định giúp khách quen có slot cố định hàng tuần mà không cần đặt lại mỗi tuần."
+                        example="VD: Anh Minh — Sân 1 — Thứ 2 hàng tuần — 07:00–08:00"
+                        action={
+                            <Button onClick={openCreate} className="gap-2">
+                                <Plus className="h-4 w-4" />
+                                Tạo đặt cố định đầu tiên
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        {series.map((s) => (
+                            <Card key={s.uuid} className="overflow-hidden transition-shadow hover:shadow-md">
+                                <div className="p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                                <RefreshCw className="h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <div className="font-semibold">{s.customer_name}</div>
+                                                <div className="text-sm text-muted-foreground">{s.customer_phone}</div>
+                                            </div>
+                                        </div>
+                                        <Badge variant={STATUS_VARIANTS[s.status]}>
+                                            {STATUS_LABELS[s.status]}
+                                        </Badge>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-2 gap-2 rounded-xl border bg-muted/30 p-3 text-sm">
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Sân</p>
+                                            <p className="font-medium">{s.court_name}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Thứ</p>
+                                            <p className="font-medium">{WEEKDAY_LABELS[s.weekday]}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Giờ</p>
+                                            <p className="font-mono font-medium">{s.start_local}–{s.end_local}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-muted-foreground">Giá/buổi</p>
+                                            <p className="font-medium text-primary">{formatVND(s.price_per_session_snapshot)}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                                        <span>{s.start_date} → {s.end_date}</span>
+                                        <span className="font-medium text-foreground">{s.bookings_count}/{s.sessions_total} buổi</span>
+                                    </div>
+
+                                    {s.status === 'active' && (
+                                        <div className="mt-3 flex justify-end">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="gap-1.5 text-muted-foreground hover:text-destructive"
+                                                onClick={() => setCancelTarget(s)}
+                                            >
+                                                <XCircle className="h-3.5 w-3.5" />
+                                                Hủy
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-sm text-muted-foreground">
-                                    {s.court_name} &middot; {WEEKDAY_LABELS[s.weekday]}{' '}
-                                    {s.start_local}&ndash;{s.end_local}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    {s.start_date} → {s.end_date}
-                                    <span className="ml-2">
-                                        ({s.bookings_count}/{s.sessions_total} buổi)
-                                    </span>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                    {vnd(s.price_per_session_snapshot)} / buổi
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <Badge variant={STATUS_VARIANTS[s.status]}>
-                                    {STATUS_LABELS[s.status]}
-                                </Badge>
-                                {s.status === 'active' && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => cancelSeries(s)}
-                                    >
-                                        Hủy
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </PageContainer>
+
+            <ConfirmActionDialog
+                open={cancelTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setCancelTarget(null)}
+                onConfirm={cancelSeries}
+                title="Hủy lịch đặt cố định"
+                description={cancelTarget ? `Lịch cố định của ${cancelTarget.customer_name} tại ${cancelTarget.court_name}, ${WEEKDAY_LABELS[cancelTarget.weekday]} hàng tuần sẽ kết thúc. Các buổi đã tạo cần được xử lý theo trạng thái hiện tại.` : ''}
+                confirmLabel="Hủy lịch cố định"
+                processingLabel="Đang hủy…"
+                processing={cancelProcessing}
+            />
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-xl">
@@ -144,7 +196,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                     </DialogHeader>
 
                     <form onSubmit={submit} className="space-y-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label>Khách hàng</Label>
                             <Select
                                 value={form.data.customer_id}
@@ -166,7 +218,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                             )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label>Sân</Label>
                             <Select
                                 value={form.data.court_id}
@@ -188,7 +240,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                             )}
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label>Ngày trong tuần</Label>
                             <Select
                                 value={form.data.weekday}
@@ -207,8 +259,8 @@ export default function Index({ series, customers, courts, weekdays }) {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
                                 <Label htmlFor="start_local">Giờ bắt đầu</Label>
                                 <Input
                                     id="start_local"
@@ -220,7 +272,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                                     <p className="text-sm text-destructive">{form.errors.start_local}</p>
                                 )}
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label htmlFor="end_local">Giờ kết thúc</Label>
                                 <Input
                                     id="end_local"
@@ -234,8 +286,8 @@ export default function Index({ series, customers, courts, weekdays }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
                                 <Label htmlFor="start_date">Ngày bắt đầu</Label>
                                 <Input
                                     id="start_date"
@@ -247,7 +299,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                                     <p className="text-sm text-destructive">{form.errors.start_date}</p>
                                 )}
                             </div>
-                            <div className="space-y-1.5">
+                            <div className="space-y-2">
                                 <Label htmlFor="end_date">Ngày kết thúc</Label>
                                 <Input
                                     id="end_date"
@@ -261,9 +313,9 @@ export default function Index({ series, customers, courts, weekdays }) {
                             </div>
                         </div>
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                             <Label htmlFor="deposit_per_session">
-                                Tiền cọc mỗi buổi <span className="text-muted-foreground">(để trống = mặc định)</span>
+                                Tiền cọc mỗi buổi <span className="text-xs text-muted-foreground">(để trống = mặc định)</span>
                             </Label>
                             <Input
                                 id="deposit_per_session"

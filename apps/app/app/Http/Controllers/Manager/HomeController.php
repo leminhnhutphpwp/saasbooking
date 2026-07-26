@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Manager;
 
 use App\Enums\BookingStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\RefundStatus;
 use App\Http\Controllers\Controller;
 use App\Models\BankTxnInbox;
@@ -102,6 +103,36 @@ class HomeController extends Controller
             ->sortBy('start')
             ->values();
 
+        $weekStart = $dayStart->copy()->subDays(6);
+        $confirmedInWindow = Booking::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', BookingStatus::Confirmed)
+            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $weekStart)->where('start_at', '<', $dayEnd))
+            ->with(['slots', 'payments'])
+            ->get();
+        $revenueByDay = $confirmedInWindow
+            ->flatMap(fn (Booking $b) => $b->slots->map(fn ($s) => ['date' => $s->start_at->toDateString(), 'amount' => (int) $b->total_amount]))
+            ->groupBy('date');
+        $revenueSeries = collect();
+        for ($d = 0; $d < 7; $d++) {
+            $date = $weekStart->copy()->addDays($d);
+            $key = $date->toDateString();
+            $revenueSeries->push([
+                'date' => $key,
+                'label' => $date->locale('vi')->isoFormat('ddd').' '.$date->format('d/m'),
+                'revenue' => $revenueByDay->get($key, collect())->sum('amount'),
+            ]);
+        }
+
+        $totalCollectedDeposits = $confirmedInWindow
+            ->flatMap->payments
+            ->filter(fn ($p) => $p->status === PaymentStatus::Matched)
+            ->sum('amount');
+        $pendingRefundAmount = (int) Refund::query()
+            ->where('tenant_id', $tenantId)
+            ->where('status', RefundStatus::Requested)
+            ->sum('amount');
+
         return Inertia::render('Manager/Home/Index', [
             'stats' => [
                 'totalBookings' => $totalBookings,
@@ -109,6 +140,13 @@ class HomeController extends Controller
                 'pendingDepositCount' => $pendingDepositCount,
                 'todayRevenue' => $todayRevenue,
                 'occupancy' => $occupancy,
+            ],
+            'tenantName' => $tenant->name,
+            'revenueSeries' => $revenueSeries->values(),
+            'weekTotals' => [
+                'revenue' => $revenueSeries->sum('revenue'),
+                'depositsCollected' => $totalCollectedDeposits,
+                'refundsPending' => (int) $pendingRefundAmount,
             ],
             'awaitingDeposits' => $awaitingDeposits,
             'refundsToProcess' => $refundsToProcess,

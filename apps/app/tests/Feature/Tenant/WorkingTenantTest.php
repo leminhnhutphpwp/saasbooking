@@ -13,9 +13,9 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * The #1 security guarantee: a non-operator is HARD-CLAMPED to their own tenant and cannot
- * reach another venue's data even by forging ?tenant_id. Tested at the resolver (the single
- * source of truth) so every scoped query inherits it.
+ * The #1 security guarantee: a non-operator may switch only among membership tenants and
+ * cannot reach another venue by forging ?tenant_id. Tested at the single resolver so every
+ * scoped query inherits it.
  */
 class WorkingTenantTest extends TestCase
 {
@@ -55,8 +55,34 @@ class WorkingTenantTest extends TestCase
 
         $owner = User::factory()->create(['tenant_id' => $a->id]);
         $owner->assignRole('owner');
+        $owner->tenants()->attach($a->id, ['role' => 'owner']);
 
         // Forge ?tenant_id=B → still resolves to A.
+        $this->assertSame($a->id, WorkingTenant::resolve($this->requestAs($owner, $b->id)));
+    }
+
+    public function test_owner_can_switch_between_membership_tenants(): void
+    {
+        $a = $this->tenant('venue-a');
+        $b = $this->tenant('venue-b');
+        $owner = User::factory()->create(['tenant_id' => $a->id]);
+        $owner->assignRole('owner');
+        $owner->tenants()->attach([
+            $a->id => ['role' => 'owner'],
+            $b->id => ['role' => 'owner'],
+        ]);
+
+        $this->assertSame($b->id, WorkingTenant::resolve($this->requestAs($owner, $b->id)));
+    }
+
+    public function test_owner_cannot_switch_to_tenant_without_membership(): void
+    {
+        $a = $this->tenant('venue-a');
+        $b = $this->tenant('venue-b');
+        $owner = User::factory()->create(['tenant_id' => $a->id]);
+        $owner->assignRole('owner');
+        $owner->tenants()->attach($a->id, ['role' => 'owner']);
+
         $this->assertSame($a->id, WorkingTenant::resolve($this->requestAs($owner, $b->id)));
     }
 

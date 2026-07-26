@@ -16,8 +16,8 @@ use Illuminate\Support\Collection;
  * HARD per-user isolation:
  * - super_admin = platform operator → may switch venues freely
  *   (?tenant_id deep-link → cookie → first active venue).
- * - Every other role → HARD-CLAMPED to `users.tenant_id`; any ?tenant_id / cookie is ignored
- *   (cannot be forged). No tenant assigned (null) → belongs to no venue (scoped queries return empty).
+ * - Every other role → may select only an active venue present in `memberships`; `users.tenant_id`
+ *   remains the primary/fallback venue during migration. Forged candidates are ignored.
  *
  * This is the server-side security boundary: controllers trust only `WorkingTenant::id()`,
  * NEVER the payload.
@@ -36,19 +36,27 @@ final class WorkingTenant
 
     /**
      * Venues the user may work in / switch between (source for the switcher).
-     * super_admin → all active; anyone else → only their own (empty if unassigned).
+     * super_admin → all active; anyone else → active membership venues plus legacy primary venue.
      */
     public static function switchable(?User $user): Collection
     {
-        $active = self::activeTenants();
-
-        if ($user && ! $user->isGlobalOperator()) {
-            return $user->tenant_id
-                ? $active->where('id', $user->tenant_id)->values()
-                : $active->take(0)->values();
+        if (! $user) {
+            return collect();
         }
 
-        return $active;
+        if ($user->isGlobalOperator()) {
+            return self::activeTenants();
+        }
+
+        $tenantIds = $user->tenants()->pluck('tenants.id');
+        if ($user->tenant_id) {
+            $tenantIds->push((int) $user->tenant_id);
+        }
+
+        return Tenant::active()
+            ->whereIn('id', $tenantIds->unique())
+            ->orderBy('name')
+            ->get(['id', 'uuid', 'slug', 'name', 'service_id']);
     }
 
     /** Decide the venue for this request (null if none / user unassigned). */
@@ -56,13 +64,7 @@ final class WorkingTenant
     {
         $user = $request->user();
 
-        // Non-operator: hard-clamp to their venue, ignore any ?tenant_id / cookie.
-        if ($user && ! $user->isGlobalOperator()) {
-            return $user->tenant_id ? (int) $user->tenant_id : null;
-        }
-
-        // super_admin (platform operator): ?tenant_id → cookie → first active venue.
-        $active = self::activeTenants();
+        $active = self::switchable($user);
         if ($active->isEmpty()) {
             return null;
         }
@@ -73,6 +75,10 @@ final class WorkingTenant
             if ($candidate !== null && $candidate !== '' && in_array((string) $candidate, $validIds, true)) {
                 return (int) $candidate;
             }
+        }
+
+        if ($user && ! $user->isGlobalOperator() && $user->tenant_id && $active->contains('id', (int) $user->tenant_id)) {
+            return (int) $user->tenant_id;
         }
 
         return (int) $active->first()->id;
