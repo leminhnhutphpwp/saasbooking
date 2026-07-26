@@ -27,7 +27,7 @@ class Tenant extends Model
         ];
     }
 
-    protected $fillable = ['name', 'slug', 'vertical', 'timezone', 'status', 'settings'];
+    protected $fillable = ['name', 'slug', 'vertical', 'timezone', 'status', 'settings', 'is_ready', 'readiness_checked_at'];
 
     public function getRouteKeyName(): string
     {
@@ -56,5 +56,20 @@ class Tenant extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function courts(): HasMany
+    {
+        return $this->hasMany(Court::class);
+    }
+
+    public function bankConfigs(): HasMany
+    {
+        return $this->hasMany(TenantBankConfig::class);
+    }
+
+    public function activeBankConfig()
+    {
+        return $this->hasOne(TenantBankConfig::class)->where('active', true);
     }
 }
