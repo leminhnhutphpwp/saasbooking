@@ -187,9 +187,6 @@ function EmptyState() {
     );
 }
 
-/* ─── Main ─── */
-let pc = '#059669';
-
 export default function Show({ tenant, date, courts, dateAvailability = {}, customer }) {
     const [selectedCourt, setSelectedCourt] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -203,7 +200,7 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
     formRef.current = form;
 
     const brand = tenant.settings?.branding ?? {};
-    pc = brand.primary_color || '#059669';
+    const pc = brand.primary_color || '#059669';
 
     const { flash } = usePage().props;
 

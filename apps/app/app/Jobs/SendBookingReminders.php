@@ -56,7 +56,8 @@ class SendBookingReminders implements ShouldQueue
                         return;
                     }
 
-                    $alreadySent = NotificationMessage::where('booking_id', $booking->id)
+                    $alreadySent = NotificationMessage::where('tenant_id', $booking->tenant_id)
+                        ->where('booking_id', $booking->id)
                         ->where('template', $template)
                         ->exists();
                     if ($alreadySent) {

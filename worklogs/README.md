@@ -14,6 +14,8 @@ Historical decisions and handoffs. Current truth lives in `docs/`, active work i
 | 2026-07-22 | [M4 — payment: VietQR + reconcile](2026-07-22-m4-payment-vietqr-reconcile.md) |
 | 2026-07-22 | [M5 — notification scaffold (Zalo)](2026-07-22-m5-notification-scaffold.md) |
 | 2026-07-22 | [M6 part 1 — public booking page](2026-07-22-m6-public-booking-page.md) |
+| 2026-07-22 | [M6 part 2 — manager dashboard](2026-07-22-m6-manager-dashboard.md) |
+| 2026-07-22 | [M6 part 3 — manager navigation and reconciliation](2026-07-22-m6-manager-nav-reconcile.md) |
 | 2026-07-23 | [Audit and hardening fixes](2026-07-23-m6-audit-fixes.md) |
 | 2026-07-24 | [Zalo ZNS HTTP transport](2026-07-24-t16-zalo-zns-http.md) |
 | 2026-07-24 | [Backup scheduling](2026-07-24-t17-backup-cron.md) |
@@ -21,6 +23,8 @@ Historical decisions and handoffs. Current truth lives in `docs/`, active work i
 | 2026-07-26 | [Smart pricing rules](2026-07-26-smart-pricing-rules.md) |
 | 2026-07-26 | [Service registration and memberships](2026-07-26-service-registration.md) |
 | 2026-07-26 | [Agent context cleanup](2026-07-26-agent-context-cleanup.md) |
+| 2026-07-26 | [Schema, config, and architecture docs alignment](2026-07-26-schema-config-docs-alignment.md) |
+| 2026-07-26 | [Platform hardening](2026-07-26-platform-hardening.md) |
 
 ## Convention
 

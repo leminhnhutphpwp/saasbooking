@@ -139,6 +139,22 @@ class CustomerOperationsTest extends TestCase
         $this->assertNotNull($customer);
         $this->assertSame('+84912345678', $customer->phone);
         $this->assertSame('Khách Mới', $customer->name);
+        $this->assertNotEmpty($customer->uuid);
+        $this->assertSame('KH0001', $customer->code);
+    }
+
+    public function test_customer_codes_are_sequential_and_scoped_per_tenant(): void
+    {
+        $a = $this->venue('venue-a');
+        $b = $this->venue('venue-b');
+
+        $firstA = Customer::create(['tenant_id' => $a->id, 'phone' => '+84911111111']);
+        $secondA = Customer::create(['tenant_id' => $a->id, 'phone' => '+84922222222']);
+        $firstB = Customer::create(['tenant_id' => $b->id, 'phone' => '+84933333333']);
+
+        $this->assertSame('KH0001', $firstA->code);
+        $this->assertSame('KH0002', $secondA->code);
+        $this->assertSame('KH0001', $firstB->code);
     }
 
     public function test_store_merges_duplicate_phone(): void

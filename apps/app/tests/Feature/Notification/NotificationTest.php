@@ -19,8 +19,10 @@ use App\Models\Tenant;
 use App\Notifications\BookingConfirmedNotification;
 use App\Notifications\BookingReminderNotification;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -106,6 +108,25 @@ class NotificationTest extends TestCase
         Notification::assertNotSentTo($this->customer, BookingReminderNotification::class);
     }
 
+    public function test_reminder_dedupe_lookup_is_tenant_scoped(): void
+    {
+        Notification::fake();
+        $booking = $this->confirmedBookingStartingInMinutes(90);
+        DB::enableQueryLog();
+
+        (new SendBookingReminders)->handle();
+
+        $dedupeQueries = collect(DB::getQueryLog())->filter(
+            fn (array $query) => str_contains($query['query'], 'notification_messages'),
+        );
+
+        $this->assertNotEmpty($dedupeQueries);
+        $this->assertTrue($dedupeQueries->every(
+            fn (array $query) => str_contains($query['query'], 'tenant_id')
+                && in_array($booking->tenant_id, $query['bindings'], true),
+        ));
+    }
+
     public function test_transport_records_message_and_dedupes_by_booking_template(): void
     {
         $booking = $this->confirmedBookingStartingInMinutes(600);
@@ -116,5 +137,46 @@ class NotificationTest extends TestCase
         $transport->send($this->customer, $this->customer->phone, $message);   // duplicate
 
         $this->assertSame(1, NotificationMessage::where('booking_id', $booking->id)->where('template', 'booking_confirmed')->count());
+    }
+
+    public function test_notification_message_references_stay_within_the_tenant(): void
+    {
+        $booking = $this->confirmedBookingStartingInMinutes(600);
+        $otherTenant = Tenant::create([
+            'name' => 'Other',
+            'slug' => 'other',
+            'timezone' => 'Asia/Ho_Chi_Minh',
+            'status' => 'active',
+        ]);
+
+        try {
+            NotificationMessage::create([
+                'tenant_id' => $otherTenant->id,
+                'customer_id' => $this->customer->id,
+                'booking_id' => $booking->id,
+                'channel' => 'zalo_zns',
+                'template' => 'booking_confirmed',
+                'status' => 'sent',
+            ]);
+
+            $this->fail('Expected the composite tenant foreign key to reject the notification message.');
+        } catch (QueryException $exception) {
+            $this->assertSame('23503', $exception->getCode());
+        }
+    }
+
+    public function test_notification_message_allows_nullable_business_references(): void
+    {
+        $message = NotificationMessage::create([
+            'tenant_id' => $this->tenant->id,
+            'customer_id' => null,
+            'booking_id' => null,
+            'channel' => 'zalo_zns',
+            'template' => 'system_notice',
+            'status' => 'sent',
+        ]);
+
+        $this->assertNull($message->customer_id);
+        $this->assertNull($message->booking_id);
     }
 }

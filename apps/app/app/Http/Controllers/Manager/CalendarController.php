@@ -16,11 +16,13 @@ use App\Models\Payment;
 use App\Models\Tenant;
 use App\Services\Booking\BookingService;
 use App\Services\Catalog\PricingService;
+use App\Services\CustomerService;
 use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,6 +37,7 @@ class CalendarController extends Controller
     public function __construct(
         private BookingService $bookings,
         private PricingService $pricing,
+        private CustomerService $customers,
     ) {}
 
     public function index(Request $request): Response
@@ -113,7 +116,6 @@ class CalendarController extends Controller
     {
         $tenantId = (int) WorkingTenant::id($request);
         $tenant = Tenant::findOrFail($tenantId);
-        abort_unless($tenant->id === $tenantId, 403);
 
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:255'],
@@ -126,8 +128,9 @@ class CalendarController extends Controller
             'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
+        $phone = $this->customers->normalizePhone($data['phone']);
         $customer = Customer::firstOrCreate(
-            ['tenant_id' => $tenantId, 'phone' => $data['phone']],
+            ['tenant_id' => $tenantId, 'phone' => $phone],
             ['name' => $data['name']],
         );
 
@@ -149,12 +152,14 @@ class CalendarController extends Controller
         }
 
         // Cash walk-in is settled on the spot → confirm now (no VietQR).
-        Payment::forceCreate([
-            'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
-            'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
-            'matched_at' => now(),
-        ]);
-        $this->bookings->confirmDeposit($booking);
+        DB::transaction(function () use ($booking, $tenantId) {
+            Payment::forceCreate([
+                'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
+                'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
+                'matched_at' => now(),
+            ]);
+            $this->bookings->confirmDeposit($booking);
+        });
 
         return back()->with('success', Messages::get('booking', 'walkin_created', ['name' => $customer->name]));
     }

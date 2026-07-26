@@ -245,6 +245,10 @@ class BookingWorkbenchTest extends TestCase
         $this->assertNotNull($booking);
         $this->assertSame(BookingStatus::Confirmed, $booking->status);
         $this->assertSame(60_000, $booking->total_amount);
+        $this->assertDatabaseHas('customers', [
+            'tenant_id' => $t->id,
+            'phone' => '+84911111111',
+        ]);
 
         // Cash payment was auto-created
         $payment = Payment::where('booking_id', $booking->id)->first();
