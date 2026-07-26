@@ -4,7 +4,9 @@
 
 ## Active
 
-No active tasks.
+| id | Task | status | owner | priority |
+|---|---|---|---|---|
+| [T38](T38-platform-hardening.md) | Platform hardening audit fixes | in-review | opencode | P1 |
 
 ## Backlog
 
