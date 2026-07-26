@@ -69,6 +69,9 @@ class ManagerDashboardTest extends TestCase
         $this->assertDatabaseHas('payments', [
             'booking_id' => $booking->id, 'method' => PaymentMethod::Cash->value, 'status' => PaymentStatus::Matched->value,
         ]);
+        $this->assertDatabaseHas('customers', [
+            'tenant_id' => $t->id, 'phone' => '+84912345678',
+        ]);
     }
 
     public function test_refund_queue_lists_and_marks_done(): void

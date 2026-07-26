@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Manager;
 
 use App\Enums\BookingChannel;
 use App\Enums\BookingStatus;
+use App\Enums\CancelReason;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentStatus;
@@ -17,7 +18,9 @@ use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
+use App\Models\Tenant;
 use App\Services\Booking\BookingService;
+use App\Services\CustomerService;
 use App\Support\Messages;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
@@ -34,7 +37,10 @@ use Inertia\Response;
  */
 class BookingWorkbenchController extends Controller
 {
-    public function __construct(private BookingService $bookings) {}
+    public function __construct(
+        private BookingService $bookings,
+        private CustomerService $customers,
+    ) {}
 
     /**
      * Paginated booking list with filters:
@@ -122,15 +128,15 @@ class BookingWorkbenchController extends Controller
         $tenantId = (int) WorkingTenant::id($request);
         abort_unless($tenantId, 403);
 
-        $tenant = $request->user()->tenant()->firstOrFail();
-        abort_unless($tenant->id === $tenantId, 403);
+        $tenant = Tenant::findOrFail($tenantId);
 
         $data = $request->validated();
         $paymentMode = $data['payment_mode'] ?? PaymentMode::Cash->value;
 
-        // Find or create customer by phone (tenant-scoped)
+        // Find or create customer by normalized phone (tenant-scoped).
+        $phone = $this->customers->normalizePhone($data['phone']);
         $customer = Customer::firstOrCreate(
-            ['tenant_id' => $tenantId, 'phone' => $data['phone']],
+            ['tenant_id' => $tenantId, 'phone' => $phone],
             ['name' => $data['name']],
         );
 
@@ -151,16 +157,18 @@ class BookingWorkbenchController extends Controller
 
         // Cash walk-in is settled on the spot → confirm immediately (no VietQR).
         if ($paymentMode === PaymentMode::Cash->value) {
-            Payment::forceCreate([
-                'tenant_id' => $tenantId,
-                'booking_id' => $booking->id,
-                'method' => PaymentMethod::Cash,
-                'amount' => $booking->total_amount,
-                'status' => PaymentStatus::Matched,
-                'memo_ref' => $booking->code,
-                'matched_at' => now(),
-            ]);
-            $this->bookings->confirmDeposit($booking);
+            DB::transaction(function () use ($booking, $tenantId) {
+                Payment::forceCreate([
+                    'tenant_id' => $tenantId,
+                    'booking_id' => $booking->id,
+                    'method' => PaymentMethod::Cash,
+                    'amount' => $booking->total_amount,
+                    'status' => PaymentStatus::Matched,
+                    'memo_ref' => $booking->code,
+                    'matched_at' => now(),
+                ]);
+                $this->bookings->confirmDeposit($booking);
+            });
         }
 
         return redirect()->route('manager.bookings.show', $booking)
@@ -194,7 +202,7 @@ class BookingWorkbenchController extends Controller
             'check_in' => $this->checkIn($booking),
             'complete' => $this->complete($booking),
             'no_show' => $this->markNoShow($booking),
-            'cancel' => $this->cancel($booking, $request->input('reason')),
+            'cancel' => $this->cancel($booking),
         };
 
         return back()->with('success', Messages::success('booking', 'status_updated'));
@@ -204,52 +212,41 @@ class BookingWorkbenchController extends Controller
     {
         // Check-in = confirm deposit if still pending, then keep as confirmed.
         if ($booking->status === BookingStatus::PendingDeposit) {
-            // Pending deposits can be checked in if paid cash on arrival.
-            $existingPayment = $booking->payments()
-                ->where('status', PaymentStatus::Matched)
-                ->exists();
+            DB::transaction(function () use ($booking) {
+                // Pending deposits can be checked in if paid cash on arrival.
+                $existingPayment = $booking->payments()
+                    ->where('status', PaymentStatus::Matched)
+                    ->exists();
 
-            if (! $existingPayment) {
-                // Record a cash payment and confirm.
-                Payment::forceCreate([
-                    'tenant_id' => $booking->tenant_id,
-                    'booking_id' => $booking->id,
-                    'method' => PaymentMethod::Cash,
-                    'amount' => $booking->total_amount,
-                    'status' => PaymentStatus::Matched,
-                    'memo_ref' => $booking->code,
-                    'matched_at' => now(),
-                ]);
-            }
-            $this->bookings->confirmDeposit($booking);
+                if (! $existingPayment) {
+                    Payment::forceCreate([
+                        'tenant_id' => $booking->tenant_id,
+                        'booking_id' => $booking->id,
+                        'method' => PaymentMethod::Cash,
+                        'amount' => $booking->total_amount,
+                        'status' => PaymentStatus::Matched,
+                        'memo_ref' => $booking->code,
+                        'matched_at' => now(),
+                    ]);
+                }
+                $this->bookings->confirmDeposit($booking);
+            });
         }
         // Confirmed bookings stay confirmed — check-in is just an acknowledgment.
     }
 
     private function complete(Booking $booking): void
     {
-        DB::table('bookings')
-            ->where('id', $booking->id)
-            ->update(['status' => BookingStatus::Completed->value]);
+        $booking->forceFill(['status' => BookingStatus::Completed])->save();
     }
 
     private function markNoShow(Booking $booking): void
     {
-        DB::table('bookings')
-            ->where('id', $booking->id)
-            ->update(['status' => BookingStatus::NoShow->value]);
+        $this->bookings->markNoShow($booking);
     }
 
-    private function cancel(Booking $booking, ?string $reason): void
+    private function cancel(Booking $booking): void
     {
-        DB::transaction(function () use ($booking) {
-            $this->bookings->release($booking);
-            DB::table('bookings')
-                ->where('id', $booking->id)
-                ->update([
-                    'status' => BookingStatus::Cancelled->value,
-                    'hold_expires_at' => null,
-                ]);
-        });
+        $this->bookings->cancel($booking, CancelReason::OwnerCancel);
     }
 }
