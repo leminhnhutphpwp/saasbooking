@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Manager;
 
+use App\Enums\BookingStatus;
 use App\Enums\CourtStatus;
 use App\Enums\SeriesStatus;
 use App\Exceptions\SlotTakenException;
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\RecurringSeries;
 use App\Models\Tenant;
+use App\Services\Booking\BookingService;
 use App\Services\Booking\SeriesService;
 use App\Support\WorkingTenant;
 use Carbon\Carbon;
@@ -131,6 +134,65 @@ class SeriesController extends Controller
         $series->forceFill(['status' => SeriesStatus::Cancelled])->save();
 
         return Redirect::back()->with('success', 'Đã hủy đặt cố định.');
+    }
+
+    /**
+     * Cancel one occurrence of a recurring series without stopping the parent.
+     * The series remains active; only the selected booking is cancelled.
+     */
+    public function cancelOccurrence(Request $request, RecurringSeries $series, Booking $booking): RedirectResponse
+    {
+        $tenantId = WorkingTenant::id($request);
+        abort_if($tenantId === null, 403);
+        $this->assertOwnedByWorkingTenant($request, $series);
+        abort_unless($booking->tenant_id === $tenantId, 403);
+        abort_unless($booking->series_id !== null, 422);
+        abort_unless($booking->series_id === $series->id, 422);
+        abort_unless($series->status === SeriesStatus::Active, 422);
+
+        // Only pending_deposit or confirmed occurrences can be cancelled.
+        if (! in_array($booking->status, [BookingStatus::PendingDeposit, BookingStatus::Confirmed], true)) {
+            return back()->with('error', 'Buổi này đã kết thúc hoặc đã bị hủy.');
+        }
+
+        app(SeriesService::class)->cancelOccurrence($booking);
+
+        return back()->with('success', 'Đã hủy buổi trong chuỗi.');
+    }
+
+    /**
+     * End remaining occurrences of a series. Future ungenerated bookings are stopped;
+     * already-generated confirmed bookings are left as-is.
+     */
+    public function endSeries(Request $request, RecurringSeries $series): RedirectResponse
+    {
+        $tenantId = WorkingTenant::id($request);
+        abort_if($tenantId === null, 403);
+        $this->assertOwnedByWorkingTenant($request, $series);
+
+        if ($series->status !== SeriesStatus::Active) {
+            return back()->with('error', 'Chuỗi đặt cố định không ở trạng thái актив.');
+        }
+
+        // Set end_date to today (or yesterday) so no future occurrences are generated.
+        // Cancel all pending_deposit future occurrences in this series.
+        $series->forceFill([
+            'status' => SeriesStatus::Ended,
+            'end_date' => now()->subDay()->toDateString(),
+        ])->save();
+
+        // Cancel any pending_deposit bookings in this series that haven't happened yet.
+        $pendingBookings = Booking::where('tenant_id', $tenantId)
+            ->where('series_id', $series->id)
+            ->where('status', BookingStatus::PendingDeposit)
+            ->get();
+
+        $bookingsService = app(BookingService::class);
+        foreach ($pendingBookings as $pending) {
+            $bookingsService->cancel($pending, \App\Enums\CancelReason::OwnerCancel);
+        }
+
+        return back()->with('success', 'Đã kết thúc chuỗi đặt cố định.');
     }
 
     private function countWeekdaysBetween(int $weekday, Carbon $start, Carbon $end): int
