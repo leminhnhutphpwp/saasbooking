@@ -8,11 +8,11 @@
 2. **Composite FK `(tenant_id, id)`** — bảng cha khai `UNIQUE(tenant_id, id)`, bảng con FK ghép, chống một dòng trỏ sang tenant khác kể cả khi code có bug.
 3. **Postgres RLS (lưới an toàn tùy chọn, cứng hơn appdhv):** bật policy `USING (tenant_id = current_setting('app.tenant_id')::bigint)` set trong middleware — khuyến nghị bật để phòng lỗi quên `where`.
 
-**Quy ước khóa (theo appdhv):** mỗi bảng có `id` **bigint PK** (nội bộ) + cột **`uuid`** cho route binding công khai (`getRouteKeyName(): 'uuid'`, không lộ id chạy số trên URL). Riêng `bookings` thêm `code` đọc được (SAN-3F7K) làm nội dung chuyển khoản. Model `use SoftDeletes` + `use Concerns\Auditable`. Mọi index dẫn đầu bằng `tenant_id`.
+**Quy ước khóa (theo appdhv):** model được route công khai có `id` **bigint PK** (nội bộ) + cột **`uuid`** cho route binding (`getRouteKeyName(): 'uuid'`, không lộ id chạy số trên URL). Riêng `bookings` thêm `code` đọc được (SAN-3F7K) làm nội dung chuyển khoản. `SoftDeletes` và `Concerns\Auditable` áp dụng cho các aggregate cần vòng đời/audit, không mặc định cho mọi bảng.
 
 > ERD dưới đây vẽ khóa dạng khái niệm; khi hiện thực, PK là `id` bigint + `uuid` như trên.
 
-**Tên bảng khi hiện thực là SỐ NHIỀU (chuẩn Laravel):** `platform_services, tenants, users, memberships, courts, resource_categories, opening_rules, blackouts, pricing_rules, customers, bookings, booking_slots, recurring_series, payments, bank_txn_inbox, refunds, tenant_bank_config, audit_logs`.
+**Tên bảng hiện thực:** `platform_services, tenants, users, memberships, courts, resource_categories, opening_rules, blackouts, pricing_rules, customers, bookings, booking_slots, recurring_series, payments, bank_txn_inbox, refunds, tenant_bank_config, notification_messages, zalo_oa_configs, audit_logs`. Hai tên không theo phép số nhiều mặc định (`tenant_bank_config`, `bank_txn_inbox`) được model khai báo tường minh.
 
 ### Catalog dịch vụ và quyền truy cập
 
@@ -72,6 +72,7 @@ erDiagram
         date end_date "hoặc num_sessions"
         bigint price_per_session_snapshot
         bigint deposit_per_session
+        date generated_through "cursor sinh cuốn chiếu"
         text status "active|ended|cancelled"
     }
     booking {
@@ -131,7 +132,7 @@ CREATE TABLE opening_rules (
   id uuid DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   court_id uuid NOT NULL,
-  weekday int[] NOT NULL,                 -- [1..7]
+  weekday jsonb NOT NULL,                 -- mảng [1..7]
   open_local time NOT NULL,
   close_local time NOT NULL,
   tz text NOT NULL DEFAULT 'Asia/Ho_Chi_Minh',
@@ -145,7 +146,8 @@ CREATE TABLE blackouts (
   id uuid DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   court_id uuid,                          -- NULL = cả cơ sở nghỉ
-  period tstzrange NOT NULL,
+  starts_at timestamptz NOT NULL,
+  ends_at timestamptz NOT NULL,
   reason text,
   PRIMARY KEY (id)
 );
@@ -155,7 +157,7 @@ CREATE TABLE pricing_rules (
   id uuid DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL,
   court_id uuid,                          -- NULL = áp mọi sân
-  weekday int[] NOT NULL,
+  weekday jsonb NOT NULL,
   start_local time NOT NULL,
   end_local time NOT NULL,
   price_per_hour bigint NOT NULL,         -- VND nguyên, KHÔNG float (điểm vỡ #6)
@@ -255,6 +257,7 @@ CREATE TABLE recurring_series (
   end_date date NOT NULL,                 -- hữu hạn; job cuốn chiếu sinh buổi (điểm vỡ #5)
   price_per_session_snapshot bigint NOT NULL,
   deposit_per_session bigint NOT NULL,
+  generated_through date,                 -- cursor ngày cuối đã sinh
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','ended','cancelled')),
   PRIMARY KEY (id),
   UNIQUE (tenant_id, id),
@@ -289,10 +292,15 @@ CREATE TABLE bank_txn_inbox (
   id bigserial PRIMARY KEY,
   provider text NOT NULL,                 -- 'casso' | 'sepay'
   bank_txn_id text NOT NULL,
+  account_number text,
   amount bigint NOT NULL,
   memo text NOT NULL,                     -- nội dung chuyển khoản (chứa booking.code)
+  payload jsonb,
   received_at timestamptz NOT NULL DEFAULT now(),
   processed_at timestamptz,
+  note text,
+  payment_id bigint,
+  status text NOT NULL DEFAULT 'pending',
   UNIQUE (provider, bank_txn_id)          -- webhook trùng → bỏ qua
 );
 
@@ -307,11 +315,12 @@ CREATE TABLE refunds (
   status text NOT NULL DEFAULT 'requested' CHECK (status IN ('requested','done','failed')),
   requested_at timestamptz NOT NULL DEFAULT now(),
   resolved_at timestamptz,
+  resolved_by bigint,
   PRIMARY KEY (id)
 );
 ```
 
-Bảng còn lại (`users`, `memberships`, `customers`, `tenant_bank_config`, `zalo_oa_config`, `notification_templates`, `plans`, `subscriptions`, `invoices`, `audit_logs`) theo cùng quy ước `tenant_id` + `UNIQUE(tenant_id, id)` + composite FK; `plans` là platform-scope.
+Bảng còn lại gồm `users`, `memberships`, `customers`, `tenant_bank_config`, `zalo_oa_configs`, `notification_messages` và `audit_logs`. `notification_messages` là ledger gửi/dedupe và giữ composite FK nullable tới `customers` và `bookings`; `zalo_oa_configs` lưu cấu hình OA theo tenant. Không có bảng `notification_templates` trong schema Phase 1.
 
 **Bảng Phase 2 (chưa tạo ở Phase 1):**
 - `event_outbox` — chỉ cần khi làm webhook ra ngoài *đảm bảo* (agency). Phase 1 gửi thông báo bằng **Laravel queued listener `afterCommit`** (Horizon), không dùng bảng outbox — xem [`08-thiet-ke-module-chi-tiet.md`](08-thiet-ke-module-chi-tiet.md) §5 và [`09-kien-truc-mo-rong.md`](09-kien-truc-mo-rong.md).

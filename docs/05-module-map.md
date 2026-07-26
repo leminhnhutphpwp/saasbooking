@@ -8,11 +8,11 @@ Quy ước: **OWNS** = bảng chỉ module này được INSERT/UPDATE · **REFE
 
 | # | Module | Trách nhiệm duy nhất | OWNS | REFERENCES | Phase |
 |---|--------|---------------------|------|------------|-------|
-| 1 | **identity** | Catalog dịch vụ nền tảng, đăng ký dịch vụ, chủ sân, nhân viên, phân quyền, phiên; mỗi tenant = một cơ sở của đúng một dịch vụ | `platform_services`, `tenants`, `users`, `memberships` | `plan_id` | **1** |
+| 1 | **identity** | Catalog dịch vụ nền tảng, đăng ký dịch vụ, chủ sân, nhân viên, phân quyền, phiên; mỗi tenant = một cơ sở của đúng một dịch vụ | `platform_services`, `tenants`, `users`, `memberships` | — | **1** |
 | 2 | **court-catalog** | Sân, loại sân, giờ mở cửa, ngày nghỉ, **bảng giá giờ vàng/thường** | `courts`, `opening_rules`, `blackouts`, `pricing_rules` | — | **1** |
 | 3 | **booking** | Nguồn sự thật về "sân còn trống"; đặt một lần + **đặt cố định**; giữ chỗ; máy trạng thái | `customers`, `bookings`, `booking_slots`, `recurring_series` | `courts` (giữ chỗ *qua exclusion constraint*), `payment_id` | **1** |
 | 4 | **payment** | Cọc VietQR, hộp thư đối soát ngân hàng (Casso/SePay), hoàn cọc | `payments`, `bank_txn_inbox`, `refunds`, `tenant_bank_config` | `booking_id` | **1** |
-| 5 | **notification** | Zalo ZNS (xác nhận + nhắc) + email dự phòng, retry | `notification_templates`, `zalo_oa_config` | nghe domain event qua `afterCommit`, `bookings`, `customers` | **1** |
+| 5 | **notification** | Zalo ZNS (xác nhận + nhắc), retry | `notification_messages`, `zalo_oa_configs` | nghe domain event qua `afterCommit`, `bookings`, `customers` | **1** |
 | 6 | **interop / embed** | Cắm booking engine vào **mọi mặt tiền** (Zalo, WordPress, Wix, web AI-build): API công khai + widget nhúng + plugin WP + webhook ra | `api_keys`, `webhook_endpoints`, `webhook_deliveries` | gọi **giao diện công khai của `booking`**, không SQL riêng | 2 |
 | 7 | **billing** | Gói thuê phần mềm flat, subscription của chủ sân | `plans`, `subscriptions`, `invoices` | — | 2 |
 | — | **hạ tầng** | Audit + domain events (Phase 1: Laravel `afterCommit`; `event_outbox` là Phase 2) | `audit_logs` | mọi module phát event của mình | **1** |
