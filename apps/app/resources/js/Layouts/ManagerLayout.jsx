@@ -1,6 +1,7 @@
 import { Link, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
+import ApplicationLogo from '@/Components/ApplicationLogo';
 import { AppTopbar } from '@/Components/AppTopbar';
 import {
     Sidebar,
@@ -10,12 +11,10 @@ import {
     SidebarGroupContent,
     SidebarGroupLabel,
     SidebarHeader,
-    SidebarInset,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarProvider,
-    SidebarTrigger,
 } from '@/Components/ui/sidebar';
 import { managerNav } from '@/managerNav';
 
@@ -28,6 +27,7 @@ export default function ManagerLayout({ children }) {
     }, [flash?.success, flash?.error]);
 
     return (
+        <>
         <SidebarProvider>
             <Sidebar collapsible="icon" className="border-r border-sidebar-border">
                 <SidebarHeader className="border-b border-sidebar-border">
@@ -35,7 +35,9 @@ export default function ManagerLayout({ children }) {
                         href={route('manager.home')}
                         className="flex items-center gap-3 px-3 py-4"
                     >
-                        <img src="/logo-transparent.png" alt="Wavise" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 shadow-sm">
+                            <ApplicationLogo className="h-6 w-6 text-white" />
+                        </div>
                         <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                             <span className="text-base font-bold leading-tight text-foreground">SÂN</span>
                             <span className="text-[10px] leading-tight text-muted-foreground">Court Management</span>
@@ -73,16 +75,18 @@ export default function ManagerLayout({ children }) {
                 </SidebarContent>
 
                 <SidebarFooter className="border-t border-sidebar-border p-3">
-                    <SidebarTrigger className="mx-auto h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" />
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground group-data-[collapsible=icon]:hidden">
+                        <span>v1.0</span>
+                    </div>
                 </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset className="flex flex-col">
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <AppTopbar />
-                <main className="flex-1 overflow-auto">{children}</main>
-            </SidebarInset>
-
-            <Toaster richColors position="top-right" />
+                <div className="flex-1 overflow-auto">{children}</div>
+            </main>
         </SidebarProvider>
+        <Toaster richColors position="top-right" />
+        </>
     );
 }
