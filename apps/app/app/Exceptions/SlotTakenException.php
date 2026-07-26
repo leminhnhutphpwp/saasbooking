@@ -14,7 +14,7 @@ use RuntimeException;
  */
 class SlotTakenException extends RuntimeException
 {
-    public function __construct(string $message = null)
+    public function __construct(?string $message = null)
     {
         parent::__construct($message ?? Messages::error('booking', 'slot_taken'));
     }

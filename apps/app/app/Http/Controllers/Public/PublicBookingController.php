@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Public;
 
 use App\Exceptions\SlotTakenException;
 use App\Http\Controllers\Controller;
-use App\Support\Messages;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
@@ -17,6 +16,7 @@ use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
 use App\Services\Catalog\PricingService;
 use App\Services\Payment\PaymentService;
+use App\Support\Messages;
 use App\Support\VietQr;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
