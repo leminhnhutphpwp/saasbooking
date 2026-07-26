@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Manager;
 
 use App\Enums\BookingChannel;
 use App\Enums\BookingStatus;
-use App\Enums\CancelReason;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentStatus;
@@ -186,7 +185,7 @@ class BookingWorkbenchController extends Controller
             BookingStatus::Confirmed->value => ['check_in', 'complete', 'no_show', 'cancel'],
         ];
 
-        if (! isset($validTransitions[$currentStatus->value][$action])) {
+        if (! isset($validTransitions[$currentStatus->value]) || ! in_array($action, $validTransitions[$currentStatus->value])) {
             return back()->with('error', "Không thể thực hiện \"{$action}\" từ trạng thái \"{$currentStatus->value}\".");
         }
 

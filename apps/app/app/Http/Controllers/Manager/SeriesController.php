@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Manager;
 
 use App\Enums\BookingStatus;
+use App\Enums\CancelReason;
 use App\Enums\CourtStatus;
 use App\Enums\SeriesStatus;
 use App\Exceptions\SlotTakenException;
@@ -189,7 +190,7 @@ class SeriesController extends Controller
 
         $bookingsService = app(BookingService::class);
         foreach ($pendingBookings as $pending) {
-            $bookingsService->cancel($pending, \App\Enums\CancelReason::OwnerCancel);
+            $bookingsService->cancel($pending, CancelReason::OwnerCancel);
         }
 
         return back()->with('success', 'Đã kết thúc chuỗi đặt cố định.');

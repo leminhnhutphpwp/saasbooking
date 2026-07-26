@@ -19,6 +19,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -98,6 +99,7 @@ class BookingWorkbenchTest extends TestCase
         $end = $start->addHour();
 
         $booking = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $t->id,
             'code' => $code,
             'customer_id' => $customer->id,
@@ -148,6 +150,7 @@ class BookingWorkbenchTest extends TestCase
         // Also create a pending booking
         $pendingCustomer = $this->customer($t, 'Khách B', '0999999999');
         $pending = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $t->id,
             'code' => 'SAN-PEND',
             'customer_id' => $pendingCustomer->id,

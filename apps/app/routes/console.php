@@ -24,7 +24,7 @@ Schedule::job(new SendBookingReminders)->everyTenMinutes();
 // inside the db container and rotates old backups (keeps last 7 days).
 // Requires Docker; the script uses `docker compose exec db pg_dump`.
 if (app()->environment(['local', 'staging', 'production'])) {
-    Schedule::exec('bash ' . base_path('../scripts/backup.sh'))
+    Schedule::exec('bash '.base_path('../scripts/backup.sh'))
         ->dailyAt('03:00')
         ->timezone('Asia/Ho_Chi_Minh');
 }

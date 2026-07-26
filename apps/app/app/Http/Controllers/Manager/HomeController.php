@@ -119,7 +119,7 @@ class HomeController extends Controller
             $key = $date->toDateString();
             $revenueSeries->push([
                 'date' => $key,
-                'label' => $date->locale('vi')->isoFormat('ddd') . ' ' . $date->format('d/m'),
+                'label' => $date->locale('vi')->isoFormat('ddd').' '.$date->format('d/m'),
                 'revenue' => $revenueByDay->get($key, collect())->sum('amount'),
             ]);
         }

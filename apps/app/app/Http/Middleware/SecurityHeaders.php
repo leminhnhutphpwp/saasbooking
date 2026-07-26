@@ -54,15 +54,15 @@ final class SecurityHeaders
 
         if ($isLocal) {
             // Vite dev server (various hostnames used in Docker/local)
-            $viteOrigins = "http://localhost:5173 http://127.0.0.1:5173 http://0.0.0.0:5173";
+            $viteOrigins = 'http://localhost:5173 http://127.0.0.1:5173 http://0.0.0.0:5173';
             $scriptSrc .= " {$viteOrigins} 'unsafe-inline'";
             $styleSrc .= " {$viteOrigins}";
-            $connectSrc .= " ws://localhost:* ws://127.0.0.1:* ws://0.0.0.0:* http://localhost:* http://127.0.0.1:* http://0.0.0.0:*";
+            $connectSrc .= ' ws://localhost:* ws://127.0.0.1:* ws://0.0.0.0:* http://localhost:* http://127.0.0.1:* http://0.0.0.0:*';
         }
 
         // External fonts (used in production)
-        $fontSrc .= " https://fonts.bunny.net";
-        $styleSrc .= " https://fonts.bunny.net";
+        $fontSrc .= ' https://fonts.bunny.net';
+        $styleSrc .= ' https://fonts.bunny.net';
 
         $directives = [
             "default-src 'self'",

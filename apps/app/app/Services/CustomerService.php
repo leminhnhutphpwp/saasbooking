@@ -6,9 +6,9 @@ namespace App\Services;
 
 use App\Enums\BookingStatus;
 use App\Models\Customer;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Lightweight customer operations — phone-first, phone-normalized identity.
@@ -129,7 +129,7 @@ class CustomerService
     /**
      * Get all customers for a tenant, paginated.
      */
-    public function paginate(Request $request, int $perPage = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function paginate(Request $request, int $perPage = 20): LengthAwarePaginator
     {
         $tenantId = (int) $request->attributes->get('workingTenantId');
 

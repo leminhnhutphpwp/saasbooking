@@ -19,7 +19,6 @@ use App\Models\Customer;
 use App\Models\OpeningRule;
 use App\Models\Payment;
 use App\Models\PricingRule;
-use App\Models\Refund;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
 use App\Models\User;
@@ -141,7 +140,7 @@ class DemoSeeder extends Seeder
         for ($i = 1; $i <= 4; $i++) {
             $courts1[] = Court::forceCreate([
                 'tenant_id' => $tenant1->id,
-                'name' => 'Sân ' . chr(64 + $i), // Sân A, B, C, D
+                'name' => 'Sân '.chr(64 + $i), // Sân A, B, C, D
                 'court_type' => CourtType::Pickleball->value,
                 'status' => CourtStatus::Active->value,
             ]);
@@ -308,7 +307,9 @@ class DemoSeeder extends Seeder
     private function seedBookings(Tenant $tenant1): void
     {
         $court = Court::where('tenant_id', $tenant1->id)->first();
-        if (!$court) return;
+        if (! $court) {
+            return;
+        }
 
         $customer1 = Customer::where('tenant_id', $tenant1->id)
             ->where('phone', '0901234567')
@@ -317,13 +318,15 @@ class DemoSeeder extends Seeder
             ->where('phone', '0912345678')
             ->first();
 
-        if (!$customer1 || !$customer2) return;
+        if (! $customer1 || ! $customer2) {
+            return;
+        }
 
         $today = Carbon::today();
 
         // Booking 1: Confirmed with matched payment
         $booking1 = $this->createBookingWithSlots(
-            code: 'SAN-' . strtoupper(substr(md5($tenant1->id . 'booking1'), 0, 5)),
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking1'), 0, 5)),
             tenant_id: $tenant1->id,
             customer_id: $customer1->id,
             court_id: $court->id,
@@ -336,8 +339,8 @@ class DemoSeeder extends Seeder
         );
 
         if ($booking1) {
-            $memoRef = 'SAN-' . substr(md5($tenant1->id . 'payment1'), 0, 8);
-            $bankTxnId = 'DEMO_TXN_' . $booking1->id;
+            $memoRef = 'SAN-'.substr(md5($tenant1->id.'payment1'), 0, 8);
+            $bankTxnId = 'DEMO_TXN_'.$booking1->id;
 
             Payment::firstOrCreate(
                 ['bank_txn_id' => $bankTxnId],
@@ -355,7 +358,7 @@ class DemoSeeder extends Seeder
 
         // Booking 2: Pending deposit (awaiting payment)
         $this->createBookingWithSlots(
-            code: 'SAN-' . strtoupper(substr(md5($tenant1->id . 'booking2'), 0, 5)),
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking2'), 0, 5)),
             tenant_id: $tenant1->id,
             customer_id: $customer2->id,
             court_id: $court->id,
@@ -369,7 +372,7 @@ class DemoSeeder extends Seeder
 
         // Booking 3: Walk-in cash (confirmed)
         $this->createBookingWithSlots(
-            code: 'SAN-' . strtoupper(substr(md5($tenant1->id . 'booking3'), 0, 5)),
+            code: 'SAN-'.strtoupper(substr(md5($tenant1->id.'booking3'), 0, 5)),
             tenant_id: $tenant1->id,
             customer_id: $customer1->id,
             court_id: $court->id,
@@ -398,7 +401,9 @@ class DemoSeeder extends Seeder
     ): ?Booking {
         // Check if booking already exists (idempotent)
         $existing = Booking::where('code', $code)->first();
-        if ($existing) return $existing;
+        if ($existing) {
+            return $existing;
+        }
 
         $booking = Booking::forceCreate([
             'tenant_id' => $tenant_id,
@@ -415,7 +420,9 @@ class DemoSeeder extends Seeder
             'reminded_at' => null,
         ]);
 
-        if (!$booking) return null;
+        if (! $booking) {
+            return null;
+        }
 
         // Create booking slot
         BookingSlot::create([

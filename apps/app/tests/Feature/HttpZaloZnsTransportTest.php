@@ -17,7 +17,9 @@ class HttpZaloZnsTransportTest extends TestCase
     use RefreshDatabase;
 
     private Tenant $tenant;
+
     private Customer $customer;
+
     private HttpZaloZnsTransport $transport;
 
     protected function setUp(): void
@@ -35,7 +37,7 @@ class HttpZaloZnsTransportTest extends TestCase
             'phone' => '0901234567',
             'email' => 'test@example.com',
         ]);
-        $this->transport = new HttpZaloZnsTransport();
+        $this->transport = new HttpZaloZnsTransport;
     }
 
     public function test_records_sent_when_zalo_api_success(): void
@@ -129,6 +131,7 @@ class HttpZaloZnsTransportTest extends TestCase
 
         Http::assertSent(function ($request) {
             $body = $request->data();
+
             return $request->url() === 'https://business.openapi.zalo.me/message/template'
                 && $request->hasHeader('access_token', 'test-token-123')
                 && $body['recipient']['user_id'] === $this->customer->phone

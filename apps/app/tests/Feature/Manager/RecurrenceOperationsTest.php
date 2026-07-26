@@ -15,6 +15,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -69,8 +70,9 @@ class RecurrenceOperationsTest extends TestCase
         $statusValue = $status instanceof BookingStatus ? $status->value : $status;
 
         $booking = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $t->id,
-            'code' => 'SAN-'. strtoupper(bin2hex(random_bytes(3))),
+            'code' => 'SAN-'.strtoupper(bin2hex(random_bytes(3))),
             'customer_id' => $series->customer_id,
             'series_id' => $series->id,
             'status' => $statusValue,
@@ -119,6 +121,7 @@ class RecurrenceOperationsTest extends TestCase
 
         // One-off booking (no series).
         $booking = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $t->id,
             'code' => 'SAN-ONEOFF',
             'customer_id' => $customer->id,
@@ -170,6 +173,7 @@ class RecurrenceOperationsTest extends TestCase
 
         // Create a pending_deposit future occurrence.
         $pending = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
             'tenant_id' => $t->id,
             'code' => 'SAN-PEND1',
             'customer_id' => $series->customer_id,
