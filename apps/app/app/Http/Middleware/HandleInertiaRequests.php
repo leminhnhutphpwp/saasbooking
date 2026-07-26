@@ -44,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             ],
             // Working-tenant context shared across the Manager console.
             'workingTenants' => fn () => $request->user()
-                ? WorkingTenant::switchable($request->user())
+                ? WorkingTenant::switchable($request->user())->load('service:id,name')
                 : [],
             'workingTenantId' => fn () => $request->attributes->get(WorkingTenant::ATTR),
         ];

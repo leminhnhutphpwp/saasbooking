@@ -8,6 +8,7 @@
 |----|------|--------|-------|------|-----------|---------------|
 | [T32](T32-public-booking-selection-remake.md) | Public booking read model and selection remake | todo | - | P1 | T31 | Public controller + Show page + worklog |
 | [T33](T33-public-booking-status-receipt.md) | Public booking payment status receipt remake | todo | - | P1 | T32 | Public Status page + worklog |
+| [T36](T36-service-registration.md) | Platform services and per-service tenant registration | claimed | opencode | P0 | - | Service catalog + memberships + registration + tenant switching + docs |
 
 ## Manager-only actions (not delegated)
 - [x] Merge T22, T23, T24, T27, T28, T29, T30 into `main` — all verified (200 tests + pint clean).

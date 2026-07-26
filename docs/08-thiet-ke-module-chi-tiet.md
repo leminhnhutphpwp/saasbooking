@@ -3,7 +3,7 @@
 Bản này ánh xạ 7 module sang **Laravel 13 + Inertia + React** đúng pattern của `appdhv`. "Module" ở đây không phải package — mà là một nhóm **Model + Service + Controller + Job** cùng trách nhiệm.
 
 Quy ước lấy từ appdhv (dùng lại y nguyên):
-- **Tenant context:** `App\Support\WorkingTenant` là **nơi duy nhất** quyết định request thuộc cơ sở sân nào (như `WorkingSchool`). Middleware `ResolveWorkingTenant` gắn `tenantId` vào request; controller chỉ tin `WorkingTenant::id($request)`, **không tin payload**. Non-operator bị **kẹp cứng** vào `users.tenant_id`.
+- **Tenant context:** `App\Support\WorkingTenant` là **nơi duy nhất** quyết định request thuộc cơ sở nào. Middleware gắn `tenantId`; controller không tin payload. Non-operator chỉ switch trong `memberships`; query/cookie ngoài membership bị bỏ qua.
 - **Model:** `id` bigint PK + cột `uuid` cho route binding (`getRouteKeyName(): 'uuid'`); `use SoftDeletes` + `use Concerns\Auditable` (ghi `audit_logs`).
 - **Trạng thái:** PHP enum trong `app/Enums`.
 - **Ghi chéo module:** gọi method của Service module chủ; việc nền (nhắc, webhook) dùng **queued listener `afterCommit`** hoặc Job (Horizon).
@@ -21,10 +21,17 @@ Nguyên tắc bất di: **module khác chỉ gọi qua Service công khai, khôn
 - **Cầu lông, pickleball, tennis, bóng đá mini** = **cùng một hình dạng** (resource-time-slot) → **cùng driver, cùng lịch, cùng luồng đặt**. Khác nhau chỉ ở `courts.court_type` (nhãn) + `pricing_rule` + thương hiệu. **KHÔNG có code riêng cho từng môn.**
 - **Golf** = hình dạng **capacity/session** (tee time) → driver khác + lịch khác (tee sheet), nhưng **tái dùng 100%** vòng đời/cọc/Zalo/tenant/interop.
 
+### Dịch vụ thương mại khác vertical dispatch
+
+`platform_services` là thứ khách đăng ký (Pickleball, Cầu lông...). Mỗi lần đăng ký tạo **một tenant riêng** và một membership owner; muốn dùng nhiều dịch vụ thì đăng ký nhiều lần. Nhiều dịch vụ có thể cùng `vertical_key=racket_court`, vì chúng dùng chung engine. Admin Phase 1 quản catalog bằng backend + seeder, chưa xây admin UI.
+
+`status=inactive` chỉ đóng **đăng ký mới**; tenant đã đăng ký không bị tắt hồi tố. Các điều khoản cần bất biến tại thời điểm đăng ký (vertical, pricing model, trial end) được snapshot vào tenant/settings; billing enforcement là Phase 2.
+
 ### Khai báo trên tenant
 | Cột | Ví dụ | Vai trò |
 |---|---|---|
 | `tenants.vertical` | `racket_court` · `golf` · `spa`(sau) | Thương hiệu, thuật ngữ, cấu hình mặc định, **chọn UI** |
+| `tenants.service_id` | Pickleball · Cầu lông | Dịch vụ thương mại đã đăng ký; **một tenant đúng một service** |
 | suy ra `inventory_mode` | `resource_time_slot` · `capacity_session` | **Chọn ENGINE** (driver) |
 
 `court_type` (badminton/pickleball/tennis) nằm ở mức `courts` — chỉ là nhãn + giá, **KHÔNG đổi engine**.
@@ -74,14 +81,14 @@ Controller truyền prop `ui` (suy từ `tenant.vertical`); trang Inertia chọn
 
 ## 1. identity
 
-- **Vai trò:** chủ sân + nhân viên, phân quyền, phiên; một `tenant` = một cơ sở sân.
-- **Thành phần:** `Models/Tenant`, `Models/User` (thêm `tenant_id`), `Models/Membership`; `Support/WorkingTenant`; `Middleware/ResolveWorkingTenant` + `HandleInertiaRequests` (share `auth`, `flash`, `workingTenant`). Auth = **Breeze**; role qua `spatie/laravel-permission` (appdhv dùng `getRoleNames()`).
+- **Vai trò:** catalog dịch vụ nền tảng, đăng ký dịch vụ, chủ sân + nhân viên, phân quyền, phiên; một `tenant` = một cơ sở của một service.
+- **Thành phần:** `Models/PlatformService`, `Tenant`, `User`, bảng `memberships`; `ServiceRegistrationController`; `Support/WorkingTenant`; middleware Inertia. Auth = Breeze; role global qua Spatie, role theo tenant snapshot ở membership.
 - **Giao diện:**
   ```php
-  WorkingTenant::id(Request $request): ?int      // tenant của request (đã kẹp cứng per-user)
-  WorkingTenant::switchable(?User $user)          // danh sách cơ sở user được chuyển
+  WorkingTenant::id(Request $request): ?int       // tenant đã kiểm tra membership
+  WorkingTenant::switchable(?User $user)          // active memberships; operator thấy tất cả
   ```
-- **Bất biến:** mọi truy vấn nghiệp vụ scope theo `WorkingTenant::id()`; super_admin mới chuyển cơ sở tự do.
+- **Bất biến:** mọi truy vấn nghiệp vụ scope theo `WorkingTenant::id()`; owner chỉ chuyển trong memberships; chỉ super_admin chuyển tự do. Client không gửi `vertical`; controller resolve service server-side rồi snapshot vào tenant.
 
 ---
 
@@ -95,7 +102,7 @@ Controller truyền prop `ui` (suy từ `tenant.vertical`); trang Inertia chọn
   // trả GIÁ (VND, int) theo luật ưu tiên; BookingService gọi lúc giữ chỗ rồi CHỤP vào booking_slot
   CatalogService::openingWindows(int $tenantId, int $courtId, CarbonImmutable $date): array
   ```
-- **Điểm mở rộng:** thêm loại sân (tennis, bóng đá mini) = thêm case trong enum `CourtType` + luật giá — không đụng schema.
+- **Điểm mở rộng:** loại tài nguyên tenant tự quản lý qua `ResourceCategory`; không thêm nhánh theo môn vào booking core.
 - **Bất biến:** giá trả về là giá trị *tại thời điểm hỏi*; module khác phải snapshot (điểm vỡ #1).
 
 ---

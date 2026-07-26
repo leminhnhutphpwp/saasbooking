@@ -10,6 +10,7 @@ use App\Listeners\SendBookingConfirmation;
 use App\Models\User;
 use App\Services\Notification\HttpZaloZnsTransport;
 use App\Services\Notification\LogZaloZnsTransport;
+use App\Support\WorkingTenant;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -88,6 +89,18 @@ class AppServiceProvider extends ServiceProvider
      */
     private function registerGates(): void
     {
-        Gate::define('access-manager', fn (User $user): bool => $user->tenant_id !== null && $user->hasRole('owner'));
+        Gate::define('access-manager', function (User $user): bool {
+            $tenantId = WorkingTenant::id(request());
+            if (! $tenantId || ! $user->hasRole('owner')) {
+                return false;
+            }
+
+            $membership = $user->tenants()->whereKey($tenantId)->first();
+            if ($membership) {
+                return $membership->pivot->role === 'owner';
+            }
+
+            return (int) $user->tenant_id === $tenantId;
+        });
     }
 }

@@ -9,11 +9,11 @@
 | Actor | Là ai | Quyền chính | Đăng nhập? |
 |---|---|---|---|
 | **Người chơi** (end-user) | Khách đặt sân | Xem sân trống, đặt sân, cọc VietQR, hủy trong hạn, xem lịch mình đặt | Không (định danh bằng SĐT + OTP nhẹ / link Zalo) |
-| **Nhân viên** (staff) | Lễ tân/quản sân | Xem & thao tác lịch, đặt hộ khách vãng lai, đánh dấu check-in/no-show, thu tiền mặt | Có (kẹp cứng vào `tenant_id`) |
-| **Chủ sân** (owner) | Người trả tiền thuê phần mềm | Toàn quyền trong cơ sở: sân, bảng giá, giờ mở, nhân viên, cấu hình trang, báo cáo, hoàn cọc, gói thuê | Có (kẹp cứng vào `tenant_id`) |
+| **Nhân viên** (staff) | Lễ tân/quản sân | Xem & thao tác lịch, đặt hộ khách vãng lai, đánh dấu check-in/no-show, thu tiền mặt | Có (theo membership tenant) |
+| **Chủ sân** (owner) | Người trả tiền thuê phần mềm | Toàn quyền trong cơ sở: sân, bảng giá, giờ mở, nhân viên, cấu hình trang, báo cáo, hoàn cọc, gói thuê | Có (theo membership tenant) |
 | **Super admin** (operator nền tảng) | Bạn — chủ SaaS | Quản tenant/gói, impersonate hỗ trợ, xem audit toàn hệ thống, đổi cơ sở tự do | Có (global operator) |
 
-Cách ly: mọi actor có đăng nhập bị scope qua `WorkingTenant` ([08](08-thiet-ke-module-chi-tiet.md)); chỉ super_admin chuyển cơ sở tự do. Người chơi không thuộc tenant nào — họ tương tác qua trang công khai của một cơ sở cụ thể (resolve theo subdomain/mã sân).
+Cách ly: mọi actor có đăng nhập bị scope qua `WorkingTenant` ([08](08-thiet-ke-module-chi-tiet.md)); owner/staff chỉ chuyển giữa tenant có membership, super_admin chuyển tự do. Một account có thể đăng ký nhiều dịch vụ nhưng mỗi lần tạo tenant riêng. Người chơi không thuộc tenant nào — họ tương tác qua trang công khai của một cơ sở cụ thể.
 
 ---
 

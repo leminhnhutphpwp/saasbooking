@@ -12,6 +12,7 @@ use App\Http\Controllers\Manager\ReconcileController;
 use App\Http\Controllers\Manager\RefundController;
 use App\Http\Controllers\Manager\ReportController;
 use App\Http\Controllers\Manager\SeriesController;
+use App\Http\Controllers\Manager\TenantSwitchController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
@@ -40,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/switch-tenant', TenantSwitchController::class)->name('tenant.switch');
 });
 
 // Manager console — court owner (tenant-scoped via WorkingTenant).

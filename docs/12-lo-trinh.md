@@ -149,12 +149,12 @@ Mục tiêu Phase 1: MVP đặt sân pickleball/cầu lông chạy thật cho 1 
 ## M1 — Identity + Multi-tenant (4–5 ngày)
 
 **Task:**
-1. Migration `tenants` (id, uuid, name, slug UNIQUE, timezone default 'Asia/Ho_Chi_Minh', status), `users` thêm `tenant_id` nullable, `memberships` (nếu tách vai trò).
-2. Model `Tenant`, sửa `User` (thêm `tenant_id`, `isGlobalOperator()`), role qua `spatie` (`super_admin`, `owner`, `staff`).
-3. `app/Support/WorkingTenant.php` — **port từ `WorkingSchool`**: `resolve()` kẹp cứng non-operator vào `users.tenant_id`, super_admin chuyển tự do; `id()`, `switchable()`.
+1. Migration `platform_services`, `tenants` (`service_id` bắt buộc), `users.tenant_id` primary/fallback và `memberships` cho quyền multi-tenant.
+2. Model `PlatformService`, `Tenant`, `User`; role global qua Spatie (`super_admin`, `owner`, `staff`), role theo tenant lưu trên membership.
+3. `WorkingTenant::resolve()` chỉ chấp nhận query/cookie nằm trong active memberships; super_admin chuyển tự do. `users.tenant_id` là fallback tương thích.
 4. `ResolveWorkingTenant` middleware + `HandleInertiaRequests::share` (auth, flash, workingTenant, workingTenantId).
 5. (Tùy chọn, khuyến nghị) RLS: migration `DB::statement` bật policy `tenant_id = current_setting('app.tenant_id')`; middleware `SET LOCAL app.tenant_id`.
-6. Feature test: user non-operator KHÔNG đọc được dữ liệu tenant khác kể cả khi forge `?tenant_id`.
+6. Flow account → đăng ký đúng một service → tạo tenant + owner membership; đăng ký thêm service tạo tenant khác. Feature test forge `?tenant_id`, inactive service và switching.
 
 **DoD:** đăng nhập ra đúng tenant; `WorkingTenant::id()` trả đúng; test cách ly tenant xanh.
 
