@@ -1,6 +1,6 @@
 # 02 — Yêu cầu chức năng & Use cases
 
-Đặc tả nền cho toàn bộ hệ thống "SÂN". Mọi doc thiết kế ([03](03-giao-dien-quan-ly.md), [04](04-cau-hinh-per-tenant.md), [06](06-erd.md), [07](07-luong-du-lieu.md), [08](08-thiet-ke-module-chi-tiet.md)) bám vào các mã FR/UC ở đây. Ưu tiên ghi theo **MoSCoW** (M=Must, S=Should, C=Could, W=Won't-now) + **Phase**.
+Đặc tả nền cho toàn bộ hệ thống "SÂN". Các tài liệu cấu hình, dữ liệu và module ([04](04-cau-hinh-per-tenant.md), [06](06-erd.md), [07](07-luong-du-lieu.md), [08](08-thiet-ke-module-chi-tiet.md)) bám vào các mã FR/UC ở đây.
 
 ---
 
@@ -178,4 +178,4 @@ Cách ly: mọi actor có đăng nhập bị scope qua `WorkingTenant` ([08](08-
 
 ---
 
-Liên quan: use case dạng bước → luồng dữ liệu kỹ thuật ở [07](07-luong-du-lieu.md); tình huống phát sinh đầy đủ ở [10](10-tinh-huong-phat-sinh.md); bất biến dữ liệu ở [11](11-diem-vo.md); ưu tiên theo phase ở [12](12-lo-trinh.md).
+Liên quan: luồng dữ liệu kỹ thuật ở [07](07-luong-du-lieu.md); tình huống phát sinh ở [10](10-tinh-huong-phat-sinh.md); bất biến dữ liệu ở [11](11-diem-vo.md); ưu tiên hiện tại ở [12](12-lo-trinh.md).

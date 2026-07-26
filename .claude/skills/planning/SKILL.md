@@ -9,26 +9,21 @@ How to turn a request into a plan that fits the project without breaking it.
 
 ## 1. Research first (read targeted, not everything)
 
-- Start at `AGENTS.md` §1 (navigation) and `docs/README.md` — open the 1–3 docs the task maps to, not the whole folder.
+- Start at `AGENTS.md` and `docs/README.md` — open the 1–3 docs the task maps to, not the whole folder.
 - Re-read `CLAUDE.md` invariants before designing.
 - Check `worklogs/` (the most recent few) for what a previous session did.
 
-## 2. Scope to a phase
+## 2. Scope to current priorities
 
-Anchor every plan to `docs/12-lo-trinh.md`:
-- **Phase 0** — validation, no code (sell to real court owners first).
-- **Phase 1** — MVP: identity+tenant → court-catalog → booking engine → payment/reconcile → notification → UI. Racket courts only (`resource_time_slot`).
-- **Phase 2+** — interop/embed, billing, second vertical.
-
-Do not pull Phase 2/3 work forward without a reason.
+Anchor every plan to `tasks/BOARD.md` and `docs/12-lo-trinh.md`. Core MVP modules already exist; do not plan them again. Pull a reserved door forward only with an explicit business reason.
 
 ## 3. Classify every item: do-now / 🚪 reserved-door / ❌ not-doing
 
 This is the core discipline (see `docs/09`). Extend by **adding** (table, module, config entry, driver, component), never by editing the core. Anything golf/capacity/spa/builder/metered/gateway is a reserved door or a later phase — not Phase 1.
 
-## 4. Set kill/continue criteria
+## 4. Define success
 
-Mirror `docs/12`: state the concrete number that means stop or proceed (e.g. "<8 paying courts after 3 months → stop"). A plan without a kill criterion is a wish.
+State measurable acceptance criteria and, for experiments, a stop/continue signal.
 
 ## 5. Keep the six invariants (always)
 
@@ -42,6 +37,6 @@ One system many product lines · extend by adding · `WorkingTenant` is the only
 
 ## Related docs
 
-- `docs/12-lo-trinh.md` — phases, milestones, kill criteria
+- `docs/12-lo-trinh.md` — current priorities and reserved doors
 - `docs/02-yeu-cau-chuc-nang.md` — functional requirements / use cases
 - `docs/09-kien-truc-mo-rong.md` — do-now / reserved-door / not-doing framework

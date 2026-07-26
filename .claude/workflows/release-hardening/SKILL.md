@@ -8,7 +8,7 @@ metadata:
 
 # Release Hardening — Phase 1 go-live checklist
 
-Run before launching the courts MVP to the first paying venues. Reference the detailed plan in `docs/12-lo-trinh.md` (M7).
+Run before launching to paying venues. Current go-live priorities are in `docs/12-lo-trinh.md`.
 
 ## Correctness (the money & concurrency core)
 

@@ -16,7 +16,7 @@ The spec is 13 docs plus code. Reading broadly "to be safe" wastes context and s
 2. **`AGENTS.md`** → the **"task → which doc"** navigation table. Use it instead of guessing.
 3. **`docs/README.md`** — the 5-part index + dependency map; open the ONE relevant doc, not the folder.
 4. **Grep / Glob to locate**, then **Read only the relevant range** (`offset`/`limit`) — not the whole file, unless it is short or you truly need all of it.
-5. **Load one Skill** (`architecture`, `booking-engine`, `payment-reconcile`, `vertical-dispatch`, …) only when its "When to use" matches. One skill, not all.
+5. **Load one Skill** (`architecture`, `booking-engine`, `payment-flow`, `vertical-dispatch`, …) only when its "When to use" matches. One skill, not all.
 
 ## Hard rules
 
