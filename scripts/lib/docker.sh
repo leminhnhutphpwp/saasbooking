@@ -9,6 +9,7 @@
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/docker-compose.yml}"
 APP_SERVICE="${APP_SERVICE:-app}"   # runs artisan / composer / php
 DB_SERVICE="${DB_SERVICE:-db}"      # postgres 16
+VITE_SERVICE="${VITE_SERVICE:-vite}" # runs npm / Vite
 
 dc() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
@@ -30,6 +31,11 @@ service_running() {
 require_app_up() {
   service_running "$APP_SERVICE" || \
     log_fail "Service '$APP_SERVICE' chưa chạy. Chạy: bash scripts/dev.sh up"
+}
+
+require_vite_up() {
+  service_running "$VITE_SERVICE" || \
+    log_fail "Service '$VITE_SERVICE' chưa chạy. Chạy: bash scripts/dev.sh up"
 }
 
 # Read a value from apps/app/.env (fallback to a default). Used for DB creds.

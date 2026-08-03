@@ -16,6 +16,7 @@ use App\Http\Controllers\Manager\TenantSwitchController;
 use App\Http\Controllers\Manager\VenueController;
 use App\Http\Controllers\Manager\VenuePricingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Public\PublicBookingCancellationController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -115,7 +116,7 @@ Route::middleware('throttle:public-booking')->prefix('book')->name('public.')->g
     Route::get('/{tenant:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
     Route::post('/{tenant:slug}/hold', [PublicBookingController::class, 'hold'])->name('booking.hold');
     Route::get('/{tenant:slug}/status/{code}', [PublicBookingController::class, 'status'])->name('booking.status');
-    Route::get('/{tenant:slug}/cus-{code}', [PublicBookingController::class, 'customerHistory'])->name('booking.customer-history');
+    Route::post('/{tenant:slug}/status/{code}/cancel', PublicBookingCancellationController::class)->name('booking.cancel');
 });
 
 require __DIR__.'/auth.php';

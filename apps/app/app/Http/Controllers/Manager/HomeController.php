@@ -12,6 +12,7 @@ use App\Models\BankTxnInbox;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Refund;
+use App\Models\Tenant;
 use App\Models\TenantBankConfig;
 use App\Services\Payment\ReconcileService;
 use App\Support\WorkingTenant;
@@ -25,7 +26,7 @@ class HomeController extends Controller
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
-        $tenant = $request->user()->tenant()->firstOrFail();
+        $tenant = Tenant::findOrFail($tenantId);
 
         $venueToday = CarbonImmutable::now($tenant->timezone)->toDateString();
         $dayStart = CarbonImmutable::parse($venueToday.' 00:00:00');

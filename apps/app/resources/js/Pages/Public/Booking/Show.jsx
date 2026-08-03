@@ -48,14 +48,16 @@ const CourtCard = memo(function CourtCard({ court, isSelected, isSoldOut, brandC
         return { min, max, label: min === max ? formatVND(min) : `Từ ${formatVND(min)}` };
     }, [court.free]);
 
-    const handleClick = useCallback(() => {
-        if (!isSoldOut) onSelect(court);
+    const handleClick = useCallback((event) => {
+        if (!isSoldOut) onSelect(court, event.currentTarget);
     }, [isSoldOut, onSelect, court]);
 
     return (
         <button
             onClick={handleClick}
             disabled={isSoldOut}
+            aria-pressed={isSelected}
+            aria-label={`${court.court_name}${isSoldOut ? ', hết chỗ' : isSelected ? ', đang chọn' : ''}`}
             className="court-card group relative w-full text-left rounded-2xl overflow-hidden transition-all duration-300 ease-out focus:outline-none"
             style={{
                 contain: 'content',
@@ -161,6 +163,8 @@ function SlotPill({ slot, isSelected, brandColor, onSelect }) {
     return (
         <button
             onClick={() => onSelect(slot)}
+            aria-pressed={isSelected}
+            aria-label={`${hhmm(slot.start)} đến ${hhmm(slot.end)}, ${priceLabel}${isSelected ? ', đang chọn' : ''}`}
             className="slot-pill inline-flex flex-col items-center rounded-xl px-3 py-2 text-xs font-semibold transition-all duration-200 min-w-[60px] sm:min-w-[64px] shrink-0 border"
             style={
                 isSelected
@@ -197,6 +201,9 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
     const [sortBy, setSortBy] = useState(null);
     const form = useForm({ name: '', phone: '', court_id: null, start_at: '', end_at: '' });
     const formRef = useRef(form);
+    const sheetRef = useRef(null);
+    const courtTriggerRef = useRef(null);
+    const mainRef = useRef(null);
     formRef.current = form;
 
     const brand = tenant.settings?.branding ?? {};
@@ -265,7 +272,8 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
         });
     }, [tenant.slug]);
 
-    const handleCourtSelect = useCallback((court) => {
+    const handleCourtSelect = useCallback((court, trigger) => {
+        courtTriggerRef.current = trigger;
         setSelectedCourt(court);
         setSelectedSlot(null);
         setSheetOpen(true);
@@ -278,11 +286,58 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
     }, [selectedCourt]);
 
     const handleSheetClose = useCallback(() => {
+        const trigger = courtTriggerRef.current;
+
         setSheetOpen(false);
         setSelectedCourt(null);
         setSelectedSlot(null);
         formRef.current.setData({ court_id: null, start_at: '', end_at: '' });
+
+        requestAnimationFrame(() => {
+            if (trigger?.isConnected && !trigger.disabled) {
+                trigger.focus();
+                return;
+            }
+
+            mainRef.current?.focus();
+        });
     }, []);
+
+    useEffect(() => {
+        if (!sheetOpen || !selectedCourt) return undefined;
+
+        const frame = requestAnimationFrame(() => {
+            sheetRef.current?.querySelector('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')?.focus();
+        });
+
+        return () => cancelAnimationFrame(frame);
+    }, [sheetOpen, selectedCourt]);
+
+    const handleSheetKeyDown = useCallback((event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            handleSheetClose();
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+
+        const focusable = [...(sheetRef.current?.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])]
+            .filter((element) => element.getClientRects().length > 0);
+        const first = focusable[0];
+        const last = focusable.at(-1);
+
+        if (!first || !last) {
+            event.preventDefault();
+            sheetRef.current?.focus();
+        } else if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }, [handleSheetClose]);
 
     const submit = useCallback((e) => {
         e.preventDefault();
@@ -335,7 +390,7 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
                                 <h1 className="text-sm sm:text-base font-bold text-gray-800 truncate">{tenant.name}</h1>
                                 <div className="flex items-center gap-1 mt-px">
                                     <ShieldCheck className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
-                                    <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium truncate">Giữ sân 15 phút · cọc VietQR</span>
+                                    <span className="text-[9px] sm:text-[10px] text-gray-400 font-medium truncate">Chọn giờ chơi · thanh toán cọc VietQR sau khi giữ chỗ</span>
                                 </div>
                             </div>
                         </div>
@@ -461,7 +516,7 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
                 </header>
 
                 {/* ─── Courts ─── */}
-                <main className="px-4 sm:px-5 pb-6 pt-1">
+                <main ref={mainRef} tabIndex={-1} className="px-4 sm:px-5 pb-6 pt-1">
                     {loading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
                             {Array.from({ length: 4 }).map((_, i) => (
@@ -500,13 +555,19 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
             )}
 
             {/* ─── Bottom Sheet ─── */}
-            <div className="bottom-sheet fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200/80 shadow-[0_-4px_30px_rgba(0,0,0,0.1)] rounded-t-3xl max-h-[88vh] sm:max-h-[85vh] overflow-y-auto overscroll-contain">
-                <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-white/95 backdrop-blur-md z-10 rounded-t-3xl">
-                    <div className="w-9 h-[3px] rounded-full bg-gray-300" />
-                </div>
+            {sheetOpen && selectedCourt && (
+                <div
+                    ref={sheetRef}
+                    className="bottom-sheet fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200/80 shadow-[0_-4px_30px_rgba(0,0,0,0.1)] rounded-t-3xl max-h-[88vh] sm:max-h-[85vh] overflow-y-auto overscroll-contain"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="booking-sheet-title"
+                    onKeyDown={handleSheetKeyDown}
+                >
+                    <div className="flex justify-center pt-3 pb-1 sticky top-0 bg-white/95 backdrop-blur-md z-10 rounded-t-3xl">
+                        <div className="w-9 h-[3px] rounded-full bg-gray-300" />
+                    </div>
 
-                {selectedCourt && (
-                    <>
                         {/* Header */}
                         <div className="flex items-start justify-between gap-3 px-4 sm:px-5 pb-3 border-b border-gray-100">
                             <div className="flex items-center gap-3 min-w-0">
@@ -514,11 +575,11 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
                                     <MapPin className="h-4 w-4" style={{ color: pc }} />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="font-bold text-gray-800 text-sm truncate">{selectedCourt.court_name}</h3>
+                                    <h3 id="booking-sheet-title" className="font-bold text-gray-800 text-sm truncate">{selectedCourt.court_name}</h3>
                                     <p className="text-[11px] text-gray-400">Còn {selectedCourt.free.length} khung giờ trống</p>
                                 </div>
                             </div>
-                            <button onClick={handleSheetClose} className="rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
+                            <button onClick={handleSheetClose} aria-label="Đóng chọn sân" className="rounded-full p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -562,7 +623,8 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
                                                 {hhmm(selectedSlot.start)} – {hhmm(selectedSlot.end)}
                                             </p>
                                             <p className="text-gray-800 font-bold text-base mt-1.5">{formatVND(selectedSlot.price)}</p>
-                                            <p className="text-gray-400 text-[10px]">Tiền cọc giữ chỗ</p>
+                                            <p className="text-gray-400 text-[10px]">Tổng tiền thuê cho khung giờ đã chọn</p>
+                                            <p className="text-gray-400 text-[10px] mt-1">Số tiền cọc và thời hạn giữ chỗ sẽ hiển thị ở bước thanh toán.</p>
                                         </div>
                                         <div className="border-t border-gray-100" />
                                         <div className="space-y-2">
@@ -591,9 +653,8 @@ export default function Show({ tenant, date, courts, dateAvailability = {}, cust
                                 )}
                             </div>
                         </div>
-                    </>
-                )}
-            </div>
+                </div>
+            )}
         </>
     );
 }

@@ -29,6 +29,8 @@ class LogZaloZnsTransport implements ZaloZnsTransport
                 'recipient' => $to,
                 'payload' => $message['params'] ?? [],
                 'status' => 'sent',
+                'attempts' => 1,
+                'last_attempted_at' => now(),
                 'sent_at' => now(),
             ]));
         } catch (QueryException $e) {

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\CourtStatus;
 use App\Exceptions\SlotTakenException;
 use App\Http\Controllers\Controller;
+use App\Models\Blackout;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
@@ -14,6 +16,7 @@ use App\Models\Tenant;
 use App\Models\TenantBankConfig;
 use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
+use App\Services\Catalog\CatalogService;
 use App\Services\Catalog\PricingService;
 use App\Services\Payment\PaymentService;
 use App\Support\Messages;
@@ -21,6 +24,7 @@ use App\Support\VietQr;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,6 +39,7 @@ class PublicBookingController extends Controller
         private BookingService $bookings,
         private PaymentService $payments,
         private PricingService $pricing,
+        private CatalogService $catalog,
     ) {}
 
     public function show(Tenant $tenant, Request $request): Response
@@ -126,6 +131,10 @@ class PublicBookingController extends Controller
         ]);
 
         $court = Court::where('tenant_id', $tenant->id)->where('id', $data['court_id'])->firstOrFail();
+        $startAt = CarbonImmutable::parse($data['start_at']);
+        $endAt = CarbonImmutable::parse($data['end_at']);
+        $this->assertSlotIsBookable($tenant, $court, $startAt, $endAt);
+
         $customer = Customer::firstOrCreate(
             ['tenant_id' => $tenant->id, 'phone' => $data['phone']],
             ['name' => $data['name']],
@@ -138,8 +147,8 @@ class PublicBookingController extends Controller
                 'payment_mode' => 'deposit',
                 'slots' => [[
                     'court_id' => $court->id,
-                    'start_at' => CarbonImmutable::parse($data['start_at']),
-                    'end_at' => CarbonImmutable::parse($data['end_at']),
+                    'start_at' => $startAt,
+                    'end_at' => $endAt,
                 ]],
             ]);
         } catch (SlotTakenException) {
@@ -161,18 +170,27 @@ class PublicBookingController extends Controller
 
     public function status(Tenant $tenant, string $code, Request $request): Response
     {
-        $booking = Booking::with(['slots.court', 'customer'])->where('tenant_id', $tenant->id)->where('code', $code)->firstOrFail();
+        $booking = Booking::with(['slots.court', 'customer', 'payments.refunds'])->where('tenant_id', $tenant->id)->where('code', $code)->firstOrFail();
 
         // Verify the security token — prevents casual booking-code enumeration.
         $token = $request->query('token');
         $expected = hash_hmac('sha256', "{$code}:{$booking->customer->code}", config('app.key'));
         abort_unless($token && hash_equals($expected, $token), 403);
-        $payment = Payment::where('booking_id', $booking->id)->where('method', 'vietqr')->first();
+        $payment = Payment::where('tenant_id', $tenant->id)->where('booking_id', $booking->id)->where('method', 'vietqr')->first();
         $config = TenantBankConfig::where('tenant_id', $tenant->id)->where('active', true)->first();
+        $recipient = $payment?->recipient_bank_bin && $payment->recipient_account_number && $payment->recipient_account_name
+            ? [
+                'bank_bin' => $payment->recipient_bank_bin,
+                'number' => $payment->recipient_account_number,
+                'name' => $payment->recipient_account_name,
+            ]
+            : ($config ? ['bank_bin' => $config->bank_bin, 'number' => $config->account_number, 'name' => $config->account_name] : null);
 
-        $qr = ($payment && $config)
-            ? VietQr::payload($config->bank_bin, $config->account_number, (int) $payment->amount, $booking->code)
+        $qr = ($payment && $recipient)
+            ? VietQr::payload($recipient['bank_bin'], $recipient['number'], (int) $payment->amount, $payment->memo_ref)
             : null;
+        $refund = $booking->payments->flatMap->refunds
+            ->first(fn ($refund) => $refund->reason->value === 'customer_cancel');
 
         return Inertia::render('Public/Booking/Status', [
             'tenant' => [
@@ -187,6 +205,9 @@ class PublicBookingController extends Controller
                 'status' => $booking->status->value,
                 'total' => (int) $booking->total_amount,
                 'deposit' => (int) $booking->deposit_amount,
+                'balance_due' => max(0, (int) $booking->total_amount - (int) $booking->deposit_amount),
+                'hold_expires_at' => $booking->hold_expires_at?->toISOString(),
+                'cancel_policy' => $this->publicCancellationPolicy($booking->cancel_policy_snapshot),
                 'customer_name' => $booking->customer->name ?? '',
                 'customer_code' => $booking->customer->code ?? '',
                 'created_at' => $booking->created_at->toISOString(),
@@ -196,56 +217,77 @@ class PublicBookingController extends Controller
                     'end_at' => $s->end_at->toISOString(),
                     'price' => (int) $s->price_snapshot,
                 ]),
+                'refund' => $refund
+                    ? [
+                        'amount' => (int) $refund->amount,
+                        'status' => $refund->status->value,
+                    ]
+                    : null,
             ],
             'customer_code' => $booking->customer->code ?? '',
             'qr' => $qr,
-            'account' => $config ? ['number' => $config->account_number, 'name' => $config->account_name, 'bank' => $config->bank_name ?? ''] : null,
+            'account' => $recipient ? ['number' => $recipient['number'], 'name' => $recipient['name'], 'bank' => ''] : null,
             'token' => $token,
         ]);
     }
 
     /**
-     * Public customer booking history — accessible by customer code (e.g. /book/my-venue/cus-KH0001).
-     * No auth required; the customer code itself is the lookup key.
+     * Validate catalog admissibility only. Slot overlap remains exclusively enforced by the
+     * database exclusion constraint in BookingService.
      */
-    public function customerHistory(Tenant $tenant, string $code): Response
+    private function assertSlotIsBookable(Tenant $tenant, Court $court, CarbonImmutable $startAt, CarbonImmutable $endAt): void
     {
-        abort_unless($tenant->isActive(), 404);
+        if ($court->status !== CourtStatus::Active) {
+            throw ValidationException::withMessages(['court_id' => 'Sân này hiện không nhận đặt chỗ.']);
+        }
 
-        $customer = Customer::where('tenant_id', $tenant->id)->where('code', $code)->firstOrFail();
+        if ($startAt->lessThanOrEqualTo(now($tenant->timezone))) {
+            throw ValidationException::withMessages(['start_at' => 'Chỉ có thể đặt khung giờ trong tương lai.']);
+        }
 
-        $bookings = $customer->bookings()
+        if ($startAt->toDateString() !== $endAt->toDateString()
+            || ! $endAt->equalTo($startAt->addHour())
+            || $startAt->minute !== 0
+            || $startAt->second !== 0
+            || $endAt->second !== 0) {
+            throw ValidationException::withMessages(['start_at' => 'Vui lòng chọn một khung giờ tròn 60 phút trong cùng ngày.']);
+        }
+
+        $withinOpeningWindow = collect($this->catalog->openingWindows($tenant->id, $court->id, $startAt))
+            ->contains(function (array $window) use ($startAt, $endAt): bool {
+                $open = CarbonImmutable::parse($startAt->toDateString().' '.$window['open']);
+                $close = CarbonImmutable::parse($startAt->toDateString().' '.$window['close']);
+
+                return $startAt->greaterThanOrEqualTo($open) && $endAt->lessThanOrEqualTo($close);
+            });
+        if (! $withinOpeningWindow) {
+            throw ValidationException::withMessages(['start_at' => 'Khung giờ này nằm ngoài giờ hoạt động của sân.']);
+        }
+
+        $isBlackedOut = Blackout::query()
             ->where('tenant_id', $tenant->id)
-            ->with(['slots.court'])
-            ->orderByDesc('created_at')
-            ->get();
+            ->where(fn ($query) => $query->where('court_id', $court->id)->orWhereNull('court_id'))
+            ->where('starts_at', '<', $endAt)
+            ->where('ends_at', '>', $startAt)
+            ->exists();
+        if ($isBlackedOut) {
+            throw ValidationException::withMessages(['start_at' => 'Khung giờ này đang tạm ngưng phục vụ.']);
+        }
+    }
 
-        return Inertia::render('Public/Booking/CustomerHistory', [
-            'tenant' => [
-                'name' => $tenant->name,
-                'slug' => $tenant->slug,
-                'settings' => $tenant->settings ?? [],
-                'address' => $tenant->address,
-                'phone' => $tenant->phone,
-            ],
-            'customer' => [
-                'code' => $customer->code,
-                'name' => $customer->name,
-                'phone' => $customer->phone,
-            ],
-            'bookings' => $bookings->map(fn (Booking $b) => [
-                'code' => $b->code,
-                'status' => $b->status->value,
-                'total' => (int) $b->total_amount,
-                'deposit' => (int) $b->deposit_amount,
-                'created_at' => $b->created_at->toISOString(),
-                'slots' => $b->slots->map(fn ($s) => [
-                    'court_name' => $s->court->name ?? '',
-                    'start_at' => $s->start_at->toISOString(),
-                    'end_at' => $s->end_at->toISOString(),
-                    'price' => (int) $s->price_snapshot,
-                ]),
-            ]),
-        ]);
+    /** @param array<string, mixed> $policy */
+    private function publicCancellationPolicy(array $policy): ?array
+    {
+        $hours = filter_var($policy['refund_before_hours'] ?? null, FILTER_VALIDATE_INT);
+        $percentage = filter_var($policy['refund_pct'] ?? null, FILTER_VALIDATE_INT);
+
+        if ($hours === false || $hours < 0 || $percentage === false || $percentage < 0 || $percentage > 100) {
+            return null;
+        }
+
+        return [
+            'refund_before_hours' => $hours,
+            'refund_pct' => $percentage,
+        ];
     }
 }

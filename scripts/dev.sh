@@ -40,9 +40,9 @@ cmd_setup() {
   fi
   print_step "Khởi động stack"; dc up -d
   print_step "composer install"; dc exec "$APP_SERVICE" composer install
-  print_step "npm install";      dc exec "$APP_SERVICE" npm install
+  print_step "npm install";      dc exec "$VITE_SERVICE" npm install
   print_step "key:generate";     artisan key:generate
-  print_step "migrate";          artisan migrate
+  print_step "migrate";          dc exec -e DB_CONNECTION=migrator "$APP_SERVICE" php artisan migrate --database=migrator
   print_success_note "Setup xong. Mở http://localhost:8000"
 }
 print_success_note() { echo ""; log_info "$1"; }
@@ -65,7 +65,7 @@ case "$CMD" in
   artisan) require_docker; require_app_up; artisan "$@" ;;
   test)    require_docker; require_app_up; print_step "php artisan test $*"; artisan test "$@" ;;
   pint)    require_docker; require_app_up; print_step "pint $*"; dc exec "$APP_SERVICE" ./vendor/bin/pint "$@" ;;
-  build)   require_docker; require_app_up; print_step "npm run build"; dc exec "$APP_SERVICE" npm run build ;;
+  build)   require_docker; require_vite_up; print_step "npm run build"; dc exec "$VITE_SERVICE" npm run build ;;
   migrate) bash "$ROOT/scripts/migrate.sh" "$@" ;;
   backup)  bash "$ROOT/scripts/backup.sh" "$@" ;;
   help|-h|--help)

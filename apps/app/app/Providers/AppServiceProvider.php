@@ -34,6 +34,19 @@ class AppServiceProvider extends ServiceProvider
 
     private const WEBHOOK_PER_MINUTE = 60;
 
+    /** Reception operations only; all configuration and financial routes remain owner-only. */
+    private const STAFF_MANAGER_ROUTES = [
+        'manager.home',
+        'manager.calendar.index',
+        'manager.calendar.walk-in',
+        'manager.bookings.index',
+        'manager.bookings.show',
+        'manager.bookings.store',
+        'manager.bookings.status',
+    ];
+
+    private const STAFF_BOOKING_ACTIONS = ['check_in', 'complete', 'no_show'];
+
     public function register(): void
     {
         // ZNS transport: configurable via ZALO_DRIVER env var (default: 'log')
@@ -83,24 +96,35 @@ class AppServiceProvider extends ServiceProvider
             ->by('ip:'.$request->ip()));
     }
 
-    /**
-     * Manager-console gate (finding #7): the console is owner-only. A user must be bound to a
-     * tenant AND hold the 'owner' role. Applied as `can:access-manager` on the /manager group.
-     */
+    /** Manager-console gate, applied as `can:access-manager` on the /manager group. */
     private function registerGates(): void
     {
         Gate::define('access-manager', function (User $user): bool {
             $tenantId = WorkingTenant::id(request());
-            if (! $tenantId || ! $user->hasRole('owner')) {
+            if (! $tenantId) {
                 return false;
             }
 
             $membership = $user->tenants()->whereKey($tenantId)->first();
-            if ($membership) {
-                return $membership->pivot->role === 'owner';
+            if ($user->hasRole('owner')) {
+                if ($membership) {
+                    return $membership->pivot->role === 'owner';
+                }
+
+                return (int) $user->tenant_id === $tenantId;
             }
 
-            return (int) $user->tenant_id === $tenantId;
+            if (! $user->hasRole('staff') || ! $membership || $membership->pivot->role !== 'staff') {
+                return false;
+            }
+
+            $route = request()->route()?->getName();
+            if (! in_array($route, self::STAFF_MANAGER_ROUTES, true)) {
+                return false;
+            }
+
+            return $route !== 'manager.bookings.status'
+                || in_array(request()->input('action'), self::STAFF_BOOKING_ACTIONS, true);
         });
     }
 }

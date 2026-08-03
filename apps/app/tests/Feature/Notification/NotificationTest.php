@@ -82,6 +82,17 @@ class NotificationTest extends TestCase
         Notification::assertSentTo($this->customer, BookingConfirmedNotification::class);
     }
 
+    public function test_queued_zns_notifications_have_bounded_retry_policy(): void
+    {
+        $booking = $this->confirmedBookingStartingInMinutes(600);
+
+        foreach ([new BookingConfirmedNotification($booking), new BookingReminderNotification($booking, 'reminder_2h')] as $notification) {
+            $this->assertSame(3, $notification->tries);
+            $this->assertSame(30, $notification->timeout);
+            $this->assertSame([60, 300], $notification->backoff());
+        }
+    }
+
     public function test_reminder_job_notifies_due_bookings(): void
     {
         Notification::fake();

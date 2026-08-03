@@ -76,7 +76,7 @@ Mục tiêu: đọc xong thấy **mọi thứ éo le đều đã có đường x
 | O3 | Chủ sân **đổi giờ mở cửa** | Booking cũ ngoài giờ mới vẫn giữ; đặt mới theo giờ mới | Giờ mở là cấu hình đọc lúc tính lịch trống, không ảnh hưởng booking đã chốt |
 | O4 | **Lệch múi giờ / DST** (dù VN không DST, nhưng thiết kế phải đúng) | Mọi thời điểm nhất quán | Lưu UTC + hiển thị theo tz cơ sở (`Asia/Ho_Chi_Minh`). Xem [`11-diem-vo.md`](11-diem-vo.md) |
 | O5 | Chủ sân **đổi chính sách cọc/hủy** | Booking cũ theo chính sách lúc đặt; booking mới theo chính sách mới | `cancel_policy_snapshot` theo từng booking |
-| O6 | Chủ sân **đổi số tài khoản nhận cọc** | Booking mới dùng STK mới; QR đang chờ vẫn hợp lệ theo STK cũ | Cấu hình bank theo tenant; QR chụp STK tại thời điểm tạo |
+| O6 | Chủ sân **đổi số tài khoản nhận cọc** | Booking mới dùng STK mới; QR đang chờ vẫn hợp lệ theo STK cũ | Cấu hình bank theo tenant; payment chụp provider, BIN, số/tên tài khoản và ID cấu hình tại thời điểm tạo (không chụp secret). Public QR và đối soát dùng snapshot; config cũ chỉ nhận webhook cho snapshot đang chờ. |
 | O7 | Đổi **thời lượng khung** (60→90 phút) | Chỉ áp cho đặt mới | Cấu hình đọc lúc tạo booking |
 
 ---

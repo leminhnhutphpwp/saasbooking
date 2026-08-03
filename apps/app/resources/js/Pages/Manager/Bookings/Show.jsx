@@ -1,0 +1,43 @@
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
+import ManagerLayout from '@/Layouts/ManagerLayout';
+import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
+import { PageContainer } from '@/Components/PageContainer';
+import { PageHeader } from '@/Components/PageHeader';
+import { StatusBadge } from '@/Components/StatusBadge';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { formatDateTime, formatVND } from '@/lib/format';
+import { CalendarDays, CreditCard, UserRound } from 'lucide-react';
+
+const actions = {
+    pending_deposit: [['check_in', 'Nhận khách'], ['cancel', 'Hủy đơn']],
+    confirmed: [['check_in', 'Nhận khách'], ['complete', 'Hoàn tất'], ['no_show', 'Báo bom sân'], ['cancel', 'Hủy đơn']],
+};
+const actionLabels = { check_in: 'Nhận khách', complete: 'Hoàn tất đơn', no_show: 'Báo khách bom sân', cancel: 'Hủy đơn' };
+
+export default function Show({ booking }) {
+    const [target, setTarget] = useState(null);
+    const [processing, setProcessing] = useState(false);
+    const submitStatus = () => {
+        if (!target) return;
+        setProcessing(true);
+        router.patch(route('manager.bookings.status', booking.uuid), { action: target }, { preserveScroll: true, onSuccess: () => setTarget(null), onFinish: () => setProcessing(false) });
+    };
+    const bookingActions = actions[booking.status] ?? [];
+
+    return <ManagerLayout>
+        <Head title={`Đơn ${booking.code}`} />
+        <PageContainer>
+            <PageHeader backHref={route('manager.bookings.index')} backLabel="Danh sách đơn" title={`Đơn ${booking.code}`} description={`Tạo lúc ${formatDateTime(booking.created_at)}`} actions={<div className="flex flex-wrap gap-2">{bookingActions.map(([value, label]) => <Button key={value} variant={value === 'cancel' || value === 'no_show' ? 'outline' : 'default'} onClick={() => setTarget(value)}>{label}</Button>)}</div>} />
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="space-y-6 lg:col-span-2">
+                    <Card><CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-primary" />Lịch đặt <StatusBadge type="booking" value={booking.status} /></CardTitle></CardHeader><CardContent className="space-y-3">{booking.slots?.map((slot) => <div key={slot.id} className="rounded-xl border bg-muted/30 p-4"><p className="font-semibold">{slot.court?.name}</p><p className="mt-1 text-sm text-muted-foreground">{formatDateTime(slot.start_at)} - {formatDateTime(slot.end_at).split(' · ')[0]}</p></div>)}</CardContent></Card>
+                    <Card><CardHeader><CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary" />Thanh toán</CardTitle></CardHeader><CardContent className="space-y-3"><div className="grid grid-cols-2 gap-3 rounded-xl bg-muted/40 p-4"><div><p className="text-sm text-muted-foreground">Tổng tiền</p><p className="font-semibold">{formatVND(booking.total_amount)}</p></div><div><p className="text-sm text-muted-foreground">Tiền cọc</p><p className="font-semibold">{formatVND(booking.deposit_amount)}</p></div></div>{booking.payments?.length ? booking.payments.map((payment) => <div key={payment.uuid} className="flex flex-wrap items-center justify-between gap-2 border-t pt-3"><div><p className="font-medium">{formatVND(payment.amount)}</p><p className="text-sm text-muted-foreground">{payment.method} · {payment.memo_ref || 'Không có mã tham chiếu'}</p></div><StatusBadge type="payment" value={payment.status} /></div>) : <p className="text-sm text-muted-foreground">Chưa có giao dịch thanh toán.</p>}</CardContent></Card>
+                </div>
+                <Card className="h-fit"><CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" />Khách hàng</CardTitle></CardHeader><CardContent className="space-y-2"><p className="font-semibold">{booking.customer?.name || 'Khách chưa đặt tên'}</p><p className="text-sm text-muted-foreground">{booking.customer?.phone}</p>{booking.customer?.email && <p className="text-sm text-muted-foreground">{booking.customer.email}</p>} {booking.customer?.uuid && <Button asChild variant="outline" className="mt-3 w-full"><Link href={route('manager.customers.show', booking.customer.uuid)}>Xem hồ sơ khách</Link></Button>}</CardContent></Card>
+            </div>
+        </PageContainer>
+        <ConfirmActionDialog open={target !== null} onOpenChange={(open) => !open && setTarget(null)} onConfirm={submitStatus} title={target ? actionLabels[target] : ''} description={target ? `Xác nhận ${actionLabels[target].toLowerCase()} cho đơn ${booking.code}.` : ''} confirmLabel={target ? actionLabels[target] : 'Xác nhận'} processing={processing} variant={target === 'cancel' || target === 'no_show' ? 'destructive' : 'default'} />
+    </ManagerLayout>;
+}

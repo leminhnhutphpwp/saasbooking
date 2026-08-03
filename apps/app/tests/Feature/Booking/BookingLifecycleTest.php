@@ -91,6 +91,18 @@ class BookingLifecycleTest extends TestCase
         $this->assertSame(BookingStatus::PendingDeposit, $again->status);
     }
 
+    public function test_expiry_does_not_release_a_booking_confirmed_after_it_became_stale(): void
+    {
+        $booking = $this->hold();
+        $booking->update(['hold_expires_at' => now()->subMinute()]);
+
+        $this->svc->confirmDeposit($booking);
+
+        $this->assertSame(0, $this->svc->expireStaleHolds());
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        $this->assertSame(HoldStatus::Committed, BookingSlot::first()->hold_status);
+    }
+
     public function test_cancel_releases_slot_and_fires_event(): void
     {
         Event::fake([BookingCancelled::class]);

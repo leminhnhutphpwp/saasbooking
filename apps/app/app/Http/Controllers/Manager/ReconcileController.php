@@ -82,8 +82,13 @@ class ReconcileController extends Controller
             'booking_uuid' => ['required', 'string', 'exists:bookings,uuid'],
         ]);
 
-        $inbox = BankTxnInbox::findOrFail($data['txn_id']);
-        $this->assertTxnBelongsToTenant($inbox, $tenantId);
+        $inbox = BankTxnInbox::query()
+            ->whereKey($data['txn_id'])
+            ->whereIn('account_number', TenantBankConfig::query()
+                ->where('tenant_id', $tenantId)
+                ->select('account_number'))
+            ->first();
+        abort_unless($inbox, 403);
 
         $booking = Booking::where('tenant_id', $tenantId)
             ->where('uuid', $data['booking_uuid'])
@@ -105,18 +110,17 @@ class ReconcileController extends Controller
 
     public function dismissTxn(Request $request, BankTxnInbox $inbox): RedirectResponse
     {
-        $this->assertTxnBelongsToTenant($inbox, WorkingTenant::id($request));
+        $tenantId = WorkingTenant::id($request);
+        $inbox = BankTxnInbox::query()
+            ->whereKey($inbox->id)
+            ->whereIn('account_number', TenantBankConfig::query()
+                ->where('tenant_id', $tenantId)
+                ->select('account_number'))
+            ->first();
+        abort_unless($inbox, 403);
 
         $this->reconcile->dismissTxn($inbox);
 
         return back()->with('success', Messages::get('reconcile', 'skip'));
-    }
-
-    private function assertTxnBelongsToTenant(BankTxnInbox $inbox, int $tenantId): void
-    {
-        $ok = TenantBankConfig::where('tenant_id', $tenantId)
-            ->where('account_number', $inbox->account_number)
-            ->exists();
-        abort_unless($ok, 403);
     }
 }

@@ -1,0 +1,31 @@
+import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import ManagerLayout from '@/Layouts/ManagerLayout';
+import { EmptyState } from '@/Components/EmptyState';
+import { PageContainer } from '@/Components/PageContainer';
+import { PageHeader } from '@/Components/PageHeader';
+import { StatCard } from '@/Components/StatCard';
+import { StatusBadge } from '@/Components/StatusBadge';
+import { Button } from '@/Components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/Components/ui/dialog';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
+import { formatDateTime, formatVND } from '@/lib/format';
+import { CalendarDays, Pencil, Phone, UserRound } from 'lucide-react';
+
+export default function Show({ customer, stats, bookings = [] }) {
+    const [editing, setEditing] = useState(false);
+    const form = useForm({ name: customer.name ?? '', phone: customer.phone ?? '', email: customer.email ?? '' });
+    const update = (event) => { event.preventDefault(); form.put(route('manager.customers.update', customer.uuid), { preserveScroll: true, onSuccess: () => setEditing(false) }); };
+
+    return <ManagerLayout>
+        <Head title={customer.name || customer.phone} />
+        <PageContainer>
+            <PageHeader backHref={route('manager.customers.index')} backLabel="Khách hàng" title={customer.name || 'Khách chưa đặt tên'} description={customer.phone} actions={<Button variant="outline" onClick={() => setEditing(true)} className="gap-2"><Pencil className="h-4 w-4" />Chỉnh sửa</Button>} />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Tổng lượt đặt" value={stats.total_bookings} icon={CalendarDays} /><StatCard label="Sắp tới" value={stats.upcoming} icon={CalendarDays} /><StatCard label="Đã hủy" value={stats.cancelled} icon={CalendarDays} /><StatCard label="Bom sân" value={stats.no_shows} icon={CalendarDays} /></div>
+            <div className="grid gap-6 lg:grid-cols-3"><Card className="h-fit lg:col-span-1"><CardHeader><CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" />Thông tin liên hệ</CardTitle></CardHeader><CardContent className="space-y-3"><div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" />{customer.phone}</div>{customer.email && <p className="text-sm text-muted-foreground">{customer.email}</p>}</CardContent></Card><Card className="overflow-hidden lg:col-span-2"><CardHeader><CardTitle>Lịch sử đặt sân</CardTitle></CardHeader>{bookings.length === 0 ? <EmptyState icon={CalendarDays} title="Chưa có lịch sử đặt sân" description="Các đơn đặt của khách sẽ xuất hiện tại đây." className="min-h-[220px]" /> : <CardContent className="space-y-3">{bookings.map((booking) => <Link key={booking.uuid} href={route('manager.bookings.show', booking.uuid)} className="block rounded-xl border p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-mono text-sm font-semibold">{booking.code}</p>{booking.slots?.map((slot, index) => <p key={`${slot.court_name}-${index}`} className="mt-1 text-sm text-muted-foreground">{slot.court_name} · {formatDateTime(slot.start_at)}-{formatDateTime(slot.end_at).split(' · ')[0]}</p>)}</div><div className="text-right"><StatusBadge type="booking" value={booking.status} /><p className="mt-1 text-sm font-medium">{formatVND(booking.total_amount)}</p></div></div></Link>)}</CardContent>}</Card></div>
+        </PageContainer>
+        <Dialog open={editing} onOpenChange={setEditing}><DialogContent><DialogHeader><DialogTitle>Chỉnh sửa khách hàng</DialogTitle></DialogHeader><form onSubmit={update} className="space-y-4"><div className="space-y-2"><Label htmlFor="customer-name">Tên khách</Label><Input id="customer-name" value={form.data.name} onChange={(event) => form.setData('name', event.target.value)} />{form.errors.name && <p className="text-sm text-destructive">{form.errors.name}</p>}</div><div className="space-y-2"><Label htmlFor="customer-phone">Số điện thoại</Label><Input id="customer-phone" type="tel" value={form.data.phone} onChange={(event) => form.setData('phone', event.target.value)} required />{form.errors.phone && <p className="text-sm text-destructive">{form.errors.phone}</p>}</div><div className="space-y-2"><Label htmlFor="customer-email">Email</Label><Input id="customer-email" type="email" value={form.data.email} onChange={(event) => form.setData('email', event.target.value)} />{form.errors.email && <p className="text-sm text-destructive">{form.errors.email}</p>}</div><DialogFooter><Button type="submit" disabled={form.processing}>Lưu thay đổi</Button></DialogFooter></form></DialogContent></Dialog>
+    </ManagerLayout>;
+}

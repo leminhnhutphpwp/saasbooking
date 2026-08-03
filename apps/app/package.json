@@ -4,11 +4,17 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:e2e": "playwright test",
+        "test:e2e:docker": "docker run --rm --network host -e PLAYWRIGHT_BASE_URL=http://localhost:8000 -v \"$PWD\":/work -w /work mcr.microsoft.com/playwright:v1.62.1-noble npm run test:e2e",
+        "test:e2e:headed": "playwright test --headed",
+        "test:e2e:install": "playwright install chromium",
+        "test:e2e:prepare": "docker compose -f ../../docker-compose.yml up -d && docker compose -f ../../docker-compose.yml exec -T app php artisan migrate --force && docker compose -f ../../docker-compose.yml exec -T app php artisan db:seed --class=DemoSeeder --force"
     },
     "devDependencies": {
         "@headlessui/react": "^2.0.0",
         "@inertiajs/react": "^2.0.0",
+        "@playwright/test": "^1.62.1",
         "@tailwindcss/forms": "^0.5.3",
         "@vitejs/plugin-react": "^4.2.0",
         "autoprefixer": "^10.4.12",

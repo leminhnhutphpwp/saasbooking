@@ -25,9 +25,9 @@ require_docker
 CMD="${1:-status}"; shift || true
 
 case "$CMD" in
-  up|run)   require_app_up; print_step "migrate"; artisan migrate "$@" ;;
-  status)   require_app_up; artisan migrate:status ;;
-  rollback) require_app_up; print_step "migrate:rollback $*"; artisan migrate:rollback "$@" ;;
+  up|run)   require_app_up; print_step "migrate"; dc exec -e DB_CONNECTION=migrator "$APP_SERVICE" php artisan migrate --database=migrator "$@" ;;
+  status)   require_app_up; dc exec -e DB_CONNECTION=migrator "$APP_SERVICE" php artisan migrate:status --database=migrator ;;
+  rollback) require_app_up; print_step "migrate:rollback $*"; dc exec -e DB_CONNECTION=migrator "$APP_SERVICE" php artisan migrate:rollback --database=migrator "$@" ;;
   seed)
     if [ $# -eq 0 ]; then
       log_fail "Phải chỉ định seeder cụ thể: seed --class=CourtDemoSeeder (không seed mù cả DatabaseSeeder)."
@@ -42,7 +42,7 @@ case "$CMD" in
     fi
     require_app_up
     confirm_destructive "XOÁ SẠCH toàn bộ database rồi migrate lại từ đầu"
-    print_step "migrate:fresh"; artisan migrate:fresh ;;
+    print_step "migrate:fresh"; dc exec -e DB_CONNECTION=migrator "$APP_SERVICE" php artisan migrate:fresh --database=migrator ;;
   help|-h|--help)
     grep -E '^#( |$)' "$0" | sed -E 's/^# ?//' | sed '/^-+$/d' ;;
   *) log_fail "Lệnh không hợp lệ: '$CMD'. Chạy: bash scripts/migrate.sh help" ;;
