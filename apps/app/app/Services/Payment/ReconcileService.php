@@ -279,7 +279,7 @@ class ReconcileService
 
     private function extractCode(string $memo): ?string
     {
-        return preg_match('/SAN-[A-Z0-9]{5}/', strtoupper($memo), $m) ? $m[0] : null;
+        return preg_match('/SAN-[A-Z0-9]{5,20}/', strtoupper($memo), $m) ? $m[0] : null;
     }
 
     /**

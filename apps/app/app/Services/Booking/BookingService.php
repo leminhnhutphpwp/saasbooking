@@ -290,7 +290,7 @@ class BookingService
     private function generateCode(int $tenantId): string
     {
         do {
-            $code = 'SAN-'.strtoupper(Str::random(5));
+            $code = 'SAN-'.strtoupper(bin2hex(random_bytes(10)));
         } while (Booking::where('tenant_id', $tenantId)->where('code', $code)->exists());
 
         return $code;

@@ -1,0 +1,35 @@
+import { CalendarCheck2, Check, Clock3, MessageCircleMore, ReceiptText } from 'lucide-react';
+
+const slots = [['06:00', 'open'], ['07:30', 'booked'], ['09:00', 'open'], ['17:00', 'booked'], ['18:30', 'pending'], ['20:00', 'booked']];
+
+export function CourtPlan({ dark = false, compact = false, label = 'Lịch sân minh họa' }) {
+    const surface = dark ? 'border-white/15 bg-white/10 text-white' : 'border-[#d7e5d4] bg-[#f7fbf3] text-[#163d2e]';
+    return <figure className={`marketing-scene relative overflow-hidden rounded-[2rem] border p-4 shadow-xl shadow-[#163d2e]/10 sm:p-6 ${surface} ${compact ? 'max-w-md' : ''}`} aria-label={label}>
+        <div className="absolute inset-0 opacity-50 marketing-dot-matrix" aria-hidden="true" />
+        <figcaption className="relative flex items-start justify-between gap-3"><div><p className={`text-xs font-black uppercase tracking-[.16em] ${dark ? 'text-[#d9ff76]' : 'text-[#43815a]'}`}>Lịch trực quan · dữ liệu mẫu</p><p className="mt-1 text-lg font-black">Sân hôm nay</p></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${dark ? 'bg-[#d9ff76] text-[#102d22]' : 'bg-[#163d2e] text-white'}`}>06:00 - 21:30</span></figcaption>
+        <div className="relative mt-5 grid grid-cols-[4.2rem_1fr] gap-3"><div className="space-y-3 pt-1">{slots.map(([time]) => <p key={time} className={`h-7 text-xs font-bold ${dark ? 'text-white/60' : 'text-[#688174]'}`}>{time}</p>)}</div><div className="grid grid-cols-3 gap-2">{['Sân 01', 'Sân 02', 'Sân 03'].map((court, index) => <div key={court} className={`relative min-h-[220px] overflow-hidden rounded-2xl border ${dark ? 'border-white/15 bg-[#102d22]/80' : 'border-[#c9dac7] bg-white'}`}><div className="absolute inset-2 border border-dashed border-[#78a56e]/50" aria-hidden="true" /><p className={`relative px-2 pt-2 text-[10px] font-black ${dark ? 'text-white/65' : 'text-[#52725d]'}`}>{court}</p><span className={`absolute left-2 right-2 top-[18%] h-7 rounded-lg ${index === 1 ? 'bg-[#d9ff76] text-[#163d2e]' : 'bg-[#235e3c] text-white'} px-2 pt-1 text-[10px] font-bold shadow-sm`}>{index === 1 ? '08:00 · Trống' : '07:30 · Đã đặt'}</span><span className={`absolute left-2 right-2 top-[55%] h-10 rounded-lg px-2 pt-1.5 text-[10px] font-bold ${index === 2 ? 'bg-amber-200 text-amber-900' : 'bg-[#e5f1dc] text-[#315d40]'}`}>{index === 2 ? '18:30 · Chờ cọc' : '17:00 · Minh Anh'}</span><i className={`marketing-marker absolute bottom-4 left-1/2 size-3 -translate-x-1/2 rounded-full ${dark ? 'bg-[#d9ff76]' : 'bg-[#235e3c]'}`} aria-hidden="true" /></div>)}</div></div>
+        <p className={`relative mt-4 text-xs ${dark ? 'text-white/60' : 'text-[#688174]'}`}>Các booking và trạng thái chỉ là minh họa giao diện.</p>
+    </figure>;
+}
+
+export function PaymentJourney() {
+    return <figure className="marketing-scene relative overflow-hidden rounded-[2rem] border border-[#d8e5d4] bg-[#fffdf7] p-5 shadow-xl shadow-[#163d2e]/10 sm:p-7" aria-label="Hành trình cọc minh họa">
+        <div className="absolute right-0 top-0 size-40 rounded-bl-[6rem] bg-[#e7f7bd]" aria-hidden="true" /><figcaption className="relative"><p className="text-xs font-black uppercase tracking-[.16em] text-[#43815a]">Cọc & trạng thái</p><p className="mt-1 text-xl font-black text-[#163d2e]">Một khoản cọc, nhìn được đường đi.</p></figcaption>
+        <div className="relative mt-6 grid grid-cols-[1fr_2.5rem_1fr_2.5rem_1fr] items-center gap-1"><JourneyNode icon={<MessageCircleMore size={17} />} title="Yêu cầu" detail="18:30 · Sân 03" /><div className="marketing-path h-px bg-[#9ab899]" aria-hidden="true" /><JourneyNode icon={<ReceiptText size={17} />} title="Cọc mẫu" detail="VietQR minh họa" accent /><div className="marketing-path h-px bg-[#9ab899]" aria-hidden="true" /><JourneyNode icon={<Check size={17} />} title="Đã duyệt" detail="Lên lịch sân" /></div>
+        <div className="relative mt-6 flex items-center gap-3 rounded-2xl border border-dashed border-[#bdcfb8] bg-[#f2f7ec] p-3"><div className="grid size-11 grid-cols-4 gap-0.5 rounded-lg bg-white p-1" aria-hidden="true">{Array.from({ length: 16 }, (_, index) => <i key={index} className={index % 3 === 0 ? 'bg-[#163d2e]' : 'bg-[#d9ff76]'} />)}</div><p className="text-xs leading-relaxed text-[#587060]"><strong className="text-[#163d2e]">VietQR-style simulation.</strong> Không phải mã QR thật hoặc giao dịch ngân hàng.</p></div>
+    </figure>;
+}
+
+function JourneyNode({ icon, title, detail, accent = false }) { return <div className="min-w-0 text-center"><span className={`mx-auto grid size-10 place-items-center rounded-2xl ${accent ? 'bg-[#d9ff76] text-[#163d2e]' : 'bg-[#163d2e] text-white'}`}>{icon}</span><p className="mt-2 text-xs font-black text-[#163d2e]">{title}</p><p className="mt-1 text-[10px] leading-tight text-[#6c8274]">{detail}</p></div>; }
+
+export function OperationsFlow({ dark = false }) {
+    const text = dark ? 'text-white' : 'text-[#163d2e]'; const muted = dark ? 'text-white/60' : 'text-[#668071]';
+    return <figure className={`marketing-scene relative overflow-hidden rounded-[2rem] p-6 shadow-xl shadow-[#163d2e]/10 ${dark ? 'bg-[#163d2e]' : 'border border-[#d8e5d4] bg-white'}`} aria-label="Luồng vận hành minh họa">
+        <div className="absolute -right-12 -top-12 size-48 rounded-full border-[18px] border-[#d9ff76]/20" aria-hidden="true" /><figcaption className="relative"><p className={`text-xs font-black uppercase tracking-[.16em] ${dark ? 'text-[#d9ff76]' : 'text-[#43815a]'}`}>Bàn làm việc · dữ liệu mẫu</p><p className={`mt-1 text-xl font-black ${text}`}>Tin nhắn thành lịch rõ ràng.</p></figcaption>
+        <div className="relative mt-6 space-y-3">{[[MessageCircleMore, 'Khách cần sân tối nay', 'Tin nhắn mới'], [CalendarCheck2, '18:30 · Sân 03 được giữ', 'Lịch đã cập nhật'], [Clock3, 'Lễ tân cần duyệt cọc', 'Một việc đang chờ']].map(([Icon, title, state], index) => <div key={title} className={`grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 rounded-2xl p-3 ${dark ? 'bg-white/10' : 'bg-[#f1f6ed]'}`}><span className={`grid size-10 place-items-center rounded-xl ${index === 1 ? 'bg-[#d9ff76] text-[#163d2e]' : dark ? 'bg-white/10 text-[#d9ff76]' : 'bg-white text-[#235e3c]'}`}><Icon size={18} /></span><div><p className={`text-sm font-bold ${text}`}>{title}</p><p className={`text-xs ${muted}`}>{state}</p></div><span className={`marketing-pulse size-2 rounded-full ${index === 2 ? 'bg-amber-400' : 'bg-[#72bf71]'}`} aria-hidden="true" /></div>)}</div>
+    </figure>;
+}
+
+export function ActivityRibbon() {
+    return <div className="marketing-ribbon overflow-hidden rounded-2xl border border-[#cfe0c9] bg-[#edf6e6] px-4 py-3" aria-label="Các tín hiệu vận hành minh họa"><div className="flex min-w-max items-center gap-7 text-sm font-bold text-[#315d40]"><span><i className="mr-2 inline-block size-2 rounded-full bg-[#72bf71]" />Sân 01 sẵn sàng</span><span><i className="mr-2 inline-block size-2 rounded-full bg-amber-400" />01 cọc chờ xử lý</span><span><i className="mr-2 inline-block size-2 rounded-full bg-[#235e3c]" />Lịch 18:30 đã cập nhật</span><span className="text-[#668071]">Dữ liệu minh họa</span></div></div>;
+}

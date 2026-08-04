@@ -139,4 +139,31 @@
   .shadow-lg {
     box-shadow: var(--shadow-lg);
   }
+
+  .marketing-dot-matrix {
+    background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+    background-size: 12px 12px;
+  }
+
+  .marketing-scene::after {
+    content: '';
+    position: absolute;
+    inset: auto -20% -36% 38%;
+    height: 11rem;
+    border-radius: 50%;
+    background: #d9ff76;
+    filter: blur(48px);
+    opacity: .13;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .marketing-marker { animation: marketing-marker 2.8s ease-in-out infinite; }
+    .marketing-pulse { animation: marketing-pulse 2s ease-in-out infinite; }
+    .marketing-ribbon > div { animation: marketing-ribbon 16s linear infinite; }
+  }
+
+  @keyframes marketing-marker { 50% { transform: translate(-50%, -6px); } }
+  @keyframes marketing-pulse { 50% { box-shadow: 0 0 0 6px rgb(114 191 113 / .15); } }
+  @keyframes marketing-ribbon { to { transform: translateX(-15%); } }
 }

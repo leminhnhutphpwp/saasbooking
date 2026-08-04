@@ -64,6 +64,7 @@ services:
 
   vite:
     image: node:22-alpine
+    restart: unless-stopped
     working_dir: /var/www
     volumes: [./apps/app:/var/www]
     ports: ["5173:5173"]

@@ -31,6 +31,20 @@ Route::get('/', function () {
     ]);
 });
 
+// Public marketing pages. These stay separate from tenant booking and manager routes.
+Route::get('/features', fn () => Inertia::render('Marketing/Features'))->name('features');
+Route::get('/how-it-works', fn () => Inertia::render('Marketing/HowItWorks'))->name('how-it-works');
+Route::get('/for/pickleball', fn () => Inertia::render('Marketing/Pickleball'))->name('for.pickleball');
+Route::get('/for/badminton', fn () => Inertia::render('Marketing/Badminton'))->name('for.badminton');
+Route::get('/demo', fn () => Inertia::render('Marketing/Demo'))->name('demo');
+Route::get('/tour', fn () => Inertia::render('Marketing/Tour'))->name('tour');
+Route::get('/demo/booking', fn () => Inertia::render('Marketing/BookingSandbox'))->name('demo.booking');
+Route::get('/pricing', fn () => Inertia::render('Marketing/Pricing'))->name('pricing');
+Route::get('/security', fn () => Inertia::render('Marketing/Security'))->name('security');
+Route::get('/contact', fn () => Inertia::render('Marketing/Contact'))->name('contact');
+Route::get('/privacy', fn () => Inertia::render('Marketing/Privacy'))->name('privacy');
+Route::get('/terms', fn () => Inertia::render('Marketing/Terms'))->name('terms');
+
 Route::get('/dashboard', function () {
     $user = request()->user();
     if ($user && $user->tenant_id) {
