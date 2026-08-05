@@ -7,10 +7,13 @@ namespace App\Jobs;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\NotificationMessage;
+use App\Models\Tenant;
 use App\Notifications\BookingReminderNotification;
+use App\Support\RlsTenantContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 
 /**
  * Scheduler (every ~10 min): remind confirmed bookings whose first slot starts within a window —
@@ -25,13 +28,38 @@ class SendBookingReminders implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public int $timeout = 60;
+
+    public bool $failOnTimeout = true;
+
     /** @var array<int, array{0:string,1:int}> template => minutes-before */
     private array $windows = [
         ['reminder_1day', 1440],
         ['reminder_2h', 120],
     ];
 
+    /** @return array<int, int> */
+    public function backoff(): array
+    {
+        return [60, 300];
+    }
+
+    /** @return array<int, WithoutOverlapping> */
+    public function middleware(): array
+    {
+        return [(new WithoutOverlapping('send-booking-reminders'))->dontRelease()->expireAfter(90)];
+    }
+
     public function handle(): void
+    {
+        Tenant::query()->select('id')->eachById(
+            fn (Tenant $tenant) => RlsTenantContext::run($tenant->id, fn () => $this->sendForTenant()),
+        );
+    }
+
+    private function sendForTenant(): void
     {
         foreach ($this->windows as [$template, $minutes]) {
             // Loose UTC prefilter (± a day) to bound the candidate set across any tenant tz; the

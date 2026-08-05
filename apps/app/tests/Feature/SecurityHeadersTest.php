@@ -59,5 +59,6 @@ class SecurityHeadersTest extends TestCase
         $csp = $this->response->headers->get('Content-Security-Policy');
         // In testing env (treated as local), CSP should allow Vite WS
         $this->assertStringContainsString('ws://localhost:*', $csp);
+        $this->assertStringContainsString('font-src \'self\' data: http://localhost:5173', $csp);
     }
 }

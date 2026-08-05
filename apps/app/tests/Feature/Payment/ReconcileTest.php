@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Payment;
 
 use App\Enums\BookingStatus;
+use App\Enums\CancelReason;
 use App\Enums\PaymentStatus;
 use App\Enums\RefundStatus;
 use App\Models\BankTxnInbox;
@@ -82,7 +83,7 @@ class ReconcileTest extends TestCase
     {
         [$booking, $payment] = $this->holdAndInit();
 
-        app(ReconcileService::class)->ingest($this->txn('TX1', 60_000, "chuyen tien {$booking->code}"));
+        app(ReconcileService::class)->ingest($this->txn('TX1', 60_000, "chuyen tien {$booking->code}"), $this->tenant->id);
 
         $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
@@ -94,12 +95,36 @@ class ReconcileTest extends TestCase
         [$booking, $payment] = $this->holdAndInit();
         $txn = $this->txn('TX1', 60_000, "chuyen tien {$booking->code}");
 
-        app(ReconcileService::class)->ingest($txn);
-        app(ReconcileService::class)->ingest($txn);   // redelivered
+        app(ReconcileService::class)->ingest($txn, $this->tenant->id);
+        app(ReconcileService::class)->ingest($txn, $this->tenant->id);   // redelivered
 
         $this->assertSame(1, BankTxnInbox::count());
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
         $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        $this->assertSame(ReconcileService::STATUS_MATCHED, BankTxnInbox::first()->status);
+        $this->assertNotNull(BankTxnInbox::first()->processed_at);
+    }
+
+    public function test_duplicate_manual_match_does_not_settle_a_payment_twice(): void
+    {
+        [$booking, $payment] = $this->holdAndInit();
+        $inbox = BankTxnInbox::create([
+            'tenant_id' => $this->tenant->id,
+            'provider' => 'sepay',
+            'bank_txn_id' => 'TX-MANUAL',
+            'account_number' => '0123',
+            'amount' => 60_000,
+            'memo' => $booking->code,
+        ]);
+
+        $reconcile = app(ReconcileService::class);
+        $reconcile->manualMatch($inbox, $payment);
+        $reconcile->manualMatch($inbox, $payment);
+
+        $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
+        $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
+        $this->assertSame(ReconcileService::STATUS_MATCHED, $inbox->fresh()->status);
+        $this->assertSame('TX-MANUAL', $payment->fresh()->bank_txn_id);
     }
 
     public function test_grace_reconfirm_after_expiry_when_slot_free(): void
@@ -111,7 +136,7 @@ class ReconcileTest extends TestCase
         app(BookingService::class)->expireStaleHolds();
         $this->assertSame(BookingStatus::Expired, $booking->fresh()->status);
 
-        app(ReconcileService::class)->ingest($this->txn('TX2', 60_000, $booking->code));
+        app(ReconcileService::class)->ingest($this->txn('TX2', 60_000, $booking->code), $this->tenant->id);
 
         $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
@@ -135,10 +160,25 @@ class ReconcileTest extends TestCase
             ]],
         ]);
 
-        app(ReconcileService::class)->ingest($this->txn('TX3', 60_000, $booking->code));
+        app(ReconcileService::class)->ingest($this->txn('TX3', 60_000, $booking->code), $this->tenant->id);
 
         $this->assertSame(PaymentStatus::Orphaned, $payment->fresh()->status);
         $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
+        $this->assertSame(1, Refund::where('payment_id', $payment->id)->where('status', RefundStatus::Requested)->count());
+    }
+
+    public function test_reconciliation_after_cancellation_orphans_the_awaiting_deposit_without_mutating_its_amount(): void
+    {
+        [$booking, $payment] = $this->holdAndInit();
+
+        // This deterministically represents cancellation acquiring the booking lock before a webhook
+        // can settle the awaiting payment. A later payment must be refunded, not revive the booking.
+        app(BookingService::class)->cancel($booking, CancelReason::CustomerCancel);
+        app(ReconcileService::class)->ingest($this->txn('TX-CANCELLED', 60_000, $booking->code), $this->tenant->id);
+
+        $this->assertSame(BookingStatus::Cancelled, $booking->fresh()->status);
+        $this->assertSame(PaymentStatus::Orphaned, $payment->fresh()->status);
+        $this->assertSame(60_000, $payment->fresh()->amount);
         $this->assertSame(1, Refund::where('payment_id', $payment->id)->where('status', RefundStatus::Requested)->count());
     }
 
@@ -146,11 +186,23 @@ class ReconcileTest extends TestCase
     {
         [$booking, $payment] = $this->holdAndInit();
 
-        app(ReconcileService::class)->ingest($this->txn('TX4', 30_000, $booking->code)); // < 60k
+        app(ReconcileService::class)->ingest($this->txn('TX4', 30_000, $booking->code), $this->tenant->id); // < 60k
 
         $this->assertSame(BookingStatus::PendingDeposit, $booking->fresh()->status);
         $this->assertSame(PaymentStatus::Awaiting, $payment->fresh()->status);
         $this->assertNotNull(BankTxnInbox::first()->note);
+    }
+
+    public function test_overpaid_does_not_auto_confirm(): void
+    {
+        [$booking, $payment] = $this->holdAndInit();
+
+        app(ReconcileService::class)->ingest($this->txn('TX-OVER', 70_000, $booking->code), $this->tenant->id);
+
+        $this->assertSame(BookingStatus::PendingDeposit, $booking->fresh()->status);
+        $this->assertSame(PaymentStatus::Awaiting, $payment->fresh()->status);
+        $this->assertSame(ReconcileService::STATUS_UNMATCHED, BankTxnInbox::first()->status);
+        $this->assertSame($payment->id, BankTxnInbox::first()->payment_id);
     }
 
     /**
@@ -174,7 +226,7 @@ class ReconcileTest extends TestCase
         $txn = $this->txn('TX-REC', 60_000, "chuyen tien {$booking->code}");
 
         // 1) First delivery: no awaiting payment → recorded UNMATCHED but LEFT UNPROCESSED.
-        app(ReconcileService::class)->ingest($txn);
+        app(ReconcileService::class)->ingest($txn, $this->tenant->id);
         $inbox = BankTxnInbox::first();
         $this->assertSame(ReconcileService::STATUS_UNMATCHED, $inbox->status);
         $this->assertNull($inbox->processed_at);
@@ -184,7 +236,7 @@ class ReconcileTest extends TestCase
         $payment = app(PaymentService::class)->initDeposit($booking)['payment'];
 
         // 2) Redelivery re-processes the still-unprocessed row → confirm, exactly once.
-        app(ReconcileService::class)->ingest($txn);
+        app(ReconcileService::class)->ingest($txn, $this->tenant->id);
         $this->assertSame(1, BankTxnInbox::count());
         $this->assertSame(ReconcileService::STATUS_MATCHED, $inbox->fresh()->status);
         $this->assertNotNull($inbox->fresh()->processed_at);
@@ -192,7 +244,7 @@ class ReconcileTest extends TestCase
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
 
         // 3) A further redelivery of the now-processed txn is dropped — still confirmed exactly once.
-        app(ReconcileService::class)->ingest($txn);
+        app(ReconcileService::class)->ingest($txn, $this->tenant->id);
         $this->assertSame(1, BankTxnInbox::count());
         $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);

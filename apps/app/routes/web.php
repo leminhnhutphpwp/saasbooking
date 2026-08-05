@@ -16,6 +16,7 @@ use App\Http\Controllers\Manager\TenantSwitchController;
 use App\Http\Controllers\Manager\VenueController;
 use App\Http\Controllers\Manager\VenuePricingController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Public\PublicBookingCancellationController;
 use App\Http\Controllers\Public\PublicBookingController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +30,20 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+
+// Public marketing pages. These stay separate from tenant booking and manager routes.
+Route::get('/features', fn () => Inertia::render('Marketing/Features'))->name('features');
+Route::get('/how-it-works', fn () => Inertia::render('Marketing/HowItWorks'))->name('how-it-works');
+Route::get('/for/pickleball', fn () => Inertia::render('Marketing/Pickleball'))->name('for.pickleball');
+Route::get('/for/badminton', fn () => Inertia::render('Marketing/Badminton'))->name('for.badminton');
+Route::get('/demo', fn () => Inertia::render('Marketing/Demo'))->name('demo');
+Route::get('/tour', fn () => Inertia::render('Marketing/Tour'))->name('tour');
+Route::get('/demo/booking', fn () => Inertia::render('Marketing/BookingSandbox'))->name('demo.booking');
+Route::get('/pricing', fn () => Inertia::render('Marketing/Pricing'))->name('pricing');
+Route::get('/security', fn () => Inertia::render('Marketing/Security'))->name('security');
+Route::get('/contact', fn () => Inertia::render('Marketing/Contact'))->name('contact');
+Route::get('/privacy', fn () => Inertia::render('Marketing/Privacy'))->name('privacy');
+Route::get('/terms', fn () => Inertia::render('Marketing/Terms'))->name('terms');
 
 Route::get('/dashboard', function () {
     $user = request()->user();
@@ -115,7 +130,7 @@ Route::middleware('throttle:public-booking')->prefix('book')->name('public.')->g
     Route::get('/{tenant:slug}', [PublicBookingController::class, 'show'])->name('booking.show');
     Route::post('/{tenant:slug}/hold', [PublicBookingController::class, 'hold'])->name('booking.hold');
     Route::get('/{tenant:slug}/status/{code}', [PublicBookingController::class, 'status'])->name('booking.status');
-    Route::get('/{tenant:slug}/cus-{code}', [PublicBookingController::class, 'customerHistory'])->name('booking.customer-history');
+    Route::post('/{tenant:slug}/status/{code}/cancel', PublicBookingCancellationController::class)->name('booking.cancel');
 });
 
 require __DIR__.'/auth.php';

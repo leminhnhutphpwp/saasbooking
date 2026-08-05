@@ -102,7 +102,7 @@ Lịch nhắc (SendBookingReminders — Scheduler quét booking confirmed sắp 
   → trước 2 tiếng: ZNS nhắc lần cuối (giảm bom hiệu quả nhất)
 ```
 
-Phase 1 gửi bất đồng bộ bằng **Laravel Notification `ShouldQueue` + queued listener `afterCommit`** (Horizon, retry riêng) — gửi *sau khi transaction commit*, lỗi gửi ZNS không bao giờ kéo theo lỗi đặt sân. Email là kênh dự phòng khi khách chưa follow Zalo OA. (Bảng `event_outbox` chỉ cần ở **Phase 2** khi làm webhook ra ngoài *đảm bảo* cho agency — xem [`09-kien-truc-mo-rong.md`](09-kien-truc-mo-rong.md).)
+Phase 1 gửi bất đồng bộ bằng **Laravel Notification `ShouldQueue` + queued listener `afterCommit`** (Horizon, retry riêng) — gửi *sau khi transaction commit*, lỗi gửi ZNS không bao giờ kéo theo lỗi đặt sân. Mỗi lần gửi HTTP chỉ dùng `zalo_oa_configs` của đúng tenant: OA đang bật, token chưa hết hạn và map ID đã duyệt cho tên logic `booking_confirmed`, `reminder_1day` hoặc `reminder_2h`. Thiếu/tắt/chưa đủ config chỉ ghi `notification_messages` là failed để cấu hình xong redrive; lỗi mạng, 429 và 5xx retry tối đa 3 lần với backoff rồi giữ failure record. `ZALO_DRIVER=log` là fallback local chỉ ghi log/ledger, không cần credential. Email là kênh dự phòng khi khách chưa follow Zalo OA. (Bảng `event_outbox` chỉ cần ở **Phase 2** khi làm webhook ra ngoài *đảm bảo* cho agency — xem [`09-kien-truc-mo-rong.md`](09-kien-truc-mo-rong.md).)
 
 ---
 

@@ -19,7 +19,7 @@ Lõi Phase 1 đã có:
 
 1. Chạy migrations trên môi trường staging/production và kiểm tra backfill.
 2. Cấu hình SePay/Casso thật; xác minh chữ ký và một giao dịch E2E.
-3. Cấu hình Zalo OA/ZNS thật; duyệt template xác nhận và nhắc lịch.
+3. Cấu hình Zalo OA/ZNS thật cho từng tenant; duyệt và map template `booking_confirmed`, `reminder_1day`, `reminder_2h`, rồi kiểm tra một delivery/redrive E2E.
 4. Chạy backup restore drill; giám sát Horizon, scheduler và lỗi ứng dụng.
 5. Browser QA desktop/mobile cho đăng ký dịch vụ, tenant switch, giá, public booking và payment status.
 

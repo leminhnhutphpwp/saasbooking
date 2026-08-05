@@ -65,6 +65,7 @@ final class SecurityHeaders
             $viteOrigins = 'http://localhost:5173 http://127.0.0.1:5173 http://0.0.0.0:5173';
             $scriptSrc .= " {$viteOrigins} 'unsafe-inline'";
             $styleSrc .= " {$viteOrigins}";
+            $fontSrc .= " {$viteOrigins}";
             $connectSrc .= ' ws://localhost:* ws://127.0.0.1:* ws://0.0.0.0:* http://localhost:* http://127.0.0.1:* http://0.0.0.0:*';
         }
 

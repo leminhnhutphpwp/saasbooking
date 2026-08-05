@@ -25,6 +25,8 @@ Historical decisions and handoffs. Current truth lives in `docs/`, active work i
 | 2026-07-26 | [Agent context cleanup](2026-07-26-agent-context-cleanup.md) |
 | 2026-07-26 | [Schema, config, and architecture docs alignment](2026-07-26-schema-config-docs-alignment.md) |
 | 2026-07-26 | [Platform hardening](2026-07-26-platform-hardening.md) |
+| 2026-08-02 | [Development setup repair](2026-08-02-dev-setup.md) |
+| 2026-08-03 | [Payment webhook hardening](2026-08-03-payment-webhook-hardening.md) |
 
 ## Convention
 

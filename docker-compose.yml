@@ -17,7 +17,7 @@ services:
     ports: ["8000:80"]
     volumes:
       - ./apps/app:/var/www
-      - ./apps/app/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./apps/app/docker/nginx:/etc/nginx/conf.d:ro
     depends_on: [app]
     networks: [san]
 
@@ -28,7 +28,7 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-san}
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
-    ports: ["127.0.0.1:5432:5432"]
+    ports: ["127.0.0.1:${DB_FORWARD_PORT:-5433}:5432"]
     volumes: [db-data:/var/lib/postgresql/data]
     networks: [san]
 
@@ -64,6 +64,7 @@ services:
 
   vite:
     image: node:22-alpine
+    restart: unless-stopped
     working_dir: /var/www
     volumes: [./apps/app:/var/www]
     ports: ["5173:5173"]

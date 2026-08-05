@@ -12,13 +12,13 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // Free expired holds every minute so their court+time range becomes bookable again.
-Schedule::job(new ExpireStaleHolds)->everyMinute();
+Schedule::job(new ExpireStaleHolds)->everyMinute()->withoutOverlapping(2);
 
 // Materialise recurring-series occurrences as they enter the rolling horizon.
-Schedule::job(new GenerateSeriesOccurrences)->dailyAt('01:00');
+Schedule::job(new GenerateSeriesOccurrences)->dailyAt('01:00')->withoutOverlapping(5);
 
 // Send Zalo ZNS reminders (1 day / 2 hours before), de-duped per booking.
-Schedule::job(new SendBookingReminders)->everyTenMinutes();
+Schedule::job(new SendBookingReminders)->everyTenMinutes()->withoutOverlapping(2);
 
 // Daily database backup at 03:00 ICT (local time). The script runs pg_dump
 // inside the db container and rotates old backups (keeps last 7 days).

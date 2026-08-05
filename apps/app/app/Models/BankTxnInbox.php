@@ -13,7 +13,7 @@ class BankTxnInbox extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'provider', 'bank_txn_id', 'account_number', 'amount', 'memo', 'payload', 'received_at', 'processed_at', 'note',
+        'tenant_id', 'provider', 'bank_txn_id', 'account_number', 'amount', 'memo', 'payload', 'received_at', 'processed_at', 'note',
     ];
 
     protected $casts = [

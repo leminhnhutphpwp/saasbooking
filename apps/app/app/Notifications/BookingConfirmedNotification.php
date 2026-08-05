@@ -7,12 +7,15 @@ namespace App\Notifications;
 use App\Models\Booking;
 use App\Notifications\Channels\ZaloZnsChannel;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class BookingConfirmedNotification extends Notification implements ShouldQueue
+class BookingConfirmedNotification extends Notification
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public int $timeout = 30;
 
     public function __construct(public Booking $booking)
     {
@@ -22,6 +25,12 @@ class BookingConfirmedNotification extends Notification implements ShouldQueue
     public function via(object $notifiable): array
     {
         return [ZaloZnsChannel::class];
+    }
+
+    /** @return array<int, int> */
+    public function backoff(): array
+    {
+        return [60, 300];
     }
 
     /** @return array{template:string, booking_id:int, params:array} */

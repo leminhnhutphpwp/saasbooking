@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Payment;
 
+use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
 use App\Enums\PaymentStatus;
 use App\Exceptions\SlotTakenException;
@@ -14,6 +15,7 @@ use App\Models\TenantBankConfig;
 use App\Services\Booking\BookingService;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 /**
  * Reconcile incoming bank transactions (SePay/Casso) against pending deposits.
@@ -54,55 +56,78 @@ class ReconcileService
      * @param  array{provider:string, bank_txn_id:string, account_number:string, amount:int,
      *   memo:string, payload?:array}  $txn
      */
-    public function ingest(array $txn): void
+    public function ingest(array $txn, int $tenantId): void
     {
-        $inbox = $this->recordInbox($txn);
+        $inbox = $this->recordInbox($txn, $tenantId);
         if ($inbox === null) {
             return; // genuine duplicate — the original txn already processed (exactly-once)
         }
 
-        // Reaching here: the row is new OR was recorded earlier but never successfully processed
-        // (processed_at IS NULL). Either way we (re)process it — this is the recovery path (#2).
+        DB::transaction(function () use ($txn, $inbox) {
+            $inbox = BankTxnInbox::query()->lockForUpdate()->findOrFail($inbox->id);
+            if ($inbox->processed_at !== null) {
+                return;
+            }
 
-        $config = TenantBankConfig::where('provider', $txn['provider'])
-            ->where('account_number', $txn['account_number'])
-            ->where('active', true)
-            ->first();
-        if (! $config) {
-            $this->finalize($inbox, self::STATUS_UNMATCHED, 'unknown receiving account');
+            $code = $this->extractCode($txn['memo']);
+            $activeConfig = TenantBankConfig::where('provider', $txn['provider'])
+                ->where('account_number', $txn['account_number'])
+                ->where('active', true)
+                ->first();
+            $payment = $code
+                ? Payment::query()
+                    ->where('memo_ref', $code)
+                    ->where('status', PaymentStatus::Awaiting)
+                    ->where('recipient_provider', $txn['provider'])
+                    ->where('recipient_account_number', $txn['account_number'])
+                    ->first()
+                : null;
 
-            return;
-        }
+            // Payments created before the snapshot migration keep the former active-config match.
+            if (! $payment && $code && $activeConfig) {
+                $payment = $activeConfig
+                    ? Payment::query()
+                        ->where('tenant_id', $activeConfig->tenant_id)
+                        ->where('memo_ref', $code)
+                        ->where('status', PaymentStatus::Awaiting)
+                        ->whereNull('recipient_account_number')
+                        ->first()
+                    : null;
+            }
 
-        $code = $this->extractCode($txn['memo']);
-        $payment = $code
-            ? Payment::where('tenant_id', $config->tenant_id)
-                ->where('memo_ref', $code)
-                ->where('status', PaymentStatus::Awaiting)
-                ->first()
-            : null;
+            if (! $payment) {
+                if (! $activeConfig) {
+                    $this->finalize($inbox, self::STATUS_UNMATCHED, 'unknown receiving account');
 
-        if (! $payment) {
-            // The webhook may have legitimately arrived BEFORE the booking/payment was created (or
-            // the memo was mistyped). Leave processed_at NULL so a later redelivery re-attempts the
-            // match once the deposit exists (finding #8); meanwhile it surfaces in the owner's
-            // manual-reconcile queue via status = unmatched.
-            $this->finalize($inbox, self::STATUS_UNMATCHED, 'no matching pending deposit', processed: false);
+                    return;
+                }
 
-            return;
-        }
+                // The webhook may have legitimately arrived BEFORE the booking/payment was created (or
+                // the memo was mistyped). Leave processed_at NULL so a later redelivery re-attempts the
+                // match once the deposit exists (finding #8); meanwhile it surfaces in the owner's
+                // manual-reconcile queue via status = unmatched.
+                $this->finalize($inbox, self::STATUS_UNMATCHED, 'no matching pending deposit', processed: false);
 
-        // Underpaid → never auto-confirm; owner reconciles by hand (docs/10 P1). Persist payment_id
-        // so the manual queue keeps the money ↔ booking linkage (finding #8).
-        if ((int) $txn['amount'] < (int) $payment->amount) {
-            $this->finalize($inbox, self::STATUS_UNMATCHED, 'amount mismatch (underpaid)', paymentId: $payment->id);
+                return;
+            }
 
-            return;
-        }
+            // Any amount mismatch requires owner reconciliation. Auto-confirming an overpayment silently
+            // loses the surplus and violates the immutable payment ledger.
+            if ((int) $txn['amount'] !== (int) $payment->amount) {
+                $this->finalize($inbox, self::STATUS_UNMATCHED, 'amount mismatch', paymentId: $payment->id);
 
-        DB::transaction(function () use ($payment, $txn, $inbox) {
+                return;
+            }
+
+            [$booking, $payment] = $this->lockBookingThenPayment($payment);
+            if ($payment->status !== PaymentStatus::Awaiting) {
+                $this->finalize($inbox, self::STATUS_UNMATCHED, 'Payment was already settled', paymentId: $payment->id);
+
+                return;
+            }
+
             $payment->update(['bank_txn_id' => $txn['bank_txn_id'], 'raw_payload' => $txn]);
-            $this->settle($payment, $inbox, 'Auto-matched');
+            $this->settle($payment, $booking, $inbox, 'Auto-matched');
         });
     }
 
@@ -110,18 +135,47 @@ class ReconcileService
     public function manualMatch(BankTxnInbox $inbox, Payment $payment): void
     {
         DB::transaction(function () use ($inbox, $payment) {
+            $inbox = BankTxnInbox::query()->lockForUpdate()->findOrFail($inbox->id);
+            if ($inbox->processed_at !== null) {
+                return;
+            }
+
+            [$booking, $payment] = $this->lockBookingThenPayment($payment);
+            if ($inbox->tenant_id !== null && (int) $inbox->tenant_id !== (int) $payment->tenant_id) {
+                throw new RuntimeException('Bank transaction and payment must belong to the same tenant.');
+            }
+
+            // Legacy inbox rows predate authenticated tenant attribution. A manual match can safely
+            // attribute one only after the tenant-scoped payment lock has been acquired.
+            $inbox->tenant_id ??= $payment->tenant_id;
+            if ($payment->status !== PaymentStatus::Awaiting) {
+                $this->finalize(
+                    $inbox,
+                    $payment->status === PaymentStatus::Matched ? self::STATUS_MATCHED : self::STATUS_ORPHANED,
+                    'Payment was already settled',
+                    paymentId: $payment->id,
+                );
+
+                return;
+            }
+
             $payment->update([
                 'bank_txn_id' => $inbox->bank_txn_id,
                 'raw_payload' => $inbox->payload,
             ]);
-            $this->settle($payment, $inbox, 'Manual match by owner');
+            $this->settle($payment, $booking, $inbox, 'Manual match by owner');
         });
     }
 
     /** Dismiss an unmatched bank txn as irrelevant (not a booking deposit). */
     public function dismissTxn(BankTxnInbox $inbox): void
     {
-        $this->finalize($inbox, self::STATUS_DISMISSED, 'Dismissed by owner');
+        DB::transaction(function () use ($inbox) {
+            $inbox = BankTxnInbox::query()->lockForUpdate()->findOrFail($inbox->id);
+            if ($inbox->processed_at === null) {
+                $this->finalize($inbox, self::STATUS_DISMISSED, 'Dismissed by owner');
+            }
+        });
     }
 
     /**
@@ -130,9 +184,15 @@ class ReconcileService
      * expire+re-hold makes it raise 23P01, which BookingService::confirmDeposit surfaces as a
      * SlotTakenException — we route to orphaned+refund instead of letting a 500 escape (finding #5).
      */
-    private function settle(Payment $payment, BankTxnInbox $inbox, string $matchedNote): void
+    private function settle(Payment $payment, Booking $booking, BankTxnInbox $inbox, string $matchedNote): void
     {
-        $booking = $payment->booking;
+        // Cancellation won the booking lock before this transaction. Do not revive a cancelled
+        // booking when a transfer arrives later; preserve the money in the separate refund ledger.
+        if ($booking->status === BookingStatus::Cancelled) {
+            $this->orphan($payment, $booking, $inbox);
+
+            return;
+        }
 
         if ($this->bookings->secureForPayment($booking) === 'lost') {
             $this->orphan($payment, $booking, $inbox);
@@ -158,7 +218,28 @@ class ReconcileService
         $this->finalize($inbox, self::STATUS_ORPHANED, 'Auto-orphaned: slot lost, refund requested', paymentId: $payment->id);
     }
 
-    private function recordInbox(array $txn): ?BankTxnInbox
+    /**
+     * All lifecycle flows that need both business rows acquire them in this order: booking, then
+     * payment. The inbox lock remains first as its independent webhook-idempotency barrier.
+     *
+     * @return array{0: Booking, 1: Payment}
+     */
+    private function lockBookingThenPayment(Payment $candidate): array
+    {
+        $booking = Booking::query()
+            ->where('tenant_id', $candidate->tenant_id)
+            ->lockForUpdate()
+            ->findOrFail($candidate->booking_id);
+        $payment = Payment::query()
+            ->where('tenant_id', $booking->tenant_id)
+            ->where('booking_id', $booking->id)
+            ->lockForUpdate()
+            ->findOrFail($candidate->id);
+
+        return [$booking, $payment];
+    }
+
+    private function recordInbox(array $txn, int $tenantId): ?BankTxnInbox
     {
         // Record the raw txn in its OWN committed transaction so it survives even if processing
         // later throws — the row lands with processed_at = NULL (status 'pending') and is only
@@ -166,6 +247,7 @@ class ReconcileService
         // (redelivered webhook) from poisoning an outer transaction.
         try {
             return DB::transaction(fn () => BankTxnInbox::create([
+                'tenant_id' => $tenantId,
                 'provider' => $txn['provider'],
                 'bank_txn_id' => $txn['bank_txn_id'],
                 'account_number' => $txn['account_number'] ?? null,
@@ -182,9 +264,8 @@ class ReconcileService
         // The txn is already on file. If it was never successfully processed (processed_at IS NULL)
         // we return it so the caller RE-PROCESSES (recovery, #2); once it reached a terminal state
         // we return null so the redelivery is dropped — exactly-once for txns that did process.
-        // NOTE: concurrent redeliveries of a still-unprocessed txn could both re-process; that is
-        // acceptable — SePay/Casso redeliver sequentially, confirmDeposit is idempotent for an
-        // already-confirmed booking, and payments.unique(bank_txn_id) guards the credit.
+        // The caller locks the returned row before processing, so concurrent redeliveries serialize
+        // on this row and only one can settle it.
         $existing = BankTxnInbox::where('provider', $txn['provider'])
             ->where('bank_txn_id', $txn['bank_txn_id'])
             ->first();
@@ -198,7 +279,7 @@ class ReconcileService
 
     private function extractCode(string $memo): ?string
     {
-        return preg_match('/SAN-[A-Z0-9]{5}/', strtoupper($memo), $m) ? $m[0] : null;
+        return preg_match('/SAN-[A-Z0-9]{5,20}/', strtoupper($memo), $m) ? $m[0] : null;
     }
 
     /**

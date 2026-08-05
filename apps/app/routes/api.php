@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Health\ReadinessController;
 use App\Http\Controllers\Webhook\BankReconcileController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,3 +9,6 @@ use Illuminate\Support\Facades\Route;
 Route::post('/webhooks/sepay', [BankReconcileController::class, 'sepay'])
     ->middleware('throttle:webhook')
     ->name('webhooks.sepay');
+
+// Liveness is provided by Laravel at /up. Readiness confirms the dependencies this process needs.
+Route::get('/ready', ReadinessController::class)->name('health.ready');

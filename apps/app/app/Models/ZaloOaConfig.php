@@ -19,4 +19,11 @@ class ZaloOaConfig extends Model
         'templates' => 'array',
         'active' => 'boolean',
     ];
+
+    public function templateId(string $logicalTemplate): ?string
+    {
+        $templateId = $this->templates[$logicalTemplate] ?? null;
+
+        return is_string($templateId) && trim($templateId) !== '' ? trim($templateId) : null;
+    }
 }

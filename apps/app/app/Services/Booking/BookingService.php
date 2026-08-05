@@ -8,6 +8,7 @@ use App\Contracts\InventoryDriver;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
 use App\Enums\HoldStatus;
+use App\Enums\PaymentStatus;
 use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Exceptions\SlotTakenException;
@@ -15,6 +16,7 @@ use App\Models\Booking;
 use App\Models\BookingSlot;
 use App\Models\Tenant;
 use App\Services\Catalog\PricingService;
+use App\Services\Payment\PaymentService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -31,7 +33,10 @@ use RuntimeException;
  */
 class BookingService
 {
-    public function __construct(private PricingService $pricing) {}
+    public function __construct(
+        private PricingService $pricing,
+        private PaymentService $payments,
+    ) {}
 
     /**
      * @param  array{customer_id:int, channel:string, payment_mode:string, series_id?:int|null,
@@ -93,6 +98,16 @@ class BookingService
     {
         try {
             DB::transaction(function () use ($booking) {
+                $booking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+                if ($booking->status === BookingStatus::Confirmed) {
+                    return;
+                }
+
+                if (! in_array($booking->status, [BookingStatus::PendingDeposit, BookingStatus::Expired], true)) {
+                    throw new RuntimeException("Booking [{$booking->id}] cannot be confirmed from [{$booking->status->value}].");
+                }
+
                 $booking->forceFill(['status' => BookingStatus::Confirmed, 'hold_expires_at' => null])->save();
                 $this->driverFor($booking->tenant)->commit($booking);   // UPDATE hold_status='committed' → may raise 23P01
                 event(new BookingConfirmed($booking));
@@ -111,16 +126,43 @@ class BookingService
     public function markPaymentOrphaned(Booking $booking): void
     {
         DB::transaction(function () use ($booking) {
+            $booking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            if (! in_array($booking->status, [BookingStatus::PendingDeposit, BookingStatus::Expired], true)) {
+                return;
+            }
+
             $this->driverFor($booking->tenant)->release($booking);
             $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
         });
     }
 
+    /**
+     * Cancel once and, where the immutable snapshot permits it, request a manual refund against
+     * the matched deposit ledger row. The caller never changes a payment amount.
+     */
     public function cancel(Booking $booking, CancelReason $reason): void
     {
-        DB::transaction(function () use ($booking) {
+        DB::transaction(function () use ($booking, $reason) {
+            $booking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            if (! in_array($booking->status, [BookingStatus::PendingDeposit, BookingStatus::Confirmed], true)) {
+                return;
+            }
+
             $this->driverFor($booking->tenant)->release($booking);
             $booking->forceFill(['status' => BookingStatus::Cancelled, 'hold_expires_at' => null])->save();
+
+            $payment = $booking->payments()
+                ->where('tenant_id', $booking->tenant_id)
+                ->where('status', PaymentStatus::Matched)
+                ->lockForUpdate()
+                ->first();
+            $amount = $this->refundAmount($booking);
+            if ($payment !== null && $amount > 0) {
+                $this->payments->requestRefund($payment, min($amount, (int) $payment->amount), $reason);
+            }
+
             event(new BookingCancelled($booking));
         });
     }
@@ -176,15 +218,33 @@ class BookingService
             ->where('status', BookingStatus::PendingDeposit)
             ->whereNotNull('hold_expires_at')
             ->where('hold_expires_at', '<', now())
-            ->each(function (Booking $booking) use (&$expired) {
-                DB::transaction(function () use ($booking) {
-                    $this->driverFor($booking->tenant)->release($booking);
-                    $booking->forceFill(['status' => BookingStatus::Expired])->save();
-                });
-                $expired++;
+            ->eachById(function (Booking $booking) use (&$expired) {
+                if ($this->expireStaleHold($booking->id)) {
+                    $expired++;
+                }
             });
 
         return $expired;
+    }
+
+    /** Lock and re-check after candidate selection so settlement can never be undone by expiry. */
+    private function expireStaleHold(int $bookingId): bool
+    {
+        return DB::transaction(function () use ($bookingId): bool {
+            $booking = Booking::query()->lockForUpdate()->find($bookingId);
+
+            if ($booking === null
+                || $booking->status !== BookingStatus::PendingDeposit
+                || $booking->hold_expires_at === null
+                || ! $booking->hold_expires_at->isPast()) {
+                return false;
+            }
+
+            $this->driverFor($booking->tenant)->release($booking);
+            $booking->forceFill(['status' => BookingStatus::Expired])->save();
+
+            return true;
+        });
     }
 
     private function driverFor(Tenant $tenant): InventoryDriver
@@ -207,10 +267,30 @@ class BookingService
         return app($class);
     }
 
+    /** Calculate from the historical policy only; never read current tenant configuration. */
+    private function refundAmount(Booking $booking): int
+    {
+        $policy = $booking->cancel_policy_snapshot;
+        $hours = filter_var($policy['refund_before_hours'] ?? null, FILTER_VALIDATE_INT);
+        $percentage = filter_var($policy['refund_pct'] ?? null, FILTER_VALIDATE_INT);
+        $firstSlot = $booking->slots()->orderBy('start_at')->first(['start_at']);
+
+        if ($hours === false || $hours < 0 || $percentage === false || $percentage < 0 || $firstSlot === null) {
+            return 0;
+        }
+
+        $eligible = now()->lessThanOrEqualTo($firstSlot->start_at->subHours($hours));
+        if (! $eligible) {
+            return 0;
+        }
+
+        return (int) intdiv((int) $booking->deposit_amount * min($percentage, 100), 100);
+    }
+
     private function generateCode(int $tenantId): string
     {
         do {
-            $code = 'SAN-'.strtoupper(Str::random(5));
+            $code = 'SAN-'.strtoupper(bin2hex(random_bytes(10)));
         } while (Booking::where('tenant_id', $tenantId)->where('code', $code)->exists());
 
         return $code;

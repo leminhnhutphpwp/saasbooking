@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Booking;
 
+use App\Models\Blackout;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\OpeningRule;
@@ -55,15 +56,17 @@ class PublicBookingTest extends TestCase
 
     public function test_hold_creates_booking_payment_customer_and_redirects(): void
     {
+        $date = $this->bookingDate();
+
         $response = $this->post('/book/venue-a/hold', [
             'name' => 'Nguyen Van A',
             'phone' => '0912345678',
             'court_id' => $this->court->id,
-            'start_at' => '2026-07-21 18:00:00',
-            'end_at' => '2026-07-21 19:00:00',
+            'start_at' => "{$date} 18:00:00",
+            'end_at' => "{$date} 19:00:00",
         ]);
 
-        $response->assertRedirect();
+        $response->assertRedirect()->assertSessionDoesntHaveErrors();
         $this->assertDatabaseHas('customers', ['tenant_id' => $this->tenant->id, 'phone' => '0912345678']);
         $this->assertDatabaseHas('bookings', ['tenant_id' => $this->tenant->id, 'status' => 'pending_deposit']);
         $this->assertDatabaseHas('payments', ['tenant_id' => $this->tenant->id, 'method' => 'vietqr', 'status' => 'awaiting']);
@@ -71,9 +74,11 @@ class PublicBookingTest extends TestCase
 
     public function test_status_page_shows_qr_and_booking(): void
     {
+        $date = $this->bookingDate();
+
         $this->post('/book/venue-a/hold', [
             'name' => 'An', 'phone' => '0912345678', 'court_id' => $this->court->id,
-            'start_at' => '2026-07-21 18:00:00', 'end_at' => '2026-07-21 19:00:00',
+            'start_at' => "{$date} 18:00:00", 'end_at' => "{$date} 19:00:00",
         ]);
         $code = Booking::where('tenant_id', $this->tenant->id)->value('code');
 
@@ -96,10 +101,12 @@ class PublicBookingTest extends TestCase
 
     public function test_hold_on_a_taken_slot_redirects_back_with_error_and_creates_no_second_booking(): void
     {
+        $date = $this->bookingDate();
+
         // First player holds 18:00–19:00.
         $this->post('/book/venue-a/hold', [
             'name' => 'Nguyen Van A', 'phone' => '0912345678', 'court_id' => $this->court->id,
-            'start_at' => '2026-07-21 18:00:00', 'end_at' => '2026-07-21 19:00:00',
+            'start_at' => "{$date} 18:00:00", 'end_at' => "{$date} 19:00:00",
         ])->assertRedirect();
 
         $this->assertSame(1, Booking::where('tenant_id', $this->tenant->id)->count());
@@ -109,11 +116,68 @@ class PublicBookingTest extends TestCase
         // no exception leaks and the booking row rolls back, so there is still exactly one booking.
         $response = $this->post('/book/venue-a/hold', [
             'name' => 'Tran Thi B', 'phone' => '0900000002', 'court_id' => $this->court->id,
-            'start_at' => '2026-07-21 18:30:00', 'end_at' => '2026-07-21 19:30:00',
+            'start_at' => "{$date} 18:00:00", 'end_at' => "{$date} 19:00:00",
         ]);
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
         $this->assertSame(1, Booking::where('tenant_id', $this->tenant->id)->count());
+    }
+
+    public function test_hold_rejects_slots_that_are_not_bookable(): void
+    {
+        $date = $this->bookingDate();
+        Blackout::create([
+            'tenant_id' => $this->tenant->id,
+            'court_id' => $this->court->id,
+            'starts_at' => "{$date} 19:00:00",
+            'ends_at' => "{$date} 20:00:00",
+            'reason' => 'Bảo trì',
+        ]);
+
+        foreach ([
+            ['start' => "{$date} 17:00:00", 'end' => "{$date} 18:00:00"],
+            ['start' => "{$date} 19:00:00", 'end' => "{$date} 20:00:00"],
+            ['start' => "{$date} 18:00:00", 'end' => "{$date} 19:30:00"],
+            ['start' => "{$date} 18:30:00", 'end' => "{$date} 19:30:00"],
+            ['start' => now($this->tenant->timezone)->subHour()->format('Y-m-d H:i:s'), 'end' => now($this->tenant->timezone)->addHour()->format('Y-m-d H:i:s')],
+        ] as $slot) {
+            $this->post('/book/venue-a/hold', [
+                'name' => 'Nguyen Van A',
+                'phone' => '0912345678',
+                'court_id' => $this->court->id,
+                'start_at' => $slot['start'],
+                'end_at' => $slot['end'],
+            ])->assertSessionHasErrors('start_at');
+        }
+
+        $this->assertDatabaseCount('bookings', 0);
+        $this->assertDatabaseCount('payments', 0);
+    }
+
+    public function test_hold_rejects_a_non_active_court(): void
+    {
+        $this->court->update(['status' => 'maintenance']);
+        $date = $this->bookingDate();
+
+        $this->post('/book/venue-a/hold', [
+            'name' => 'Nguyen Van A',
+            'phone' => '0912345678',
+            'court_id' => $this->court->id,
+            'start_at' => "{$date} 18:00:00",
+            'end_at' => "{$date} 19:00:00",
+        ])->assertSessionHasErrors('court_id');
+
+        $this->assertDatabaseCount('bookings', 0);
+    }
+
+    public function test_customer_history_is_not_available_without_authenticated_or_signed_access(): void
+    {
+        $this->get('/book/venue-a/cus-KH0001')->assertNotFound();
+    }
+
+    private function bookingDate(): string
+    {
+        return now($this->tenant->timezone)->addDay()->toDateString();
     }
 }

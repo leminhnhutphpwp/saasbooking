@@ -162,14 +162,14 @@ Chuyển trạng thái hợp lệ khai bằng enum `BookingStatus`; mọi transi
   PaymentService::requestRefund(Payment $p, int $amount, RefundReason $r): Refund
   ```
 - **Ba nhánh đối soát** (`ReconcileService::ingest`): còn hạn → `confirmDeposit`; hết hạn + sân còn → grace; sân mất → `markPaymentOrphaned` + refund tự sinh + báo hai phía (xem [`07-luong-du-lieu.md`](07-luong-du-lieu.md) luồng a).
-- **Bất biến:** idempotent bằng `unique(bank_txn_id)` trên `bank_txn_inbox` + `payments`; `payments.amount` bất biến, hoàn cọc là dòng `refunds` riêng (điểm vỡ #7, #11).
+- **Bất biến:** idempotent bằng `unique(bank_txn_id)` trên `bank_txn_inbox` + `payments`; `payments.amount` bất biến, hoàn cọc là dòng `refunds` riêng (điểm vỡ #7, #11). Khi tạo cọc, `payments` chụp recipient (provider, BIN, số và tên tài khoản, ID cấu hình) nhưng không chụp webhook secret; QR/public status và match giao dịch dùng snapshot đó để đổi STK không làm hỏng QR đang chờ.
 
 ---
 
 ## 5. notification
 
 - **Vai trò:** Zalo ZNS (xác nhận + nhắc) + email dự phòng.
-- **Thành phần:** Laravel **Notification** (`ShouldQueue`, `$afterCommit = true`) + kênh tùy biến `ZaloZnsChannel`; `Jobs/SendBookingReminders` (Scheduler quét booking sắp tới); `Models/ZaloOaConfig`.
+- **Thành phần:** Laravel **Notification** (`ShouldQueue`, `$afterCommit = true`, tối đa 3 attempts) + kênh tùy biến `ZaloZnsChannel`; `Jobs/SendBookingReminders` (Scheduler quét booking sắp tới); `Models/ZaloOaConfig`. `templates` trên config tenant map tên logic `booking_confirmed`, `reminder_1day`, `reminder_2h` sang ID template ZNS đã duyệt; token được encrypt, không dùng credential/template ID global runtime.
 - **Cách nối:** dùng **queued listener `afterCommit`** cho sự kiện `BookingConfirmed`/`BookingCancelled` — gửi ZNS *sau khi transaction commit*, lỗi gửi không kéo theo lỗi đặt sân. (Không cần bảng outbox thủ công ở Phase 1; Laravel `afterCommit` + Horizon lo phần này.)
 - **Điểm mở rộng:** thêm kênh (SMS, Zalo Mini App push) = thêm channel, không đổi luồng.
 

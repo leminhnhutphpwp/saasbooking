@@ -14,6 +14,7 @@ use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Refund;
+use App\Models\Tenant;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class ReportController extends Controller
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
-        $tenant = $request->user()->tenant()->firstOrFail();
+        $tenant = Tenant::findOrFail($tenantId);
 
         $venueNow = CarbonImmutable::now($tenant->timezone);
 
