@@ -15,9 +15,10 @@ test.describe('public booking', () => {
 
         const sheet = page.getByRole('dialog', { name: /Sân/ });
         await expect(sheet).toBeVisible();
-        await expect(sheet.getByText(/Còn \d+ khung giờ trống/)).toBeVisible();
+        await expect(sheet.getByText(/\d+ khung giờ trống/)).toBeVisible();
 
         await sheet.locator('.slot-pill').first().click();
+        await expect(sheet.getByText('TÓM TẮT ĐẶT SÂN')).toBeVisible();
         await expect(sheet.getByPlaceholder('Họ tên (ít nhất 2 ký tự)')).toBeVisible();
         await expect(sheet.getByPlaceholder('Số điện thoại (VD: 0912345678)')).toBeVisible();
     });
@@ -43,5 +44,33 @@ test.describe('public booking', () => {
         await page.keyboard.press('Escape');
         await expect(sheet).toHaveCount(0);
         await expect(court).toBeFocused();
+    });
+
+    test('shows the selected court and time in the order summary', async ({ page }) => {
+        await page.goto(`/book/${tenant}`);
+        const court = page.locator('.court-card').first();
+        await court.click();
+
+        const sheet = page.getByRole('dialog', { name: /Sân/ });
+        await sheet.locator('.slot-pill').first().click();
+
+        await expect(sheet.getByText('TÓM TẮT ĐẶT SÂN')).toBeVisible();
+        await expect(sheet.getByRole('button', { name: 'Giữ chỗ' })).toBeVisible();
+    });
+
+    test('renders the server-provided VietQR after a hold', async ({ page }) => {
+        await page.goto(`/book/${tenant}`);
+        await page.locator('.court-card').first().click();
+
+        const sheet = page.getByRole('dialog', { name: /Sân/ });
+        await sheet.locator('.slot-pill').first().click();
+        await sheet.getByPlaceholder('Họ tên (ít nhất 2 ký tự)').fill('Khách kiểm thử QR');
+        await sheet.getByPlaceholder('Số điện thoại (VD: 0912345678)').fill('0912345678');
+        await sheet.getByRole('button', { name: 'Giữ chỗ' }).click();
+
+        await expect(page).toHaveURL(/\/status\//);
+        await expect(page.getByText('Quét VietQR để chuyển cọc')).toBeVisible();
+        await expect(page.locator('svg[aria-label^="Mã VietQR chuyển"]')).toBeVisible();
+        await expect(page.getByText('Nội dung chuyển khoản')).toBeVisible();
     });
 });

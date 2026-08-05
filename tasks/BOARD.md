@@ -25,6 +25,7 @@
 - T19 · Payment ingress tenant boundary hardening · in-review · `security/payment-ingress-tenant-boundary`
 - T20 · Identity bootstrap tenant boundary hardening · in-review · `security/identity-bootstrap-tenant-boundary`
 - T21 · Authorization boundary security audit · in-review · `security/authorization-boundary-audit`
+- T22 · Venue-first booking and payment experience · in-review · `test/playwright-e2e`
 
 ## Backlog
 
