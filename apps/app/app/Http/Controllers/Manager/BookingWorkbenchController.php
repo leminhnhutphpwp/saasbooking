@@ -106,11 +106,9 @@ class BookingWorkbenchController extends Controller
      * Single booking detail: customer info, slots, payments.
      * UUID route binding via Booking::getRouteKeyName() → 'uuid'.
      */
-    public function show(Request $request, Booking $booking): Response
+    public function show(Request $request, string $booking): Response
     {
-        $tenantId = (int) WorkingTenant::id($request);
-        abort_unless($tenantId, 403);
-        abort_unless($booking->tenant_id === $tenantId, 403);
+        $booking = $this->bookingForWorkingTenant($request, $booking);
 
         $booking->load(['customer', 'slots.court', 'payments.refunds']);
 
@@ -179,11 +177,9 @@ class BookingWorkbenchController extends Controller
      * Lifecycle actions: check-in, complete, no-show, cancel.
      * Validates the transition against the BookingStatus enum state machine.
      */
-    public function updateStatus(UpdateBookingStatusRequest $request, Booking $booking): RedirectResponse
+    public function updateStatus(UpdateBookingStatusRequest $request, string $booking): RedirectResponse
     {
-        $tenantId = (int) WorkingTenant::id($request);
-        abort_unless($tenantId, 403);
-        abort_unless($booking->tenant_id === $tenantId, 403);
+        $booking = $this->bookingForWorkingTenant($request, $booking);
 
         $action = $request->input('action');
         $currentStatus = $booking->status;
@@ -206,6 +202,21 @@ class BookingWorkbenchController extends Controller
         };
 
         return back()->with('success', Messages::success('booking', 'status_updated'));
+    }
+
+    /**
+     * Implicit model binding happens before the appended RLS middleware. Resolve UUIDs here,
+     * after that middleware has set the database tenant context for this request.
+     */
+    private function bookingForWorkingTenant(Request $request, string $uuid): Booking
+    {
+        $tenantId = (int) WorkingTenant::id($request);
+        abort_unless($tenantId, 403);
+
+        $booking = Booking::query()->where('uuid', $uuid)->firstOrFail();
+        abort_unless($booking->tenant_id === $tenantId, 403);
+
+        return $booking;
     }
 
     private function checkIn(Booking $booking): void
