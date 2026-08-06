@@ -201,11 +201,9 @@ class DemoSeeder extends Seeder
             'Sân thường, giá ưu đãi giờ thấp điểm',
         ];
         for ($i = 1; $i <= 4; $i++) {
-            $courts1[] = Court::forceCreate([
-                'tenant_id' => $tenant1->id,
+            $courts1[] = $this->firstOrCreateDemoCourt($tenant1, [
                 'name' => $courtNames1[$i - 1],
                 'court_type' => CourtType::Pickleball->value,
-                'status' => CourtStatus::Active->value,
                 'description' => $courtDescs1[$i - 1],
                 'surface_type' => 'indoor',
                 'display_order' => $i,
@@ -220,11 +218,9 @@ class DemoSeeder extends Seeder
         // Tenant 2: 6 badminton courts
         $courts2 = [];
         for ($i = 1; $i <= 6; $i++) {
-            $courts2[] = Court::forceCreate([
-                'tenant_id' => $tenant2->id,
+            $courts2[] = $this->firstOrCreateDemoCourt($tenant2, [
                 'name' => "Sân $i",
                 'court_type' => CourtType::CauLong->value,
-                'status' => CourtStatus::Active->value,
                 'description' => $i <= 4 ? 'Sân tiêu chuẩn, phù hợp mọi trình độ' : 'Sân cao cấp, sàn gỗ chuyên dụng',
                 'surface_type' => 'indoor',
                 'display_order' => $i,
@@ -315,6 +311,28 @@ class DemoSeeder extends Seeder
                 'price_per_hour' => 120_000,
                 'priority' => 0,
             ],
+        ]);
+    }
+
+    private function firstOrCreateDemoCourt(Tenant $tenant, array $attributes): Court
+    {
+        $court = Court::withTrashed()
+            ->where('tenant_id', $tenant->id)
+            ->where('name', $attributes['name'])
+            ->first();
+
+        if ($court) {
+            if ($court->trashed()) {
+                $court->restore();
+            }
+
+            return $court;
+        }
+
+        return Court::forceCreate([
+            'tenant_id' => $tenant->id,
+            'status' => CourtStatus::Active->value,
+            ...$attributes,
         ]);
     }
 
