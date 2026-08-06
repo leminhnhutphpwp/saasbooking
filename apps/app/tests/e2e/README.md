@@ -21,8 +21,8 @@ When the host does not have Node.js, as in the Docker-first development environm
 
 ```bash
 docker compose up -d
-docker compose exec -T app php artisan migrate --force
-docker compose exec -T app php artisan db:seed --class=DemoSeeder --force
+docker compose exec -T -e DB_CONNECTION=migrator app php artisan migrate --database=migrator --force
+docker compose exec -T -e DB_CONNECTION=migrator app php artisan db:seed --class=DemoSeeder --force
 docker run --rm --network host -e PLAYWRIGHT_BASE_URL=http://localhost:8000 \
   -v "$PWD/apps/app":/work -w /work \
   mcr.microsoft.com/playwright:v1.62.1-noble npm run test:e2e

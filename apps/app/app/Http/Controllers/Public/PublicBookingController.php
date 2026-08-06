@@ -58,8 +58,11 @@ class PublicBookingController extends Controller
         }
 
         $courts = $this->availability->search($tenant->id, $date, null, 60);
+        // Availability stores venue wall-clock slots as UTC; relabel "now" to that same shape.
+        $now = CarbonImmutable::parse(CarbonImmutable::now($tenant->timezone)->toDateTimeString());
 
-        $courts = array_map(function (array $court) use ($tenant) {
+        $courts = array_map(function (array $court) use ($tenant, $now) {
+            $court['free'] = array_values(array_filter($court['free'], fn (array $slot) => CarbonImmutable::parse($slot['start'])->greaterThan($now)));
             $court['free'] = array_map(function (array $slot) use ($tenant, $court) {
                 $start = CarbonImmutable::parse($slot['start']);
                 $end = CarbonImmutable::parse($slot['end']);
@@ -88,7 +91,7 @@ class PublicBookingController extends Controller
             $dayCourts = $this->availability->search($tenant->id, $checkDate, null, 60);
             $hasSlots = false;
             foreach ($dayCourts as $court) {
-                if (! empty($court['free'])) {
+                if (collect($court['free'])->contains(fn (array $slot) => CarbonImmutable::parse($slot['start'])->greaterThan($now))) {
                     $hasSlots = true;
                     break;
                 }
@@ -241,7 +244,8 @@ class PublicBookingController extends Controller
             throw ValidationException::withMessages(['court_id' => 'Sân này hiện không nhận đặt chỗ.']);
         }
 
-        if ($startAt->lessThanOrEqualTo(now($tenant->timezone))) {
+        $now = CarbonImmutable::parse(CarbonImmutable::now($tenant->timezone)->toDateTimeString());
+        if ($startAt->lessThanOrEqualTo($now)) {
             throw ValidationException::withMessages(['start_at' => 'Chỉ có thể đặt khung giờ trong tương lai.']);
         }
 

@@ -11,6 +11,7 @@ use App\Models\OpeningRule;
 use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -52,6 +53,21 @@ class PublicBookingTest extends TestCase
                 ->where('tenant.slug', 'venue-a')
                 ->has('courts', 1)
                 ->has('courts.0.free'));
+    }
+
+    public function test_show_hides_past_slots_on_the_current_venue_day(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-08-05 19:30:00', $this->tenant->timezone));
+
+        try {
+            $this->get('/book/venue-a')
+                ->assertOk()
+                ->assertInertia(fn ($page) => $page
+                    ->has('courts.0.free', 2)
+                    ->has('dateAvailability.2026-08-05'));
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     public function test_hold_creates_booking_payment_customer_and_redirects(): void
