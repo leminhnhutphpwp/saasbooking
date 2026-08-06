@@ -5,6 +5,9 @@ services:
   app:
     build: { context: ./apps/app, dockerfile: docker/php/Dockerfile }
     restart: unless-stopped
+    environment:
+      # Blade updates compiled-template mtimes; keep that cache off host bind mounts.
+      VIEW_COMPILED_PATH: /tmp/san-blade
     volumes:
       - ./apps/app:/var/www
       - ./apps/app/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini

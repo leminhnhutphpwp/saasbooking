@@ -13,8 +13,8 @@ VITE_SERVICE="${VITE_SERVICE:-vite}" # runs npm / Vite
 
 dc() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
-# Run artisan inside the app container (adds --tty only when interactive).
-artisan() { dc exec "$APP_SERVICE" php artisan "$@"; }
+# Keep CLI-compiled views separate from the FPM cache on bind-mounted workspaces.
+artisan() { dc exec -e VIEW_COMPILED_PATH=/tmp/san-blade-cli "$APP_SERVICE" php artisan "$@"; }
 
 require_docker() {
   command -v docker >/dev/null 2>&1 || log_fail "Docker chưa cài."
