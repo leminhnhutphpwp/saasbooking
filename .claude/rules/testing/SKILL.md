@@ -45,6 +45,34 @@ docker compose exec app php artisan test
 docker compose exec app php artisan test --filter=BookingConcurrencyTest
 ```
 
+## Browser observation and failure triage
+
+Use Playwright as a browser observation tool, not only as an assertion runner, for changed UI flows:
+
+```bash
+mkdir -p /tmp/san-ux
+```
+
+```js
+const problems = [];
+page.on('console', message => {
+    if (message.type() === 'error') problems.push(message.text());
+});
+page.on('pageerror', error => problems.push(error.message));
+page.on('requestfailed', request => problems.push(`failed: ${request.url()}`));
+
+await page.setViewportSize({ width: 1440, height: 900 });
+await page.goto('/');
+await page.screenshot({ path: '/tmp/san-ux/home-desktop.png', fullPage: true });
+expect(problems).toEqual([]);
+```
+
+- Review changed interactions at approximately `390px` and `1440px`; include hover, pointer cursor, keyboard focus, and overflow checks where applicable.
+- Save ad-hoc UX screenshots outside the repository, such as `/tmp/san-ux/`. Do not add generated screenshots to Git unless a task explicitly requires a durable fixture.
+- A Playwright launch error such as a missing Chromium executable is a runner-image problem, not evidence of an application regression. Use the project's pinned Playwright Docker image (`npm run test:e2e:docker`) or its equivalent `docker run` command when the host or `vite` container has no browser binary.
+- Once the browser launches, a console/page error, failed request, or reproducible interaction/assertion failure is an application or test issue and must be investigated before reporting success. Inspect Playwright's trace and error-context artifacts when available.
+- For direct CDP browser review, first call `browser_list` against the DevTools endpoint (such as `http://127.0.0.1:9225`), choose the tab `target_id`, and only then navigate it to the app URL. `browser_url` is never the application's `http://localhost:8000` URL.
+
 ## When to use this skill
 
 Reference this when:

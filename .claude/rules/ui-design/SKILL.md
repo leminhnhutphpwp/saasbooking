@@ -49,6 +49,32 @@ Functional ≠ finished. Court owners pay monthly — the UI must feel meticulou
 - **Loading + responsive.** Skeletons for async; verify the layout at mobile width AND wide desktop (no stretched rows, no overflow).
 - **Self-check before in-review:** open the page in a browser at ~390px and ~1440px; if it looks empty, misaligned, or monotonous, it's not done.
 
+## Browser UX Review
+
+For every changed interactive control (links, buttons, menus, cards, inputs, dialogs):
+
+1. Open the affected route at approximately `390px` and `1440px` wide and perform the interaction a real user performs.
+2. Check the hand cursor on clickable controls, hover/active/focus-visible feedback, keyboard navigation, disabled/selected state, and horizontal overflow.
+3. Capture a screenshot after the interface settles for each meaningful changed state. Store review screenshots under `/tmp/san-ux/`, never in the repository; record their paths and viewport in the task or worklog when they support a visual decision.
+4. Watch the browser console, uncaught page errors, and failed requests while interacting. A visually correct screenshot is not sufficient if the interaction emits runtime errors.
+
+Do not report a UI as verified from static code inspection, a build, or an unlaunched Playwright test alone.
+
+## Direct Chromium Control
+
+Use direct CDP control when a real browser interaction or screenshot review is needed:
+
+1. `browser_url` is the Chromium DevTools endpoint, not the app. Use `browser_list` to get a `target_id`, then navigate that tab to the project URL.
+2. Prefer a host Chromium profile so manual and automated review use the same browser. Start a separate profile when Chromium is already open, otherwise command-line flags are forwarded to the existing session:
+
+```bash
+chromium --remote-debugging-address=127.0.0.1 --remote-debugging-port=9225 --user-data-dir=/tmp/opencode-chromium-host about:blank
+```
+
+3. Confirm `http://127.0.0.1:9225/json/version` responds before using browser tools. Keep the endpoint on `127.0.0.1`; never expose a remote-debugging port on the network.
+4. Use `browser_snapshot` before UID-based clicks/fills. Use `browser_eval` for computed states such as cursor, overflow, and page state; use `browser_screenshot` for visual review.
+5. If host Chromium is unavailable, use the pinned Playwright Docker browser as a fallback. It is valid for automation but does not share the user's interactive browser session.
+
 ## When to use this skill
 
 Any task that adds or changes React/Inertia UI (all of `tasks/T01`–`T06` and future UI work).

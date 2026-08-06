@@ -40,6 +40,9 @@ Do not bulk-read `docs/`, `.claude/`, or `worklogs/`. Worklogs are history, not 
 - Make the smallest correct change. Do not add compatibility layers or dependencies without a concrete need.
 - Bugfixes start with a failing test, then a minimal fix and invariant check.
 - Verify the actual change: Pint, relevant PostgreSQL tests, frontend build, and browser check when UI changes.
+- Interactive UI changes require browser observation at approximately 390px and 1440px: exercise the changed control and check hover, pointer cursor, keyboard focus, disabled/selected states, and horizontal overflow. Capture screenshots of the reviewed states outside the repository and record the real result.
+- During browser checks, inspect console errors, uncaught page errors, and failed requests. A missing Playwright browser executable or unavailable test container is test infrastructure, not an application regression; fix or switch to the pinned browser runner before judging the UI.
+- CDP browser control uses a Chrome/Chromium DevTools endpoint (for example `http://127.0.0.1:9225`), not the project URL. List a browser target first, navigate that target to the app URL (for example `http://localhost:8000`), then snapshot/click/evaluate/screenshot the selected tab. Bind DevTools to `127.0.0.1` only.
 - After a meaningful session, add a short worklog: Goal / Changed / Decisions / Next.
 - After merge, remove the completed task file; Git history and worklogs retain the record.
 
