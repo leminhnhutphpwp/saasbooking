@@ -53,9 +53,9 @@ export default function Index({ refunds }) {
                     ) : (
                         <div className="divide-y">
                             {refunds.map((r) => (
-                                <div key={r.uuid} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                <div key={r.uuid} className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                             <Banknote className="h-5 w-5" />
                                         </div>
                                         <div className="space-y-0.5">
@@ -69,7 +69,7 @@ export default function Index({ refunds }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => setConfirmTarget(r)}>
+                                    <Button className="w-full sm:w-auto" variant="outline" size="sm" onClick={() => setConfirmTarget(r)}>
                                         Đã chuyển khoản
                                     </Button>
                                 </div>

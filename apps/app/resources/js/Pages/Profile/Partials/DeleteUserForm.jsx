@@ -48,11 +48,11 @@ export default function DeleteUserForm({ className = '' }) {
     return (
         <section className={`space-y-6 ${className}`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-medium text-foreground">
                     Xóa tài khoản
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-muted-foreground">
                     Sau khi tài khoản bị xóa, toàn bộ tài nguyên và dữ liệu sẽ
                     bị xóa vĩnh viễn. Trước khi xóa tài khoản, vui lòng tải về
                     mọi dữ liệu hoặc thông tin bạn muốn giữ lại.
@@ -65,11 +65,11 @@ export default function DeleteUserForm({ className = '' }) {
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
                 <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900">
+                    <h2 className="text-lg font-medium text-foreground">
                         Bạn có chắc chắn muốn xóa tài khoản?
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-600">
+                    <p className="mt-1 text-sm text-muted-foreground">
                         Sau khi tài khoản bị xóa, toàn bộ tài nguyên và dữ liệu
                         sẽ bị xóa vĩnh viễn. Vui lòng nhập mật khẩu để xác nhận
                         bạn muốn xóa tài khoản vĩnh viễn.

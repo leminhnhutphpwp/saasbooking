@@ -22,7 +22,7 @@ export default function ConfirmPassword() {
         <GuestLayout>
             <Head title="Xác nhận mật khẩu" />
 
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-sm text-muted-foreground">
                 Đây là khu vực bảo mật. Vui lòng xác nhận mật khẩu trước khi
                 tiếp tục.
             </div>

@@ -3,20 +3,17 @@ import ManagerLayout from '@/Layouts/ManagerLayout';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import { PageContainer } from '@/Components/PageContainer';
+import { PageHeader } from '@/Components/PageHeader';
 
 export default function Edit({ mustVerifyEmail, status }) {
     return (
-        <ManagerLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Hồ sơ
-                </h2>
-            }
-        >
+        <ManagerLayout>
             <Head title="Hồ sơ" />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+            <PageContainer size="narrow">
+                <PageHeader title="Hồ sơ" description="Quản lý thông tin và bảo mật tài khoản của bạn." />
+                <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
@@ -24,14 +21,14 @@ export default function Edit({ mustVerifyEmail, status }) {
                     />
                 </div>
 
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+                <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
                     <UpdatePasswordForm className="max-w-xl" />
                 </div>
 
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+                <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
                     <DeleteUserForm className="max-w-xl" />
                 </div>
-            </div>
+            </PageContainer>
         </ManagerLayout>
     );
 }

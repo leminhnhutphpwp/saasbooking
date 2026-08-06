@@ -19,13 +19,13 @@ export default function ForgotPassword({ status }) {
         <GuestLayout>
             <Head title="Quên mật khẩu" />
 
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-sm text-muted-foreground">
                 Nhập địa chỉ email đã đăng ký. Chúng tôi sẽ gửi cho bạn liên kết
                 để tạo mật khẩu mới.
             </div>
 
             {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
+                <div className="mb-4 text-sm font-medium text-primary">
                     {status}
                 </div>
             )}

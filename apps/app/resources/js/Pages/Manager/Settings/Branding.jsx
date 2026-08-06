@@ -13,7 +13,7 @@ export default function Branding({ tenant, settings }) {
     const [copied, setCopied] = useState(false);
     const fileRef = useRef(null);
     const form = useForm({
-        primary_color: settings?.primary_color ?? '#8b5cf6',
+        primary_color: settings?.primary_color ?? '#16a34a',
         logo: null,
         remove_logo: false,
     });
@@ -134,7 +134,7 @@ export default function Branding({ tenant, settings }) {
                                         className="h-14 w-14 cursor-pointer rounded-xl border-0 p-0"
                                     />
                                     <div className="flex-1">
-                                        <Input type="text" value={pc} onChange={(e) => form.setData('primary_color', e.target.value)} placeholder="#8b5cf6" className="font-mono" />
+                                        <Input type="text" value={pc} onChange={(e) => form.setData('primary_color', e.target.value)} placeholder="#16a34a" className="font-mono" />
                                         {form.errors.primary_color && <p className="text-sm text-destructive">{form.errors.primary_color}</p>}
                                     </div>
                                 </div>

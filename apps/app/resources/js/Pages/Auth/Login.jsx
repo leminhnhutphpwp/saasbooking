@@ -31,7 +31,7 @@ export default function Login({ status, canResetPassword }) {
             </div>
 
             {status && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <div className="rounded-lg border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
                     {status}
                 </div>
             )}

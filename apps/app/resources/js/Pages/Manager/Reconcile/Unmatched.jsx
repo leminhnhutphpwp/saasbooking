@@ -94,7 +94,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                                 <Card className="overflow-hidden">
                                     <div className="divide-y">
                                         {unmatched.map((t) => (
-                                            <div key={t.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                            <div key={t.id} className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base font-bold text-primary">{formatVND(t.amount)}</span>
@@ -109,11 +109,11 @@ export default function Unmatched({ txns, pendingBookings }) {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex shrink-0 gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                <div className="flex w-full gap-2 sm:w-auto">
+                                                    <Button className="flex-1 sm:flex-none" variant="outline" size="sm" onClick={() => openMatch(t)}>
                                                         Đối soát
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
+                                                    <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground sm:flex-none" onClick={() => setDismissTarget(t)}>
                                                         Bỏ qua
                                                     </Button>
                                                 </div>
@@ -138,7 +138,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                                 <Card className="overflow-hidden">
                                     <div className="divide-y">
                                         {fresh.map((t) => (
-                                            <div key={t.id} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
+                                            <div key={t.id} className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
                                                 <div className="space-y-1">
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-base font-bold text-foreground">{formatVND(t.amount)}</span>
@@ -148,11 +148,11 @@ export default function Unmatched({ txns, pendingBookings }) {
                                                         {t.received_at}
                                                     </div>
                                                 </div>
-                                                <div className="flex shrink-0 gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                <div className="flex w-full gap-2 sm:w-auto">
+                                                    <Button className="flex-1 sm:flex-none" variant="outline" size="sm" onClick={() => openMatch(t)}>
                                                         Đối soát
                                                     </Button>
-                                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
+                                                    <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground sm:flex-none" onClick={() => setDismissTarget(t)}>
                                                         Bỏ qua
                                                     </Button>
                                                 </div>

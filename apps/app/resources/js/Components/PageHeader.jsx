@@ -20,9 +20,9 @@ export function PageHeader({
   children,
 }) {
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between',
+        <div
+          className={cn(
+            'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
         className,
       )}
     >
@@ -36,7 +36,7 @@ export function PageHeader({
             {backLabel || 'Quay lại'}
           </Link>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl">
           {title}
         </h1>
         {description && (
@@ -44,7 +44,7 @@ export function PageHeader({
         )}
       </div>
       {(actions || children) && (
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {actions}
           {children}
         </div>
