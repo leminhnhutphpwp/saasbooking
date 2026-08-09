@@ -62,10 +62,9 @@ class CustomerController extends Controller
     /**
      * Customer profile with booking history and attendance stats.
      */
-    public function show(Request $request, Customer $customer): Response
+    public function show(Request $request, string $customer): Response
     {
-        $tenantId = WorkingTenant::id($request);
-        abort_unless($customer->tenant_id === $tenantId, 403);
+        $customer = $this->customerForWorkingTenant($request, $customer);
 
         $history = $this->customers->getHistory($request, $customer);
 
@@ -76,6 +75,7 @@ class CustomerController extends Controller
                 'phone' => $history['customer']->phone,
                 'name' => $history['customer']->name,
                 'email' => $history['customer']->email,
+                'created_at' => $history['customer']->created_at->toIso8601String(),
             ],
             'stats' => $history['stats'],
             'bookings' => $history['bookings']->map(fn ($b) => [
@@ -119,10 +119,9 @@ class CustomerController extends Controller
     /**
      * Update customer. Phone changes are normalized; duplicates within tenant are merged.
      */
-    public function update(Request $request, Customer $customer): RedirectResponse
+    public function update(Request $request, string $customer): RedirectResponse
     {
-        $tenantId = WorkingTenant::id($request);
-        abort_unless($customer->tenant_id === $tenantId, 403);
+        $customer = $this->customerForWorkingTenant($request, $customer);
 
         $data = $request->validate([
             'phone' => ['sometimes', 'required', 'string', 'regex:/^[\d\s\-\.\(\)\+]{8,15}$/'],
@@ -135,5 +134,17 @@ class CustomerController extends Controller
         $this->customers->upsert($request, $data);
 
         return back()->with('success', Messages::get('customer', 'updated'));
+    }
+
+    /** Resolve route UUIDs after the appended RLS middleware sets tenant context. */
+    private function customerForWorkingTenant(Request $request, string $uuid): Customer
+    {
+        $tenantId = (int) WorkingTenant::id($request);
+        abort_unless($tenantId, 403);
+
+        $customer = Customer::query()->where('uuid', $uuid)->firstOrFail();
+        abort_unless($customer->tenant_id === $tenantId, 403);
+
+        return $customer;
     }
 }

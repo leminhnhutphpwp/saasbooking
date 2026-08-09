@@ -99,7 +99,7 @@ class CustomerService
     /**
      * Get a customer's booking history with attendance stats, tenant-scoped.
      *
-     * @return array{customer: Customer, stats: array{total_bookings: int, completed: int, no_shows: int, cancelled: int, upcoming: int}, bookings: Collection}
+     * @return array{customer: Customer, stats: array{total_bookings: int, completed: int, no_shows: int, cancelled: int, upcoming: int, total_spent: int, last_visit: ?string, favorite_court: ?string}, bookings: Collection}
      */
     public function getHistory(Request $request, Customer $customer): array
     {
@@ -112,6 +112,33 @@ class CustomerService
             ->orderByDesc('created_at')
             ->get();
 
+        // Calculate total spent (only Confirmed or Completed bookings)
+        $totalSpent = $bookings
+            ->filter(fn ($b) => in_array($b->status->value, ['confirmed', 'completed']))
+            ->sum('total_amount');
+
+        // Find last visit (most recent booking start time)
+        $lastVisit = $bookings
+            ->flatMap(fn ($b) => $b->slots)
+            ->max('start_at');
+
+        // Find favorite court (most booked court by count)
+        $favoriteCourt = $bookings
+            ->flatMap(fn ($b) => $b->slots)
+            ->filter(fn ($slot) => $slot->court !== null)
+            ->groupBy('court_id')
+            ->sortByDesc(fn ($slots) => $slots->count())
+            ->keys()
+            ->first();
+
+        $favoriteCourtName = null;
+        if ($favoriteCourt) {
+            $favoriteCourtName = $bookings
+                ->flatMap(fn ($b) => $b->slots)
+                ->first(fn ($slot) => $slot->court_id === $favoriteCourt)
+                ?->court?->name;
+        }
+
         $stats = [
             'total_bookings' => $bookings->count(),
             'completed' => $bookings->where('status', BookingStatus::Confirmed)->count(),
@@ -119,6 +146,9 @@ class CustomerService
             'cancelled' => $bookings->where('status', BookingStatus::Cancelled)->count(),
             'upcoming' => $bookings->where('status', BookingStatus::Confirmed)
                 ->where(fn ($q) => $q->whereHas('slots', fn ($sq) => $sq->where('start_at', '>', now())))->count(),
+            'total_spent' => (int) $totalSpent,
+            'last_visit' => $lastVisit?->toIso8601String(),
+            'favorite_court' => $favoriteCourtName,
         ];
 
         return [

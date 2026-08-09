@@ -24,7 +24,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import { formatVND } from '@/lib/format';
+import { formatVND, formatDate } from '@/lib/format';
 import { RefreshCw, Plus, XCircle } from 'lucide-react';
 
 const WEEKDAY_LABELS = {
@@ -117,7 +117,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                 ) : (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         {series.map((s) => (
-                            <Card key={s.uuid} className="overflow-hidden transition-shadow hover:shadow-md">
+                            <Card key={s.uuid} className="transition-shadow hover:shadow-md">
                                 <div className="p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex items-center gap-3">
@@ -154,7 +154,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                                     </div>
 
                                     <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                                        <span>{s.start_date} → {s.end_date}</span>
+                                        <span>{formatDate(s.start_date)} → {formatDate(s.end_date)}</span>
                                         <span className="font-medium text-foreground">{s.bookings_count}/{s.sessions_total} buổi</span>
                                     </div>
 

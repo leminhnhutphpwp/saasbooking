@@ -25,12 +25,18 @@ import {
     DialogTitle,
 } from '@/Components/ui/dialog';
 import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from '@/Components/ui/sheet';
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/Components/ui/tooltip';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, Info, MousePointer2, Plus } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Info, MousePointer2, Phone, Plus, User } from 'lucide-react';
 
 const DAY_START = 5;
 const DAY_END = 23;
@@ -82,6 +88,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
     const [open, setOpen] = useState(false);
     const [nowPos, setNowPos] = useState(null);
     const [selectedCourtId, setSelectedCourtId] = useState('all');
+    const [selectedBooking, setSelectedBooking] = useState(null);
     const scrollRef = useRef(null);
 
     useEffect(() => {
@@ -161,6 +168,12 @@ export default function Index({ date, bookings, courts, timeSlots }) {
     const isToday = date === todayStr;
     const visibleCourts = selectedCourtId === 'all' ? courts : courts.filter((court) => String(court.id) === selectedCourtId);
 
+    // Court summary chips: count bookings per court
+    const courtSummary = visibleCourts.map((court) => ({
+        ...court,
+        bookingCount: (bookingsByCourt[court.id] ?? []).length,
+    }));
+
     return (
         <ManagerLayout>
             <Head title="Lịch đặt sân" />
@@ -214,7 +227,82 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                             <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex"><Info className="size-3.5" />Kéo ngang để xem thêm sân</p>
                             <p className="text-xs text-muted-foreground sm:hidden">Vuốt ngang</p>
                         </div>
-                    <div className="overflow-x-auto overscroll-x-contain scroll-smooth" ref={scrollRef}>
+
+                        {/* Court summary chips */}
+                        <div className="flex flex-wrap gap-2 border-b px-4 py-2 sm:px-5">
+                            {courtSummary.map((court) => (
+                                <button
+                                    key={court.id}
+                                    type="button"
+                                    onClick={() => setSelectedCourtId(String(court.id))}
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                                        selectedCourtId === String(court.id)
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                                    }`}
+                                >
+                                    {court.name}
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                        selectedCourtId === String(court.id)
+                                            ? 'bg-primary-foreground/20'
+                                            : 'bg-background'
+                                    }`}>
+                                        {court.bookingCount}
+                                    </span>
+                                </button>
+                            ))}
+                            {selectedCourtId !== 'all' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedCourtId('all')}
+                                    className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/80"
+                                >
+                                    Tất cả
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Mobile timeline view (<640px) */}
+                        <div className="block sm:hidden">
+                            {bookings.length === 0 ? (
+                                <div className="p-8 text-center">
+                                    <CalendarDays className="mx-auto size-8 text-muted-foreground/40" />
+                                    <p className="mt-2 text-sm text-muted-foreground">Chưa có lịch đặt nào</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y">
+                                    {bookings.map((b, idx) => {
+                                        const isWalkIn = b.channel === 'owner_manual';
+                                        const ChannelIcon = isWalkIn ? User : Globe;
+                                        const tint = STATUS_TINT[b.status] ?? STATUS_TINT.confirmed;
+
+                                        return (
+                                            <button
+                                                key={`${b.code}-${idx}`}
+                                                type="button"
+                                                className="flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-muted/40"
+                                                onClick={() => setSelectedBooking(b)}
+                                            >
+                                                <div className={`flex size-12 shrink-0 items-center justify-center rounded-lg ${tint.bg}`}>
+                                                    <ChannelIcon className={`size-5 ${tint.text}`} />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <p className="truncate font-semibold">{b.customer || 'Khách vãng lai'}</p>
+                                                        <StatusBadge type="booking" value={b.status} />
+                                                    </div>
+                                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                                        {hhmm(b.start)} – {hhmm(b.end)} · {b.court}
+                                                    </p>
+                                                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">{b.code}</p>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    <div className="hidden overflow-x-auto overscroll-x-contain scroll-smooth sm:block" ref={scrollRef}>
                         <div
                             className="grid min-w-[540px]"
                             style={{
@@ -275,23 +363,29 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                             const top = pct(startMin);
                                             const heightPct = Math.max(0, pct(endMin) - pct(startMin));
                                             const tint = STATUS_TINT[b.status] ?? STATUS_TINT.confirmed;
+                                            const isWalkIn = b.channel === 'owner_manual';
+                                            const ChannelIcon = isWalkIn ? User : Globe;
 
                                             return (
                                                 <TooltipProvider key={`${b.code}-${b.start}`}>
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
-                                                            <div
-                                                                className={`absolute left-1 right-1 z-10 overflow-hidden rounded-lg border-l-[3px] px-2 py-1.5 text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tint.bg}`}
+                                                            <button
+                                                                type="button"
+                                                                className={`absolute left-1 right-1 z-10 cursor-pointer overflow-hidden rounded-lg border-l-[3px] px-2 py-1.5 text-[11px] leading-tight shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${tint.bg}`}
                                                                 style={{ top: `${top}%`, height: `${heightPct}%`, minHeight: 24, borderLeftColor: tint.border }}
-                                                                tabIndex={0}
+                                                                onClick={() => setSelectedBooking(b)}
                                                             >
-                                                                <div className={`truncate font-semibold ${tint.text}`}>
-                                                                    {b.customer}
+                                                                <div className="flex items-center gap-1">
+                                                                    <ChannelIcon className="size-3 shrink-0" />
+                                                                    <div className={`truncate font-semibold ${tint.text}`}>
+                                                                        {b.customer}
+                                                                    </div>
                                                                 </div>
                                                                 <div className="truncate text-muted-foreground">
                                                                     {hhmm(b.start)}–{hhmm(b.end)}
                                                                 </div>
-                                                            </div>
+                                                            </button>
                                                         </TooltipTrigger>
                                                         <TooltipContent side="right" className="max-w-[220px] space-y-1">
                                                             <p className="font-semibold">{b.customer}</p>
@@ -343,6 +437,85 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                     </section>
                 )}
             </PageContainer>
+
+            {/* Booking detail slide-over panel */}
+            <Sheet open={!!selectedBooking} onOpenChange={(open) => !open && setSelectedBooking(null)}>
+                <SheetContent className="sm:max-w-md">
+                    <SheetHeader>
+                        <SheetTitle>Chi tiết đặt sân</SheetTitle>
+                    </SheetHeader>
+                    {selectedBooking && (
+                        <div className="space-y-4">
+                            <div className="rounded-lg border bg-muted/30 p-4">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p className="font-mono text-sm font-semibold">{selectedBooking.code}</p>
+                                        <p className="mt-1 text-sm text-muted-foreground">{selectedBooking.court}</p>
+                                    </div>
+                                    <StatusBadge type="booking" value={selectedBooking.status} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-xs font-medium text-muted-foreground">Khách hàng</p>
+                                    <p className="mt-1 font-semibold">{selectedBooking.customer || 'Khách vãng lai'}</p>
+                                    {selectedBooking.phone && (
+                                        <a href={`tel:${selectedBooking.phone}`} className="mt-1 inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                                            <Phone className="size-3" />
+                                            {selectedBooking.phone}
+                                        </a>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-medium text-muted-foreground">Thời gian</p>
+                                    <p className="mt-1 text-sm">
+                                        {hhmm(selectedBooking.start)} – {hhmm(selectedBooking.end)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {new Date(selectedBooking.start).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-medium text-muted-foreground">Loại đặt sân</p>
+                                    <p className="mt-1 inline-flex items-center gap-1.5 text-sm">
+                                        {selectedBooking.channel === 'owner_manual' ? (
+                                            <>
+                                                <User className="size-4" />
+                                                Đặt hộ (Walk-in)
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Globe className="size-4" />
+                                                Đặt online
+                                            </>
+                                        )}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2 pt-4">
+                                <Button
+                                    className="flex-1"
+                                    onClick={() => {
+                                        router.visit(route('manager.bookings.show', selectedBooking.code));
+                                    }}
+                                >
+                                    Xem chi tiết
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSelectedBooking(null)}
+                                >
+                                    Đóng
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-md">

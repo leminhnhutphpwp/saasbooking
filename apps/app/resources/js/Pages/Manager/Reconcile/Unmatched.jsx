@@ -9,6 +9,7 @@ import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
 import { Label } from '@/Components/ui/label';
 import { Card } from '@/Components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import {
     Select,
     SelectContent,
@@ -91,35 +92,44 @@ export default function Unmatched({ txns, pendingBookings }) {
                                     </h3>
                                     <Badge variant="secondary" className="text-xs">{unmatched.length}</Badge>
                                 </div>
-                                <Card className="overflow-hidden">
-                                    <div className="divide-y">
-                                        {unmatched.map((t) => (
-                                            <div key={t.id} className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-base font-bold text-primary">{formatVND(t.amount)}</span>
-                                                        <span className="font-mono text-sm text-muted-foreground">{t.memo}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                        <span>{t.received_at}</span>
+                                <Card>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Số tiền</TableHead>
+                                                <TableHead>Nội dung</TableHead>
+                                                <TableHead>Ngày nhận</TableHead>
+                                                <TableHead>Ghi chú</TableHead>
+                                                <TableHead className="text-right">Thao tác</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {unmatched.map((t) => (
+                                                <TableRow key={t.id}>
+                                                    <TableCell className="font-bold text-primary">{formatVND(t.amount)}</TableCell>
+                                                    <TableCell className="font-mono text-sm text-muted-foreground">{t.memo}</TableCell>
+                                                    <TableCell className="text-muted-foreground">{t.received_at}</TableCell>
+                                                    <TableCell>
                                                         {t.note && (
                                                             <Badge variant="secondary" className="text-xs">
                                                                 {t.note}
                                                             </Badge>
                                                         )}
-                                                    </div>
-                                                </div>
-                                                <div className="flex w-full gap-2 sm:w-auto">
-                                                    <Button className="flex-1 sm:flex-none" variant="outline" size="sm" onClick={() => openMatch(t)}>
-                                                        Đối soát
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground sm:flex-none" onClick={() => setDismissTarget(t)}>
-                                                        Bỏ qua
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                                Đối soát
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
+                                                                Bỏ qua
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
                                 </Card>
                             </section>
                         )}
@@ -135,30 +145,36 @@ export default function Unmatched({ txns, pendingBookings }) {
                                     </h3>
                                     <Badge variant="secondary" className="text-xs">{fresh.length}</Badge>
                                 </div>
-                                <Card className="overflow-hidden">
-                                    <div className="divide-y">
-                                        {fresh.map((t) => (
-                                            <div key={t.id} className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-base font-bold text-foreground">{formatVND(t.amount)}</span>
-                                                        <span className="font-mono text-sm text-muted-foreground">{t.memo}</span>
-                                                    </div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {t.received_at}
-                                                    </div>
-                                                </div>
-                                                <div className="flex w-full gap-2 sm:w-auto">
-                                                    <Button className="flex-1 sm:flex-none" variant="outline" size="sm" onClick={() => openMatch(t)}>
-                                                        Đối soát
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground sm:flex-none" onClick={() => setDismissTarget(t)}>
-                                                        Bỏ qua
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <Card>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Số tiền</TableHead>
+                                                <TableHead>Nội dung</TableHead>
+                                                <TableHead>Ngày nhận</TableHead>
+                                                <TableHead className="text-right">Thao tác</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {fresh.map((t) => (
+                                                <TableRow key={t.id}>
+                                                    <TableCell className="font-bold text-foreground">{formatVND(t.amount)}</TableCell>
+                                                    <TableCell className="font-mono text-sm text-muted-foreground">{t.memo}</TableCell>
+                                                    <TableCell className="text-muted-foreground">{t.received_at}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <Button variant="outline" size="sm" onClick={() => openMatch(t)}>
+                                                                Đối soát
+                                                            </Button>
+                                                            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setDismissTarget(t)}>
+                                                                Bỏ qua
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
                                 </Card>
                             </section>
                         )}
@@ -171,7 +187,7 @@ export default function Unmatched({ txns, pendingBookings }) {
                 onOpenChange={(nextOpen) => !nextOpen && setDismissTarget(null)}
                 onConfirm={dismissTxn}
                 title="Bỏ qua giao dịch"
-                description={dismissTarget ? `Giao dịch ${formatVND(dismissTarget.amount)} với nội dung “${dismissTarget.memo}” sẽ được loại khỏi danh sách cần đối soát. Chỉ thực hiện khi bạn chắc chắn giao dịch này không thuộc đơn đặt sân nào.` : ''}
+                description={dismissTarget ? `Giao dịch ${formatVND(dismissTarget.amount)} với nội dung "${dismissTarget.memo}" sẽ được loại khỏi danh sách cần đối soát. Chỉ thực hiện khi bạn chắc chắn giao dịch này không thuộc đơn đặt sân nào.` : ''}
                 confirmLabel="Bỏ qua giao dịch"
                 processingLabel="Đang bỏ qua…"
                 processing={dismissProcessing}

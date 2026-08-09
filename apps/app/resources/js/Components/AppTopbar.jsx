@@ -1,8 +1,9 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Building2, Check, ChevronDown, LogOut, Moon, Plus, Search, Sun, User } from 'lucide-react';
+import { Bell, Building2, Check, ChevronDown, LogOut, Moon, Plus, Search, Sun, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Dropdown from '@/Components/Dropdown';
 import { SidebarTrigger } from '@/Components/ui/sidebar';
+import { CommandPalette } from '@/Components/CommandPalette';
 
 function TenantSwitcher({ tenants, workingTenantId }) {
     if (tenants.length < 2) return null;
@@ -100,27 +101,46 @@ function UserAvatar({ user }) {
 export function AppTopbar() {
     const { auth, workingTenants = [], workingTenantId } = usePage().props;
     const user = auth.user;
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setCommandPaletteOpen(true);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
-            <SidebarTrigger className="md:hidden" aria-label="Mở menu điều hướng" />
-            <div className="flex flex-1 items-center justify-center">
-                <div className="relative w-full max-w-md">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm... ⌘K"
-                        className="h-9 w-full rounded-full border border-input bg-muted pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
-                        readOnly
-                    />
+        <>
+            <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
+                <SidebarTrigger className="md:hidden" aria-label="Mở menu điều hướng" />
+                <div className="flex flex-1 items-center justify-center">
+                    <button
+                        onClick={() => setCommandPaletteOpen(true)}
+                        className="relative w-full max-w-md"
+                    >
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <div className="flex h-9 w-full items-center rounded-full border border-input bg-muted pl-9 pr-4 text-sm text-muted-foreground transition-colors hover:bg-muted/80">
+                            <span className="flex-1 text-left">Tìm kiếm...</span>
+                            <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 text-xs sm:inline-block">
+                                ⌘K
+                            </kbd>
+                        </div>
+                    </button>
                 </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-                <TenantSwitcher tenants={workingTenants} workingTenantId={workingTenantId} />
-                <ThemeToggle />
-                <UserAvatar user={user} />
-            </div>
-        </header>
+                <div className="flex items-center gap-2">
+                    <TenantSwitcher tenants={workingTenants} workingTenantId={workingTenantId} />
+                    <ThemeToggle />
+                    <UserAvatar user={user} />
+                </div>
+            </header>
+            <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+        </>
     );
 }

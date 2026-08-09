@@ -11,6 +11,14 @@ import { Label } from '@/Components/ui/label';
 import { Badge } from '@/Components/ui/badge';
 import { Card } from '@/Components/ui/card';
 import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/Components/ui/table';
+import {
     Dialog,
     DialogContent,
     DialogFooter,
@@ -18,7 +26,7 @@ import {
     DialogTitle,
 } from '@/Components/ui/dialog';
 import { formatVND } from '@/lib/format';
-import { Trash2, Plus, AlertCircle, DollarSign, Info, CalendarDays, Clock3 } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, DollarSign, Info, CalendarDays, Clock3, Search, SlidersHorizontal, X } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -48,6 +56,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
     const [editingId, setEditingId] = useState(null);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteProcessing, setDeleteProcessing] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
     const form = useForm({
         weekday: [],
         start_local: '06:00',
@@ -180,67 +189,108 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                 </div>
 
                 <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <Card className="overflow-hidden">
-                        <div className="flex items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4">
-                            <div>
-                                <h2 className="font-semibold text-foreground">Các mức giá đang áp dụng</h2>
-                                <p className="mt-0.5 text-sm text-muted-foreground">
-                                    {activeRules.length > 0 ? `${activeRules.length} quy tắc được sắp theo giờ bắt đầu` : 'Chưa có quy tắc giá'}
-                                </p>
+                    <div className="space-y-4">
+                        {/* ── Filter Bar ─────────────────────────────────── */}
+                        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+                            <div className="mb-4 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="grid size-8 place-items-center rounded-lg bg-primary/10"><SlidersHorizontal className="size-4 text-primary" /></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-foreground">Tìm & lọc giá</p>
+                                        <p className="text-xs text-muted-foreground">Theo khung giờ hoặc ngày</p>
+                                    </div>
+                                </div>
+                                {searchInput && (
+                                    <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setSearchInput('')}>
+                                        <X className="size-4" />Xóa bộ lọc
+                                    </Button>
+                                )}
                             </div>
-                            {activeRules.length > 0 && <Badge variant="secondary">{activeRules.length} mức</Badge>}
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                                <Input
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    placeholder="Tìm khung giờ, ngày"
+                                    className="h-10 rounded-xl pl-9"
+                                    aria-label="Tìm bảng giá"
+                                />
+                            </div>
                         </div>
 
-                        {activeRules.length === 0 ? (
-                            <EmptyState
-                                icon={DollarSign}
-                                title="Chưa có bảng giá nào"
-                                description={scope === 'venue' ? 'Thiết lập một lần để áp dụng cho tất cả sân.' : 'Chỉ thêm mức giá khác với giá chung toàn cơ sở.'}
-                                example="VD: 6–17h thường 100k, 17–22h giờ vàng 130k"
-                                action={
-                                    <Button onClick={openAdd} className="gap-2">
-                                        <Plus className="h-4 w-4" />
-                                        Thêm giá
-                                    </Button>
-                                }
-                            />
-                        ) : (
-                            <div className="divide-y">
-                                {sortedRules.map((r) => (
-                                    <div key={r.id} className="flex flex-col gap-4 p-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                <Badge variant={getTierVariant(r)}>
-                                                    {getTierLabel(r)}
-                                                </Badge>
-                                                {r.priority > 0 && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        Ưu tiên {r.priority}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                                                <div className="text-xl font-bold tracking-tight text-primary">
-                                                    {formatVND(r.price_per_hour)}
-                                                    <span className="ml-1 text-xs font-normal text-muted-foreground">/ giờ</span>
-                                                </div>
-                                                <div className="inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
-                                                    <Clock3 className="h-4 w-4" />
-                                                    {r.start_local} – {r.end_local}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex shrink-0 items-center gap-1 self-end sm:self-auto">
-                                            <Button variant="outline" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
-                                            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ ...r, scope })} aria-label="Xóa mức giá">
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                        <Card>
+                            <div className="flex items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4">
+                                <div>
+                                    <h2 className="font-semibold text-foreground">Các mức giá đang áp dụng</h2>
+                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                        {activeRules.length > 0 ? `${activeRules.length} quy tắc được sắp theo giờ bắt đầu` : 'Chưa có quy tắc giá'}
+                                    </p>
+                                </div>
+                                {activeRules.length > 0 && <Badge variant="secondary">{activeRules.length} mức</Badge>}
                             </div>
-                        )}
-                    </Card>
+
+                            {activeRules.length === 0 ? (
+                                <EmptyState
+                                    icon={DollarSign}
+                                    title="Chưa có bảng giá nào"
+                                    description={scope === 'venue' ? 'Thiết lập một lần để áp dụng cho tất cả sân.' : 'Chỉ thêm mức giá khác với giá chung toàn cơ sở.'}
+                                    example="VD: 6–17h thường 100k, 17–22h giờ vàng 130k"
+                                    action={
+                                        <Button onClick={openAdd} className="gap-2">
+                                            <Plus className="h-4 w-4" />
+                                            Thêm giá
+                                        </Button>
+                                    }
+                                />
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Phạm vi ngày</TableHead>
+                                            <TableHead>Khung giờ</TableHead>
+                                            <TableHead className="text-right">Giá/giờ</TableHead>
+                                            <TableHead className="text-right">Ưu tiên</TableHead>
+                                            <TableHead className="text-right">Thao tác</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedRules.map((r) => (
+                                            <TableRow key={r.id}>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Badge variant={getTierVariant(r)}>
+                                                            {getTierLabel(r)}
+                                                        </Badge>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm text-muted-foreground">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Clock3 className="h-4 w-4" />
+                                                        {r.start_local} – {r.end_local}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <span className="font-bold text-primary">{formatVND(r.price_per_hour)}</span>
+                                                    <span className="ml-1 text-xs text-muted-foreground">/ giờ</span>
+                                                </TableCell>
+                                                <TableCell className="text-right text-muted-foreground">
+                                                    {r.priority > 0 ? r.priority : '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <Button variant="outline" size="sm" onClick={() => openEdit(r)}>Sửa</Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteTarget({ ...r, scope })} aria-label="Xóa mức giá">
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </Card>
+                    </div>
 
                     <aside className="space-y-4 lg:sticky lg:top-20">
                         <Card className="p-5">

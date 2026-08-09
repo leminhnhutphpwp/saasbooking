@@ -11,6 +11,7 @@ use App\Http\Controllers\Manager\PricingRuleController;
 use App\Http\Controllers\Manager\ReconcileController;
 use App\Http\Controllers\Manager\RefundController;
 use App\Http\Controllers\Manager\ReportController;
+use App\Http\Controllers\Manager\SearchController;
 use App\Http\Controllers\Manager\SeriesController;
 use App\Http\Controllers\Manager\TenantSwitchController;
 use App\Http\Controllers\Manager\VenueController;
@@ -122,6 +123,9 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::get('/bookings/{booking}', [BookingWorkbenchController::class, 'show'])->name('bookings.show');
     Route::post('/bookings', [BookingWorkbenchController::class, 'store'])->name('bookings.store');
     Route::patch('/bookings/{booking}/status', [BookingWorkbenchController::class, 'updateStatus'])->name('bookings.status');
+
+    // Global search (Cmd+K command palette).
+    Route::get('/search', SearchController::class)->name('search');
 });
 
 // Public booking page (resolved by tenant slug — no auth).

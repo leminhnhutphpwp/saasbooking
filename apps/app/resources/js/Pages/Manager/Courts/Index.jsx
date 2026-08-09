@@ -7,6 +7,7 @@ import { EmptyState } from '@/Components/EmptyState';
 import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Badge } from '@/Components/ui/badge';
+import { Card } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Checkbox } from '@/Components/ui/checkbox';
@@ -400,7 +401,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                 {/* ── Table ────────────────────────────────────────────────── */}
                 {!isEmpty && !isNoMatch && (
                     <TooltipProvider>
-                        <div className="rounded-lg border">
+                        <Card>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -530,7 +531,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </Card>
 
                         {/* ── Pagination ────────────────────────────────────── */}
                         {pagination.last_page > 1 && (

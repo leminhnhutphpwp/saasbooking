@@ -6,18 +6,20 @@ import { PageContainer } from '@/Components/PageContainer';
 import { PageHeader } from '@/Components/PageHeader';
 import { StatusBadge } from '@/Components/StatusBadge';
 import { Button } from '@/Components/ui/button';
+import { Card } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { formatDate, formatTime, formatVND } from '@/lib/format';
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Search, SlidersHorizontal, X } from 'lucide-react';
 
-const statuses = [
-    ['pending_deposit', 'Chờ cọc'],
-    ['confirmed', 'Đã xác nhận'],
-    ['completed', 'Đã hoàn tất'],
-    ['no_show', 'Bom sân'],
-    ['cancelled', 'Đã hủy'],
-    ['expired', 'Hết hạn'],
+const statusTabs = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'pending_deposit', label: 'Chờ cọc' },
+    { value: 'confirmed', label: 'Đã xác nhận' },
+    { value: 'completed', label: 'Hoàn tất' },
+    { value: 'cancelled', label: 'Đã hủy' },
+    { value: 'no_show', label: 'Bom sân' },
+    { value: 'expired', label: 'Hết hạn' },
 ];
 
 function firstSlot(booking) {
@@ -68,18 +70,36 @@ export default function Index({ bookings, courts, filters = {} }) {
 
                 <form onSubmit={(event) => { event.preventDefault(); navigate(); }} className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
                     <div className="mb-4 flex items-center justify-between gap-3"><div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-lg bg-primary/10"><SlidersHorizontal className="size-4 text-primary" /></div><div><p className="text-sm font-bold text-foreground">Tìm & lọc đơn</p><p className="text-xs text-muted-foreground">Theo khách, mã đơn, thời gian hoặc trạng thái</p></div></div>{hasFilters && <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" onClick={clearFilters}><X className="size-4" />Xóa bộ lọc</Button>}</div>
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,0.8fr))_auto]">
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.6fr)_repeat(2,minmax(0,0.8fr))_minmax(0,1fr)_minmax(0,1fr)_auto]">
                         <div className="relative md:col-span-2 xl:col-span-1"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Mã đơn, tên hoặc số điện thoại" className="h-10 rounded-xl pl-9" aria-label="Tìm đơn đặt sân" /></div>
                         <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="h-10 rounded-xl" aria-label="Từ ngày" />
                         <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="h-10 rounded-xl" aria-label="Đến ngày" />
-                        <Select value={courtId} onValueChange={setCourtId}><SelectTrigger className="h-10 rounded-xl" aria-label="Lọc theo sân"><SelectValue placeholder="Tất cả sân" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả sân</SelectItem>{courts.map((court) => <SelectItem key={court.id} value={String(court.id)}>{court.name}</SelectItem>)}</SelectContent></Select>
-                        <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-10 rounded-xl" aria-label="Lọc theo trạng thái"><SelectValue placeholder="Tất cả trạng thái" /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>{statuses.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select>
+                        <Select value={courtId} onValueChange={setCourtId}><SelectTrigger className="h-10 min-w-[140px] rounded-xl" aria-label="Lọc theo sân"><SelectValue>{courtId === 'all' ? 'Tất cả sân' : courts.find(c => String(c.id) === courtId)?.name || 'Tất cả sân'}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">Tất cả sân</SelectItem>{courts.map((court) => <SelectItem key={court.id} value={String(court.id)}>{court.name}</SelectItem>)}</SelectContent></Select>
+                        <Select value={status} onValueChange={setStatus}><SelectTrigger className="h-10 min-w-[160px] rounded-xl" aria-label="Lọc theo trạng thái"><SelectValue>{status === 'all' ? 'Tất cả trạng thái' : statusTabs.find(t => t.value === status)?.label || 'Tất cả trạng thái'}</SelectValue></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>{statusTabs.map((tab) => <SelectItem key={tab.value} value={tab.value}>{tab.label}</SelectItem>)}</SelectContent></Select>
                         <Button type="submit" className="h-10 rounded-xl">Lọc</Button>
                     </div>
                 </form>
 
+                {/* Status filter tabs */}
+                <div className="flex flex-wrap gap-2">
+                    {statusTabs.map((tab) => (
+                        <button
+                            key={tab.value}
+                            type="button"
+                            onClick={() => navigate(1, { status: tab.value })}
+                            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                                status === tab.value
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
                 {data.length === 0 ? (
-                    <div className="rounded-2xl border bg-card"><EmptyState icon={CalendarDays} title="Chưa có đơn đặt sân" description={hasFilters ? 'Không có đơn nào phù hợp với bộ lọc hiện tại.' : 'Đơn từ trang đặt sân và nhân viên tạo sẽ xuất hiện tại đây.'} action={hasFilters && <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button>} /></div>
+                    <Card><EmptyState icon={CalendarDays} title="Chưa có đơn đặt sân" description={hasFilters ? 'Không có đơn nào phù hợp với bộ lọc hiện tại.' : 'Đơn từ trang đặt sân và nhân viên tạo sẽ xuất hiện tại đây.'} action={hasFilters && <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button>} /></Card>
                 ) : (
                     <section className="space-y-3">{data.map((booking) => {
                         const slot = firstSlot(booking);

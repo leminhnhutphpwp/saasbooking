@@ -134,6 +134,27 @@ class HomeController extends Controller
             ->where('status', RefundStatus::Requested)
             ->sum('amount');
 
+        // Court status: occupied vs available right now
+        $now = CarbonImmutable::now($tenant->timezone);
+        $courts = Court::forTenant($tenantId)->where('status', 'active')->get(['id', 'name']);
+        $courtStatus = $courts->map(function ($court) use ($now, $tenantId) {
+            $isOccupied = Booking::query()
+                ->where('tenant_id', $tenantId)
+                ->whereIn('status', [BookingStatus::Confirmed, BookingStatus::PendingDeposit])
+                ->whereHas('slots', function ($q) use ($court, $now) {
+                    $q->where('court_id', $court->id)
+                      ->where('start_at', '<=', $now)
+                      ->where('end_at', '>', $now);
+                })
+                ->exists();
+
+            return [
+                'id' => $court->id,
+                'name' => $court->name,
+                'occupied' => $isOccupied,
+            ];
+        });
+
         return Inertia::render('Manager/Home/Index', [
             'stats' => [
                 'totalBookings' => $totalBookings,
@@ -153,6 +174,7 @@ class HomeController extends Controller
             'refundsToProcess' => $refundsToProcess,
             'unmatchedTxns' => $unmatchedTxns,
             'upcomingBookings' => $upcomingBookings,
+            'courtStatus' => $courtStatus,
         ]);
     }
 }
