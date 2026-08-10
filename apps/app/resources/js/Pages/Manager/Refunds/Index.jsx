@@ -9,87 +9,16 @@ import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Card } from '@/Components/ui/card';
 import { formatVND, formatDate } from '@/lib/format';
-import { Banknote, PartyPopper } from 'lucide-react';
+import { PartyPopper } from 'lucide-react';
 
-const REASON = {
-    customer_cancel: 'Khách hủy',
-    race_lost: 'Mất slot (đã trả tiền)',
-    owner_cancel: 'Chủ sân hủy',
-    no_show_policy: 'Bom sân',
-};
+const REASON = { customer_cancel: 'Khách hủy', race_lost: 'Mất slot (đã trả tiền)', owner_cancel: 'Chủ sân hủy', no_show_policy: 'Bom sân' };
 
 export default function Index({ refunds }) {
     const [confirmTarget, setConfirmTarget] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const markDone = () => { if (!confirmTarget) return; setProcessing(true); router.post(`/manager/refunds/${confirmTarget.uuid}/done`, {}, { preserveScroll: true, onSuccess: () => setConfirmTarget(null), onFinish: () => setProcessing(false) }); };
 
-    const markDone = () => {
-        if (!confirmTarget) return;
-
-        setProcessing(true);
-        router.post(`/manager/refunds/${confirmTarget.uuid}/done`, {}, {
-            preserveScroll: true,
-            onSuccess: () => setConfirmTarget(null),
-            onFinish: () => setProcessing(false),
-        });
-    };
-
-    return (
-        <ManagerLayout>
-            <Head title="Hoàn cọc" />
-
-            <PageContainer>
-                <PageHeader
-                    title="Hoàn cọc chờ xử lý"
-                    description={`${refunds.length} khoản chờ chuyển khoản trả khách.`}
-                />
-
-                <Card className="overflow-hidden">
-                    {refunds.length === 0 ? (
-                        <EmptyState
-                            icon={PartyPopper}
-                            title="Không có hoàn cọc nào chờ xử lý"
-                            description="Tất cả các khoản hoàn cọc đã được xử lý xong."
-                        />
-                    ) : (
-                        <div className="divide-y">
-                            {refunds.map((r) => (
-                                <div key={r.uuid} className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/30">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400">
-                                            <Banknote className="h-5 w-5" />
-                                        </div>
-                                        <div className="space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold">{formatVND(r.amount)}</span>
-                                                <span className="font-mono text-sm text-muted-foreground">{r.code}</span>
-                                                <StatusBadge type="refund" value="requested" />
-                                            </div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {r.phone} · {REASON[r.reason] ?? r.reason} · {formatDate(r.requested_at)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={() => setConfirmTarget(r)}>
-                                        Đã chuyển khoản
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </Card>
-            </PageContainer>
-
-            <ConfirmActionDialog
-                open={confirmTarget !== null}
-                onOpenChange={(nextOpen) => !nextOpen && setConfirmTarget(null)}
-                onConfirm={markDone}
-                title="Xác nhận đã hoàn cọc"
-                description={confirmTarget ? `Xác nhận bạn đã chuyển ${formatVND(confirmTarget.amount)} hoàn cọc cho đơn ${confirmTarget.code}. Hệ thống sẽ đánh dấu khoản này là đã xử lý.` : ''}
-                confirmLabel="Đã chuyển khoản"
-                processingLabel="Đang xác nhận…"
-                processing={processing}
-                variant="default"
-            />
-        </ManagerLayout>
-    );
+    return <ManagerLayout><Head title="Hoàn cọc" /><PageContainer><PageHeader title="Hoàn cọc chờ xử lý" description={`${refunds.length} khoản chờ chuyển khoản trả khách.`} />
+        <Card className="p-3 sm:p-6">{refunds.length === 0 ? <EmptyState icon={PartyPopper} title="Không có hoàn cọc nào chờ xử lý" description="Tất cả các khoản hoàn cọc đã được xử lý xong." /> : <table className="w-full text-sm" aria-label="Các khoản hoàn cọc chờ xử lý"><thead className="hidden sm:table-header-group"><tr><th scope="col" className="text-left">Đơn đặt</th><th scope="col" className="text-left">Lý do</th><th scope="col" className="text-left">Yêu cầu lúc</th><th scope="col" className="text-right">Số tiền</th><th scope="col"><span className="sr-only">Thao tác</span></th></tr></thead><tbody className="block sm:table-row-group">{refunds.map((refund) => <tr key={refund.uuid} className="mb-3 block rounded-inner bg-sunk p-4 last:mb-0 sm:mb-0 sm:table-row sm:rounded-none sm:bg-transparent sm:p-0"><td className="block px-0 py-0 sm:table-cell sm:px-3 sm:py-4"><p className="font-semibold text-foreground">{refund.code}</p><p className="mt-1 text-muted-foreground">{refund.phone}</p><StatusBadge type="refund" value="requested" /></td><td className="mt-3 block px-0 py-0 text-muted-foreground sm:mt-0 sm:table-cell sm:px-3 sm:py-4"><span className="manager-label sm:hidden">Lý do: </span>{REASON[refund.reason] ?? refund.reason}</td><td className="mt-2 block px-0 py-0 text-muted-foreground sm:mt-0 sm:table-cell sm:px-3 sm:py-4">{formatDate(refund.requested_at)}</td><td className="num mt-3 flex items-center justify-between px-0 py-0 font-semibold text-foreground sm:mt-0 sm:table-cell sm:px-3 sm:py-4 sm:text-right"><span className="manager-label text-muted-foreground sm:hidden">Số tiền</span>{formatVND(refund.amount)}</td><td className="mt-3 block px-0 py-0 sm:mt-0 sm:table-cell sm:px-3 sm:py-4 sm:text-right"><Button variant="outline" size="sm" onClick={() => setConfirmTarget(refund)}>Đã chuyển khoản</Button></td></tr>)}</tbody></table>}</Card>
+    </PageContainer><ConfirmActionDialog open={confirmTarget !== null} onOpenChange={(nextOpen) => !nextOpen && setConfirmTarget(null)} onConfirm={markDone} title="Xác nhận đã hoàn cọc" description={confirmTarget ? `Xác nhận bạn đã chuyển ${formatVND(confirmTarget.amount)} hoàn cọc cho đơn ${confirmTarget.code}. Hệ thống sẽ đánh dấu khoản này là đã xử lý.` : ''} confirmLabel="Đã chuyển khoản" processingLabel="Đang xác nhận..." processing={processing} variant="default" /></ManagerLayout>;
 }

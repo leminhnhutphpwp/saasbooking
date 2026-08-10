@@ -21,7 +21,6 @@ import { formatVND } from '@/lib/format';
 import { Trash2, Plus, AlertCircle, DollarSign, Info, CalendarDays, Clock3 } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
-const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
 
 function getTierLabel(rule) {
     const days = [...rule.weekday].sort((a, b) => a - b);
@@ -161,7 +160,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                 />
 
                 {(form.errors.start_local || form.errors.end_local) && (
-                    <div className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="manager-alert items-start p-3 text-sm">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
                             <p className="font-medium">Không thể lưu bảng giá</p>
@@ -170,7 +169,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                     </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 rounded-xl border bg-muted/20 p-1.5">
+                <div className="manager-segment">
                     <Button type="button" size="sm" variant={scope === 'venue' ? 'default' : 'ghost'} onClick={() => setScope('venue')}>
                         Giá chung toàn cơ sở
                     </Button>
@@ -179,9 +178,9 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                     </Button>
                 </div>
 
-                <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                    <Card className="overflow-hidden">
-                        <div className="flex items-center justify-between gap-4 border-b bg-muted/20 px-5 py-4">
+                <div className="grid items-start gap-6 xl:grid-cols-3">
+                    <Card className="overflow-hidden xl:col-span-2">
+                        <div className="flex items-center justify-between gap-4 px-5 py-4">
                             <div>
                                 <h2 className="font-semibold text-foreground">Các mức giá đang áp dụng</h2>
                                 <p className="mt-0.5 text-sm text-muted-foreground">
@@ -193,10 +192,8 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
 
                         {activeRules.length === 0 ? (
                             <EmptyState
-                                icon={DollarSign}
-                                title="Chưa có bảng giá nào"
+                                title={scope === 'venue' ? 'Thiết lập giá chung để áp dụng cho tất cả sân.' : 'Thêm mức giá riêng khi sân này cần một ngoại lệ.'}
                                 description={scope === 'venue' ? 'Thiết lập một lần để áp dụng cho tất cả sân.' : 'Chỉ thêm mức giá khác với giá chung toàn cơ sở.'}
-                                example="VD: 6–17h thường 100k, 17–22h giờ vàng 130k"
                                 action={
                                     <Button onClick={openAdd} className="gap-2">
                                         <Plus className="h-4 w-4" />
@@ -207,7 +204,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                         ) : (
                             <div className="divide-y">
                                 {sortedRules.map((r) => (
-                                    <div key={r.id} className="flex flex-col gap-4 p-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
+                                    <div key={r.id} className="flex flex-col gap-4 p-5 transition-colors hover:bg-muted sm:flex-row sm:items-center sm:justify-between">
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <Badge variant={getTierVariant(r)}>
@@ -220,7 +217,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                                 )}
                                             </div>
                                             <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-                                                <div className="text-xl font-bold tracking-tight text-primary">
+                                                <div className="font-display text-xl font-bold tracking-tight text-foreground tabular-nums">
                                                     {formatVND(r.price_per_hour)}
                                                     <span className="ml-1 text-xs font-normal text-muted-foreground">/ giờ</span>
                                                 </div>
@@ -242,10 +239,10 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                         )}
                     </Card>
 
-                    <aside className="space-y-4 lg:sticky lg:top-20">
+                    <aside className="space-y-4 xl:sticky xl:top-20">
                         <Card className="p-5">
                             <div className="flex items-center gap-3">
-                                <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                                <div className="rounded-inner bg-muted p-2.5 text-muted-foreground">
                                     <DollarSign className="h-5 w-5" />
                                 </div>
                                 <div>
@@ -255,28 +252,28 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                             </div>
 
                             <dl className="mt-5 grid grid-cols-2 gap-3">
-                                <div className="rounded-xl border bg-muted/20 p-3">
+                                <div className="manager-well p-3">
                                     <dt className="text-xs text-muted-foreground">Thấp nhất</dt>
-                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                    <dd className="mt-1 font-num text-sm font-bold text-foreground">
                                         {prices.length > 0 ? formatVND(Math.min(...prices)) : '—'}
                                     </dd>
                                 </div>
-                                <div className="rounded-xl border bg-muted/20 p-3">
+                                <div className="manager-well p-3">
                                     <dt className="text-xs text-muted-foreground">Cao nhất</dt>
-                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                    <dd className="mt-1 font-num text-sm font-bold text-foreground">
                                         {prices.length > 0 ? formatVND(Math.max(...prices)) : '—'}
                                     </dd>
                                 </div>
-                                <div className="rounded-xl border bg-muted/20 p-3">
+                                <div className="manager-well p-3">
                                     <dt className="text-xs text-muted-foreground">Ngày có giá</dt>
-                                    <dd className="mt-1 flex items-center gap-1.5 text-sm font-bold text-foreground">
-                                        <CalendarDays className="h-4 w-4 text-primary" />
+                                    <dd className="mt-1 flex items-center gap-1.5 font-num text-sm font-bold text-foreground">
+                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
                                         {coveredDays}/7 ngày
                                     </dd>
                                 </div>
-                                <div className="rounded-xl border bg-muted/20 p-3">
+                                <div className="manager-well p-3">
                                     <dt className="text-xs text-muted-foreground">Khung giờ</dt>
-                                    <dd className="mt-1 text-sm font-bold text-foreground">
+                                    <dd className="mt-1 font-num text-sm font-bold text-foreground">
                                         {earliestStart && latestEnd ? `${earliestStart}–${latestEnd}` : '—'}
                                     </dd>
                                 </div>
@@ -318,9 +315,9 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                         <DialogTitle>{editingId ? 'Sửa bảng giá' : 'Thêm bảng giá'} · {formScope === 'venue' ? 'Toàn cơ sở' : court.name}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={submit} className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Ngày trong tuần</Label>
+                        <fieldset className="space-y-2">
+                            <legend className="text-sm font-medium">Ngày trong tuần</legend>
+                            <div className="flex justify-end">
                                 <div className="flex gap-1">
                                     <Button type="button" variant="ghost" size="sm" onClick={selectAllDays} className="h-auto text-xs">
                                         Tất cả
@@ -339,10 +336,11 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                         key={d}
                                         type="button"
                                         onClick={() => toggleDay(d)}
-                                        className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                                        aria-pressed={form.data.weekday.includes(d)}
+                                        className={`rounded-pill px-3 py-2 text-sm font-medium transition-colors ${
                                             form.data.weekday.includes(d)
-                                                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                                                : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                                ? 'bg-primary text-primary-foreground shadow-flat'
+                                                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     >
                                         {DAY_LABELS[d]}
@@ -350,7 +348,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                 ))}
                             </div>
                             {form.errors.weekday && <p className="text-sm text-destructive">{form.errors.weekday}</p>}
-                        </div>
+                        </fieldset>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
@@ -378,7 +376,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                     placeholder="100000"
                                 />
                                 {form.data.price_per_hour && (
-                                    <p className="text-xs text-primary">
+                                    <p className="font-display text-xs text-muted-foreground tabular-nums">
                                         = {formatVND(Number(form.data.price_per_hour))} / giờ
                                     </p>
                                 )}

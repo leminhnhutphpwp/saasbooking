@@ -1,7 +1,7 @@
 import DangerButton from '@/Components/DangerButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import Modal from '@/Components/Modal';
+import Modal, { DialogDescription, DialogTitle } from '@/Components/Modal';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import { useForm } from '@inertiajs/react';
@@ -48,11 +48,11 @@ export default function DeleteUserForm({ className = '' }) {
     return (
         <section className={`space-y-6 ${className}`}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-semibold text-ink">
                     Xóa tài khoản
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-ink-soft">
                     Sau khi tài khoản bị xóa, toàn bộ tài nguyên và dữ liệu sẽ
                     bị xóa vĩnh viễn. Trước khi xóa tài khoản, vui lòng tải về
                     mọi dữ liệu hoặc thông tin bạn muốn giữ lại.
@@ -64,18 +64,18 @@ export default function DeleteUserForm({ className = '' }) {
             </DangerButton>
 
             <Modal show={confirmingUserDeletion} onClose={closeModal}>
-                <form onSubmit={deleteUser} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900">
+                <form onSubmit={deleteUser} className="space-y-6 p-6">
+                    <DialogTitle className="text-lg font-semibold text-ink">
                         Bạn có chắc chắn muốn xóa tài khoản?
-                    </h2>
+                    </DialogTitle>
 
-                    <p className="mt-1 text-sm text-gray-600">
+                    <DialogDescription className="text-sm text-ink-soft">
                         Sau khi tài khoản bị xóa, toàn bộ tài nguyên và dữ liệu
                         sẽ bị xóa vĩnh viễn. Vui lòng nhập mật khẩu để xác nhận
                         bạn muốn xóa tài khoản vĩnh viễn.
-                    </p>
+                    </DialogDescription>
 
-                    <div className="mt-6">
+                    <div>
                         <InputLabel
                             htmlFor="password"
                             value="Mật khẩu"
@@ -91,7 +91,7 @@ export default function DeleteUserForm({ className = '' }) {
                             onChange={(e) =>
                                 setData('password', e.target.value)
                             }
-                            className="mt-1 block w-3/4"
+                            className="mt-1 block w-full"
                             isFocused
                             placeholder="Mật khẩu"
                         />
@@ -102,12 +102,12 @@ export default function DeleteUserForm({ className = '' }) {
                         />
                     </div>
 
-                    <div className="mt-6 flex justify-end">
+                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <SecondaryButton onClick={closeModal}>
                             Hủy
                         </SecondaryButton>
 
-                        <DangerButton className="ms-3" disabled={processing}>
+                        <DangerButton disabled={processing}>
                             Xóa tài khoản
                         </DangerButton>
                     </div>

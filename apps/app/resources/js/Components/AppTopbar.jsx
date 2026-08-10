@@ -1,18 +1,25 @@
 import { Link, usePage } from '@inertiajs/react';
-import { Building2, Check, ChevronDown, LogOut, Moon, Plus, Search, Sun, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Building2, Check, ChevronDown, LogOut, Plus, User } from 'lucide-react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import Dropdown from '@/Components/Dropdown';
-import { SidebarTrigger } from '@/Components/ui/sidebar';
+import { managerNav } from '@/managerNav';
 
 function TenantSwitcher({ tenants, workingTenantId }) {
-    if (tenants.length < 2) return null;
-
     const current = tenants.find((tenant) => tenant.id === workingTenantId) ?? tenants[0];
+
+    if (tenants.length < 2) {
+        return (
+            <div className="flex h-9 max-w-52 items-center gap-2 rounded-full bg-secondary px-3 text-sm font-medium text-foreground">
+                <Building2 className="h-4 w-4 shrink-0 text-primary" />
+                <span className="truncate">{current?.name}</span>
+            </div>
+        );
+    }
 
     return (
         <Dropdown>
             <Dropdown.Trigger>
-                <button className="flex h-9 max-w-52 items-center gap-2 rounded-full border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
+                <button className="flex h-9 max-w-52 items-center gap-2 rounded-full bg-secondary px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted">
                     <Building2 className="h-4 w-4 shrink-0 text-primary" />
                     <span className="truncate">{current.name}</span>
                     <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -41,36 +48,11 @@ function TenantSwitcher({ tenants, workingTenantId }) {
     );
 }
 
-function ThemeToggle() {
-    const [dark, setDark] = useState(false);
-
-    useEffect(() => {
-        setDark(document.documentElement.classList.contains('dark'));
-    }, []);
-
-    const toggle = () => {
-        const next = !dark;
-        setDark(next);
-        document.documentElement.classList.toggle('dark', next);
-        localStorage.setItem('theme', next ? 'dark' : 'light');
-    };
-
-    return (
-        <button
-            onClick={toggle}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Toggle theme"
-        >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-    );
-}
-
 function UserAvatar({ user }) {
     return (
         <Dropdown>
             <Dropdown.Trigger>
-                <button className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 text-sm font-semibold text-white transition-shadow hover:shadow-md">
+                <button className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
                     {user.name?.charAt(0)?.toUpperCase()}
                 </button>
             </Dropdown.Trigger>
@@ -98,27 +80,65 @@ function UserAvatar({ user }) {
 }
 
 export function AppTopbar() {
-    const { auth, workingTenants = [], workingTenantId } = usePage().props;
+    const { props: { auth, workingTenants = [], workingTenantId }, url } = usePage();
     const user = auth.user;
+    const tabsRef = useRef(null);
+    const activeLinkRef = useRef(null);
+    const [activePill, setActivePill] = useState(null);
+    const allNavigationItems = managerNav.flatMap((group) => group.items);
+    const navigationItems = allNavigationItems.slice(0, 5);
+    const activeItem = allNavigationItems.find((item) => route().current(item.href + '*'));
+
+    useLayoutEffect(() => {
+        const updateActivePill = () => {
+            if (!tabsRef.current || !activeLinkRef.current) return;
+
+            const tabs = tabsRef.current.getBoundingClientRect();
+            const active = activeLinkRef.current.getBoundingClientRect();
+            setActivePill({ transform: `translateX(${active.left - tabs.left}px)`, width: active.width });
+        };
+
+        updateActivePill();
+        let mobileScrollFrame;
+        if (window.matchMedia('(max-width: 767px)').matches) {
+            mobileScrollFrame = window.requestAnimationFrame(() => {
+                tabsRef.current.scrollLeft = activeLinkRef.current.offsetLeft + activeLinkRef.current.offsetWidth - tabsRef.current.clientWidth;
+            });
+        }
+        window.addEventListener('resize', updateActivePill);
+        return () => {
+            window.removeEventListener('resize', updateActivePill);
+            if (mobileScrollFrame) window.cancelAnimationFrame(mobileScrollFrame);
+        };
+    }, [url]);
+
+    const moveTopbarFocus = (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+
+        const links = [...event.currentTarget.querySelectorAll('[data-topbar-link]')];
+        const current = links.indexOf(document.activeElement);
+        if (current < 0) return;
+
+        event.preventDefault();
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + links.length) % links.length;
+        links[next].focus();
+    };
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6">
-            <SidebarTrigger className="md:hidden" aria-label="Mở menu điều hướng" />
-            <div className="flex flex-1 items-center justify-center">
-                <div className="relative w-full max-w-md">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm... ⌘K"
-                        className="h-9 w-full rounded-full border border-input bg-muted pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
-                        readOnly
-                    />
-                </div>
+        <header className="manager-topbar sm:grid sm:grid-cols-3">
+            <div className="hidden min-w-0 items-center sm:flex">
+                <span className="manager-label truncate text-ink-mute">{activeItem?.title ?? 'Quản lý sân'}</span>
             </div>
+            <nav ref={tabsRef} className="manager-topbar-tabs sm:justify-center" aria-label="Điều hướng nhanh" onKeyDown={moveTopbarFocus}>
+                {activePill && <span className="manager-topbar-active-pill" aria-hidden="true" style={activePill} />}
+                {navigationItems.map((item) => {
+                    const active = route().current(item.href + '*');
+                    return <Link key={item.href} href={route(item.href)} ref={active ? activeLinkRef : null} data-topbar-link className={`manager-topbar-tab ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined}>{item.title}</Link>;
+                })}
+            </nav>
 
-            <div className="flex items-center gap-2">
+            <div className="manager-topbar-actions ml-auto sm:ml-0 sm:justify-self-end">
                 <TenantSwitcher tenants={workingTenants} workingTenantId={workingTenantId} />
-                <ThemeToggle />
                 <UserAvatar user={user} />
             </div>
         </header>

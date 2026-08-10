@@ -13,40 +13,36 @@ import { cn } from '@/lib/utils';
 
 // Semantic tone → theme-aware Tailwind classes.
 const TONES = {
-  amber:
-    'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-900',
-  emerald:
-    'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-900',
-  slate:
-    'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
-  rose:
-    'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-900',
+  pending: 'bg-secondary text-muted-foreground',
+  positive: 'bg-accent text-accent-foreground',
+  neutral: 'bg-secondary text-muted-foreground',
+  negative: 'ui-negative',
 };
 
 // type → { enum value → { label, tone } }
 const MAP = {
   booking: {
-    pending_deposit: { label: 'Chờ cọc', tone: 'amber' },
-    confirmed: { label: 'Đã xác nhận', tone: 'emerald' },
-    cancelled: { label: 'Đã hủy', tone: 'slate' },
-    expired: { label: 'Hết hạn', tone: 'slate' },
-    completed: { label: 'Đã hoàn tất', tone: 'emerald' },
-    no_show: { label: 'Bom sân', tone: 'rose' },
+    pending_deposit: { label: 'Chờ cọc', tone: 'pending' },
+    confirmed: { label: 'Đã xác nhận', tone: 'positive' },
+    cancelled: { label: 'Đã hủy', tone: 'neutral' },
+    expired: { label: 'Hết hạn', tone: 'neutral' },
+    completed: { label: 'Đã hoàn tất', tone: 'positive' },
+    no_show: { label: 'Bom sân', tone: 'negative' },
   },
   payment: {
-    awaiting: { label: 'Chờ thanh toán', tone: 'amber' },
-    matched: { label: 'Đã khớp', tone: 'emerald' },
-    orphaned: { label: 'Mất chỗ', tone: 'rose' },
+    awaiting: { label: 'Chờ thanh toán', tone: 'pending' },
+    matched: { label: 'Đã khớp', tone: 'positive' },
+    orphaned: { label: 'Mất chỗ', tone: 'negative' },
   },
   refund: {
-    requested: { label: 'Chờ hoàn', tone: 'amber' },
-    done: { label: 'Đã hoàn', tone: 'emerald' },
-    failed: { label: 'Thất bại', tone: 'rose' },
+    requested: { label: 'Chờ hoàn', tone: 'pending' },
+    done: { label: 'Đã hoàn', tone: 'positive' },
+    failed: { label: 'Thất bại', tone: 'negative' },
   },
   series: {
-    active: { label: 'Đang chạy', tone: 'emerald' },
-    ended: { label: 'Đã kết thúc', tone: 'slate' },
-    cancelled: { label: 'Đã hủy', tone: 'slate' },
+    active: { label: 'Đang chạy', tone: 'positive' },
+    ended: { label: 'Đã kết thúc', tone: 'neutral' },
+    cancelled: { label: 'Đã hủy', tone: 'neutral' },
   },
 };
 
@@ -55,16 +51,16 @@ export function StatusBadge({ type, value, className, ...props }) {
 
   // Unknown status: render the raw value with a neutral tone rather than nothing.
   const label = entry?.label ?? value ?? '';
-  const tone = entry?.tone ?? 'slate';
+  const tone = entry?.tone ?? 'neutral';
 
   if (!label) return null;
 
   return (
     <Badge
-      variant="outline"
-      className={cn(TONES[tone], 'font-medium', className)}
+      className={cn(TONES[tone], 'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold', className)}
       {...props}
     >
+      <span className={cn('h-1.5 w-1.5 rounded-full', tone === 'negative' ? 'bg-destructive' : tone === 'positive' ? 'bg-primary' : 'bg-muted-foreground')} aria-hidden="true" />
       {label}
     </Badge>
   );

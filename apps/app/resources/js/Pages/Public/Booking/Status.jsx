@@ -2,7 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState } from 'react';
 import { AlertCircle, ArrowLeft, Check, CheckCircle, Clock, Copy, MapPin, XCircle } from 'lucide-react';
-import { formatVND } from '@/lib/format';
+import { formatTime, formatVND } from '@/lib/format';
 
 const STATUS_MAP = {
     pending_deposit: { label: 'Chờ chuyển khoản', icon: Clock, text: 'text-amber-800', box: 'border-amber-200 bg-amber-50' },
@@ -13,7 +13,7 @@ const STATUS_MAP = {
     completed: { label: 'Đã hoàn thành', icon: CheckCircle, text: 'text-emerald-800', box: 'border-emerald-200 bg-emerald-50' },
 };
 
-const hhmm = (iso) => iso?.slice(11, 16) ?? '';
+const hhmm = (iso) => formatTime(iso);
 const dateStr = (iso) => iso
     ? new Date(iso).toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     : '';
@@ -21,7 +21,7 @@ const dateStr = (iso) => iso
 function CopyField({ label, value, copied, onCopy, prominent = false }) {
     return (
         <div className={`rounded-lg border p-3 ${prominent ? 'border-gray-300 bg-white' : 'border-gray-100 bg-gray-50'}`}>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-ink-mute">{label}</p>
             <div className="mt-1 flex items-center justify-between gap-3">
                 <span className={`min-w-0 break-all font-mono font-bold text-gray-900 ${prominent ? 'text-base' : 'text-sm'}`}>{value}</span>
                 <button type="button" onClick={onCopy} aria-label={`Sao chép ${label}`} className="shrink-0 rounded p-1.5 text-gray-500 hover:bg-gray-100">
@@ -37,7 +37,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
     const [cancelling, setCancelling] = useState(false);
     const [now, setNow] = useState(Date.now());
     const brand = tenant.settings?.branding ?? {};
-    const brandColor = brand.primary_color || '#059669';
+    const brandColor = brand.primary_color ?? null;
     const status = STATUS_MAP[booking.status] || STATUS_MAP.pending_deposit;
     const StatusIcon = status.icon;
     const holdExpiry = booking.hold_expires_at ? new Date(booking.hold_expires_at) : null;
@@ -89,7 +89,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
         : 'Không có khoản hoàn cọc nào được tạo cho đơn này.';
 
     return (
-        <div className="min-h-screen bg-[#f6f5f2] text-gray-800">
+        <div className="min-h-screen bg-plane text-ink">
             <Head title={`Thanh toán - ${booking.code}`} />
 
             <header className="border-b border-gray-200 bg-white">
@@ -119,11 +119,11 @@ export default function Status({ tenant, booking, qr, account, token }) {
                     </div>
                 </div>
 
-                <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
-                    <section className="order-2 space-y-4 lg:order-1">
+                <div className="grid gap-5 lg:grid-cols-5">
+                    <section className="order-2 space-y-4 lg:order-1 lg:col-span-3">
                         <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
                             <div className="flex items-center justify-between">
-                                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Lịch đã chọn</p>
+                                <p className="text-xs font-bold uppercase tracking-wider text-ink-mute">Lịch đã chọn</p>
                                 <button type="button" onClick={() => copy(booking.code, 'code')} className="inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-gray-950">
                                     {copied === 'code' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
                                     {booking.code}
@@ -144,7 +144,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
                         </div>
 
                         <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-                            <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Tại sân</p>
+                            <p className="text-xs font-bold uppercase tracking-wider text-ink-mute">Tại sân</p>
                             <div className="mt-3 flex gap-3">
                                 <MapPin className="h-5 w-5 shrink-0" style={{ color: brandColor }} />
                                 <div>
@@ -162,7 +162,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
                         )}
                     </section>
 
-                    <aside className="order-1 space-y-4 lg:order-2">
+                    <aside className="order-1 space-y-4 lg:order-2 lg:col-span-2">
                         {booking.status === 'pending_deposit' && qr && (
                             <>
                                 <div className="rounded-xl border-2 bg-white p-5 text-center" style={{ borderColor: brandColor }}>
@@ -184,7 +184,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
 
                                 {account && (
                                     <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-4">
-                                        <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Hoặc chuyển khoản thủ công</p>
+                                        <p className="text-xs font-bold uppercase tracking-wider text-ink-mute">Hoặc chuyển khoản thủ công</p>
                                         <CopyField label="Số tiền cọc" value={formatVND(booking.deposit)} copied={copied === 'amount'} onCopy={() => copy(String(booking.deposit), 'amount')} prominent />
                                         <CopyField label="Tài khoản nhận" value={account.number} copied={copied === 'account'} onCopy={() => copy(account.number, 'account')} />
                                         <p className="px-1 text-xs text-gray-600">{account.name}{account.bank ? ` · ${account.bank}` : ''}</p>
@@ -220,7 +220,7 @@ export default function Status({ tenant, booking, qr, account, token }) {
 
                         {!['pending_deposit', 'confirmed'].includes(booking.status) && (
                             <div className="rounded-xl border border-gray-200 bg-white p-5 text-center">
-                                <XCircle className="mx-auto h-10 w-10 text-gray-400" />
+                                <XCircle className="mx-auto h-10 w-10 text-ink-mute" />
                                 <p className="mt-3 text-lg font-bold">{status.label}</p>
                                 <p className="mt-1 text-sm text-gray-600">{refundMessage}</p>
                                 <button type="button" onClick={() => router.visit(`/book/${tenant.slug}`)} className="mt-5 w-full rounded-lg py-2.5 text-sm font-bold text-white" style={{ backgroundColor: brandColor }}>

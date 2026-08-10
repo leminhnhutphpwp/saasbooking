@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between',
+        'flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between',
         className,
       )}
     >
@@ -36,7 +36,7 @@ export function PageHeader({
             {backLabel || 'Quay lại'}
           </Link>
         )}
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="manager-page-title text-foreground">
           {title}
         </h1>
         {description && (

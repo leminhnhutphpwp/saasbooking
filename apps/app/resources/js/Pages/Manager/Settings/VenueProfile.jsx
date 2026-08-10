@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Textarea } from '@/Components/ui/textarea';
 import { Card, CardContent } from '@/Components/ui/card';
+import { formatVND } from '@/lib/format';
 import { Banknote, MapPin, Phone, Mail, Globe, MessageCircle, Save } from 'lucide-react';
 
 export default function VenueProfile({ tenant }) {
@@ -42,31 +43,31 @@ export default function VenueProfile({ tenant }) {
                     description="Thông tin hiển thị trên trang đặt sân công khai. Khách hàng sẽ thấy địa chỉ, số điện thoại, và liên hệ mạng xã hội."
                 />
 
-                <form onSubmit={submit} className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                    <div className="space-y-6 lg:col-span-2">
+                <form onSubmit={submit} className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                    <div className="space-y-6 xl:col-span-2">
                         {/* Contact Info */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Phone className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Liên hệ</h3>
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Số điện thoại</label>
-                                        <Input type="tel" placeholder="0901234567" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
+                                        <label htmlFor="venue-phone" className="mb-1.5 block text-sm font-medium">Số điện thoại</label>
+                                        <Input id="venue-phone" type="tel" placeholder="0901234567" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
                                         {form.errors.phone && <p className="mt-1 text-sm text-destructive">{form.errors.phone}</p>}
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Email</label>
-                                        <Input type="email" placeholder="info@san.vn" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
+                                        <label htmlFor="venue-email" className="mb-1.5 block text-sm font-medium">Email</label>
+                                        <Input id="venue-email" type="email" placeholder="info@san.vn" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
                                         {form.errors.email && <p className="mt-1 text-sm text-destructive">{form.errors.email}</p>}
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <label className="mb-1.5 block text-sm font-medium">Website</label>
-                                        <Input type="url" placeholder="https://san.vn" value={form.data.website} onChange={(e) => form.setData('website', e.target.value)} />
+                                        <label htmlFor="venue-website" className="mb-1.5 block text-sm font-medium">Website</label>
+                                        <Input id="venue-website" type="url" placeholder="https://san.vn" value={form.data.website} onChange={(e) => form.setData('website', e.target.value)} />
                                         {form.errors.website && <p className="mt-1 text-sm text-destructive">{form.errors.website}</p>}
                                     </div>
                                 </div>
@@ -77,26 +78,26 @@ export default function VenueProfile({ tenant }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <MapPin className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Địa chỉ</h3>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Địa chỉ</label>
-                                        <Input placeholder="123 Nguyễn Huệ, Quận 1, TP.HCM" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} />
+                                        <label htmlFor="venue-address" className="mb-1.5 block text-sm font-medium">Địa chỉ</label>
+                                        <Input id="venue-address" placeholder="123 Nguyễn Huệ, Quận 1, TP.HCM" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} />
                                         {form.errors.address && <p className="mt-1 text-sm text-destructive">{form.errors.address}</p>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium">Vĩ độ (Lat)</label>
-                                            <Input type="number" step="0.0000001" placeholder="10.7769" value={form.data.lat} onChange={(e) => form.setData('lat', e.target.value)} />
+                                            <label htmlFor="venue-lat" className="mb-1.5 block text-sm font-medium">Vĩ độ (Lat)</label>
+                                            <Input id="venue-lat" type="number" step="0.0000001" placeholder="10.7769" value={form.data.lat} onChange={(e) => form.setData('lat', e.target.value)} />
                                             {form.errors.lat && <p className="mt-1 text-sm text-destructive">{form.errors.lat}</p>}
                                         </div>
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium">Kinh độ (Lng)</label>
-                                            <Input type="number" step="0.0000001" placeholder="106.7009" value={form.data.lng} onChange={(e) => form.setData('lng', e.target.value)} />
+                                            <label htmlFor="venue-lng" className="mb-1.5 block text-sm font-medium">Kinh độ (Lng)</label>
+                                            <Input id="venue-lng" type="number" step="0.0000001" placeholder="106.7009" value={form.data.lng} onChange={(e) => form.setData('lng', e.target.value)} />
                                             {form.errors.lng && <p className="mt-1 text-sm text-destructive">{form.errors.lng}</p>}
                                         </div>
                                     </div>
@@ -108,7 +109,7 @@ export default function VenueProfile({ tenant }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Banknote className="h-4 w-4" />
                                     </div>
                                     <div>
@@ -117,8 +118,9 @@ export default function VenueProfile({ tenant }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="mb-1.5 block text-sm font-medium">Giá mỗi giờ (VNĐ)</label>
+                                    <label htmlFor="default-price-per-hour" className="mb-1.5 block text-sm font-medium">Giá mỗi giờ (VNĐ)</label>
                                     <Input
+                                        id="default-price-per-hour"
                                         type="number"
                                         min="0"
                                         max="1000000000"
@@ -126,7 +128,13 @@ export default function VenueProfile({ tenant }) {
                                         placeholder="100000"
                                         value={form.data.pricing.default_price_per_hour}
                                         onChange={(e) => form.setData('pricing.default_price_per_hour', e.target.value)}
+                                        className="font-num"
                                     />
+                                    {form.data.pricing.default_price_per_hour && (
+                                        <p className="mt-1.5 font-num text-xs text-muted-foreground">
+                                            = {formatVND(Number(form.data.pricing.default_price_per_hour))} / giờ
+                                        </p>
+                                    )}
                                     <p className="mt-1.5 text-xs text-muted-foreground">
                                         Giá riêng của sân và giá chung toàn cơ sở luôn được ưu tiên trước mức này.
                                     </p>
@@ -139,25 +147,25 @@ export default function VenueProfile({ tenant }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <MessageCircle className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Mạng xã hội</h3>
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Zalo</label>
-                                        <Input type="url" placeholder="https://zalo.me/0901234567" value={form.data.social.zalo} onChange={(e) => form.setData('social.zalo', e.target.value)} />
+                                        <label htmlFor="venue-zalo" className="mb-1.5 block text-sm font-medium">Zalo</label>
+                                        <Input id="venue-zalo" type="url" placeholder="https://zalo.me/0901234567" value={form.data.social.zalo} onChange={(e) => form.setData('social.zalo', e.target.value)} />
                                         {form.errors['social.zalo'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.zalo']}</p>}
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Facebook</label>
-                                        <Input type="url" placeholder="https://facebook.com/..." value={form.data.social.facebook} onChange={(e) => form.setData('social.facebook', e.target.value)} />
+                                        <label htmlFor="venue-facebook" className="mb-1.5 block text-sm font-medium">Facebook</label>
+                                        <Input id="venue-facebook" type="url" placeholder="https://facebook.com/..." value={form.data.social.facebook} onChange={(e) => form.setData('social.facebook', e.target.value)} />
                                         {form.errors['social.facebook'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.facebook']}</p>}
                                     </div>
                                     <div>
-                                        <label className="mb-1.5 block text-sm font-medium">Instagram</label>
-                                        <Input type="url" placeholder="https://instagram.com/..." value={form.data.social.instagram} onChange={(e) => form.setData('social.instagram', e.target.value)} />
+                                        <label htmlFor="venue-instagram" className="mb-1.5 block text-sm font-medium">Instagram</label>
+                                        <Input id="venue-instagram" type="url" placeholder="https://instagram.com/..." value={form.data.social.instagram} onChange={(e) => form.setData('social.instagram', e.target.value)} />
                                         {form.errors['social.instagram'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.instagram']}</p>}
                                     </div>
                                 </div>
@@ -168,13 +176,14 @@ export default function VenueProfile({ tenant }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Globe className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Giới thiệu</h3>
                                 </div>
                                 <div>
-                                    <Textarea placeholder="Mô tả ngắn gọn về cơ sở của bạn..." rows={3} value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} />
+                                    <label htmlFor="venue-description" className="sr-only">Giới thiệu về cơ sở</label>
+                                    <Textarea id="venue-description" placeholder="Mô tả ngắn gọn về cơ sở của bạn..." rows={3} value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} />
                                     <p className="mt-1.5 text-xs text-muted-foreground">Hiển thị trên trang đặt sân công khai.</p>
                                     {form.errors.description && <p className="mt-1 text-sm text-destructive">{form.errors.description}</p>}
                                 </div>
@@ -188,11 +197,11 @@ export default function VenueProfile({ tenant }) {
                     </div>
 
                     {/* Preview */}
-                    <div className="lg:col-span-1 lg:sticky lg:top-6 lg:self-start">
+                    <div className="xl:col-span-1 xl:sticky xl:top-6 xl:self-start">
                         <Card>
                             <CardContent className="p-6">
                                 <h3 className="mb-3 font-semibold">Xem trước</h3>
-                                <div className="space-y-2 rounded-xl border bg-muted/30 p-3 text-sm">
+                                <div className="manager-well space-y-2 p-3 text-sm">
                                     {form.data.address && (
                                         <div className="flex items-start gap-2 text-muted-foreground">
                                             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />

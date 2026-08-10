@@ -4,7 +4,11 @@
 
 ## Active
 
-No active implementation tasks.
+- T59 · RLS tenant context before route binding · in-review · `feat/manager-analytics-overhaul`
+- T58 · Court catalog action route 404 fix · in-review · `feat/manager-analytics-overhaul`
+- T54 · Design-kit final token cleanup · in-review · `feat/design-kit-migration`
+- T55 · Reports chart label geometry · in-review · `feat/manager-analytics-overhaul`
+- T57 · Manager Series and topbar visual redesign · in-review · `feat/manager-series-topbar-redesign`
 
 ## Backlog
 

@@ -21,7 +21,7 @@ test.describe('marketing website', () => {
         await page.goto('/demo');
         await expect(page.getByRole('link', { name: /Tôi là chủ sân/ })).toHaveAttribute('href', '/tour');
         await expect(page.getByRole('link', { name: /Tôi là khách đặt sân/ })).toHaveAttribute('href', '/demo/booking');
-        await expect(page.getByText('Xem giao diện thật (chỉ tham khảo)')).toBeVisible();
+        await expect(page.getByText(/Không tạo booking, thanh toán, hay thông báo thật/)).toBeVisible();
         expect(stateChanges).toEqual([]);
     });
 

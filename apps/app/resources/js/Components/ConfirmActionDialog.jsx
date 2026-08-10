@@ -33,14 +33,14 @@ export function ConfirmActionDialog({
                 if (!processing) onOpenChange(nextOpen);
             }}
         >
-            <AlertDialogContent className="max-w-md gap-5 rounded-2xl">
-                <AlertDialogHeader className="items-center text-center sm:items-start sm:text-left">
+            <AlertDialogContent className="max-w-md gap-5">
+                <AlertDialogHeader>
                     <div
                         className={cn(
-                            'mb-1 flex h-11 w-11 items-center justify-center rounded-xl',
+                            'ui-well mb-1 flex h-11 w-11 items-center justify-center',
                             destructive
-                                ? 'bg-destructive/10 text-destructive'
-                                : 'bg-primary/10 text-primary',
+                                ? 'text-destructive'
+                                : 'ui-positive',
                         )}
                     >
                         <Icon className="h-5 w-5" />
@@ -60,7 +60,7 @@ export function ConfirmActionDialog({
                         disabled={processing}
                         className={cn(
                             destructive &&
-                                'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                                'ui-danger hover:bg-muted',
                         )}
                     >
                         {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

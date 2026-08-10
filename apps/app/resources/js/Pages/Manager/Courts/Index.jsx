@@ -288,7 +288,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                     </div>
 
                     <Select value={typeFilter} onValueChange={handleTypeChange}>
-                        <SelectTrigger className="w-full sm:w-[160px]" aria-label="Lọc theo loại sân">
+                        <SelectTrigger className="w-full sm:w-40" aria-label="Lọc theo loại sân">
                             <SelectValue placeholder="Loại sân" />
                         </SelectTrigger>
                         <SelectContent>
@@ -302,7 +302,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                     </Select>
 
                     <Select value={statusFilter} onValueChange={handleStatusChange}>
-                        <SelectTrigger className="w-full sm:w-[160px]" aria-label="Lọc theo trạng thái">
+                        <SelectTrigger className="w-full sm:w-40" aria-label="Lọc theo trạng thái">
                             <SelectValue placeholder="Trạng thái" />
                         </SelectTrigger>
                         <SelectContent>
@@ -330,13 +330,13 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
 
                 {/* ── Selection toolbar ─────────────────────────────────────── */}
                 {selected.size > 0 && (
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5">
+                    <div className="manager-well flex flex-wrap items-center gap-3 px-4 py-2.5">
                         <span className="text-sm font-medium">
                             Đã chọn {selected.size} sân
                         </span>
 
                         <Select value={bulkTargetStatus} onValueChange={setBulkTargetStatus}>
-                            <SelectTrigger className="w-[180px]" aria-label="Chuyển trạng thái thành">
+                            <SelectTrigger className="w-44" aria-label="Chuyển trạng thái thành">
                                 <SelectValue placeholder="Chuyển thành…" />
                             </SelectTrigger>
                             <SelectContent>
@@ -400,8 +400,42 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                 {/* ── Table ────────────────────────────────────────────────── */}
                 {!isEmpty && !isNoMatch && (
                     <TooltipProvider>
-                        <div className="rounded-lg border">
-                            <Table>
+                        <div className="manager-panel p-2">
+                            <div className="space-y-3 md:hidden">
+                                {courtData.map((court) => (
+                                    <article key={court.uuid} className="manager-well p-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-foreground">{court.name}</p>
+                                                <p className="mt-1 text-sm text-muted-foreground">{court.court_type_label}</p>
+                                                <Badge className="mt-2" variant={statusVariant(court.status)}>
+                                                    {court.status_label}
+                                                </Badge>
+                                            </div>
+                                            <Checkbox
+                                                checked={selected.has(court.uuid)}
+                                                onCheckedChange={() => toggleSelect(court.uuid)}
+                                                aria-label={`Chọn sân ${court.name}`}
+                                            />
+                                        </div>
+                                        <div className="mt-4 flex flex-wrap gap-2">
+                                            <Button variant="secondary" size="sm" onClick={() => router.visit(court.opening_rules_url)}>
+                                                Giờ mở cửa
+                                            </Button>
+                                            <Button variant="secondary" size="sm" onClick={() => router.visit(court.pricing_rules_url)}>
+                                                Bảng giá
+                                            </Button>
+                                            <Button variant="ghost" size="sm" onClick={() => openEdit(court)}>Sửa</Button>
+                                            {court.status !== 'archived' && (
+                                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => openArchiveDialog(court)}>
+                                                    Lưu trữ
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                            <Table className="hidden md:table">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-10">
@@ -457,9 +491,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                                                                 size="icon"
                                                                 className="h-8 w-8"
                                                                 onClick={() =>
-                                                                    router.visit(
-                                                                        `/manager/courts/${court.uuid}/opening-rules`,
-                                                                    )
+                                                                    router.visit(court.opening_rules_url)
                                                                 }
                                                                 aria-label={`Giờ mở cửa sân ${court.name}`}
                                                             >
@@ -477,9 +509,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                                                                 size="icon"
                                                                 className="h-8 w-8"
                                                                 onClick={() =>
-                                                                    router.visit(
-                                                                        `/manager/courts/${court.uuid}/pricing-rules`,
-                                                                    )
+                                                                    router.visit(court.pricing_rules_url)
                                                                 }
                                                                 aria-label={`Bảng giá sân ${court.name}`}
                                                             >
@@ -667,12 +697,12 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Loại sân</Label>
+                            <Label htmlFor="court-type">Loại sân</Label>
                             <Select
                                 value={form.data.court_type}
                                 onValueChange={(v) => form.setData('court_type', v)}
                             >
-                                <SelectTrigger>
+                                <SelectTrigger id="court-type">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -687,12 +717,12 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
 
                         {editing && (
                             <div className="space-y-2">
-                                <Label>Trạng thái</Label>
+                                <Label htmlFor="court-status">Trạng thái</Label>
                                 <Select
                                     value={form.data.status}
                                     onValueChange={(v) => form.setData('status', v)}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="court-status">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>

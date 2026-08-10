@@ -8,12 +8,16 @@ import { Input } from '@/Components/ui/input';
 import { Card, CardContent } from '@/Components/ui/card';
 import { Upload, X, Copy, Check, Image, Palette, ExternalLink, Eye } from 'lucide-react';
 
+// Tenant brand colors are public booking data; they do not style the signed-in app.
+const bookingBrandDefault = () => getComputedStyle(document.documentElement).getPropertyValue('--turf-600').trim();
+
 export default function Branding({ tenant, settings }) {
     const [previewUrl, setPreviewUrl] = useState(settings?.logo_url ?? null);
     const [copied, setCopied] = useState(false);
     const fileRef = useRef(null);
+    const defaultBrandColor = bookingBrandDefault();
     const form = useForm({
-        primary_color: settings?.primary_color ?? '#8b5cf6',
+        primary_color: settings?.primary_color ?? defaultBrandColor,
         logo: null,
         remove_logo: false,
     });
@@ -76,12 +80,12 @@ export default function Branding({ tenant, settings }) {
                     description="Tùy chỉnh giao diện trang đặt sân công khai của bạn. Khách hàng sẽ thấy màu và logo này khi truy cập link đặt sân."
                 />
 
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                    <div className="space-y-6 lg:col-span-3">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                    <div className="space-y-6 xl:col-span-3">
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Image className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Logo</h3>
@@ -90,11 +94,12 @@ export default function Branding({ tenant, settings }) {
                                     {previewUrl && (
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
-                                                <img src={previewUrl} alt="Logo" className="h-20 w-auto rounded-xl border bg-white object-contain" />
+                                                <img src={previewUrl} alt="Logo" className="manager-well h-20 w-auto bg-white object-contain" />
                                                 <button
                                                     type="button"
                                                     onClick={removeLogo}
-                                                    className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground shadow-sm transition-colors hover:bg-destructive/90"
+                                                    aria-label="Xóa logo"
+                                                    className="absolute -right-2 -top-2 rounded-pill bg-background p-1 text-destructive shadow-flat transition-colors hover:bg-muted"
                                                 >
                                                     <X className="h-3 w-3" />
                                                 </button>
@@ -110,7 +115,7 @@ export default function Branding({ tenant, settings }) {
                                             <Upload className="h-4 w-4" />
                                             Chọn file
                                         </Button>
-                                        <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg" onChange={handleFileChange} className="hidden" />
+                                        <input id="logo-upload" ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg" onChange={handleFileChange} className="hidden" />
                                         <span className="text-xs text-muted-foreground">PNG/JPG, tối đa 2MB</span>
                                     </div>
                                     {form.errors.logo && <p className="text-sm text-destructive">{form.errors.logo}</p>}
@@ -121,20 +126,23 @@ export default function Branding({ tenant, settings }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Palette className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Màu chủ đạo</h3>
                                 </div>
                                 <div className="flex items-center gap-4">
+                                    <label htmlFor="primary-color-picker" className="sr-only">Chọn màu chủ đạo</label>
                                     <input
+                                        id="primary-color-picker"
                                         type="color"
                                         value={pc}
                                         onChange={(e) => form.setData('primary_color', e.target.value)}
-                                        className="h-14 w-14 cursor-pointer rounded-xl border-0 p-0"
+                                        className="h-14 w-14 cursor-pointer rounded-inner border-0 p-0"
                                     />
                                     <div className="flex-1">
-                                        <Input type="text" value={pc} onChange={(e) => form.setData('primary_color', e.target.value)} placeholder="#8b5cf6" className="font-mono" />
+                                        <label htmlFor="primary-color" className="sr-only">Mã màu chủ đạo</label>
+                                        <Input id="primary-color" type="text" value={pc} onChange={(e) => form.setData('primary_color', e.target.value)} placeholder={defaultBrandColor} className="font-mono" />
                                         {form.errors.primary_color && <p className="text-sm text-destructive">{form.errors.primary_color}</p>}
                                     </div>
                                 </div>
@@ -145,17 +153,18 @@ export default function Branding({ tenant, settings }) {
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <ExternalLink className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">URL trang đặt sân</h3>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <Input type="text" value={publicUrl} readOnly className="font-mono text-sm" />
+                                    <label htmlFor="public-booking-url" className="sr-only">URL trang đặt sân</label>
+                                    <Input id="public-booking-url" type="text" value={publicUrl} readOnly className="font-mono text-sm" />
                                     <Button type="button" variant="outline" onClick={copyUrl} className="shrink-0 gap-2">
                                         {copied ? (
                                             <>
-                                                <Check className="h-4 w-4 text-emerald-500" />
+                                                <Check className="h-4 w-4 text-primary" />
                                                 Đã sao chép
                                             </>
                                         ) : (
@@ -175,35 +184,35 @@ export default function Branding({ tenant, settings }) {
                         </Button>
                     </div>
 
-                    <div className="lg:col-span-2 lg:sticky lg:top-6 lg:self-start">
+                    <div className="xl:col-span-2 xl:sticky xl:top-6 xl:self-start">
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <div className="manager-icon-well">
                                         <Eye className="h-4 w-4" />
                                     </div>
                                     <h3 className="font-semibold">Xem trước trang đặt sân</h3>
                                 </div>
 
-                                <div className="overflow-hidden rounded-xl border bg-muted/30">
-                                    <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${pc}dd 0%, ${pc} 100%)` }}>
+                                <div className="manager-well overflow-hidden">
+                                    <div className="relative overflow-hidden" style={{ backgroundColor: pc }}>
                                         <div className="flex items-center gap-3 px-3 py-3">
                                             {previewUrl && (
-                                                <img src={previewUrl} alt="Logo" className="h-8 w-8 rounded-lg border border-white/30 bg-white object-cover" />
+                                                <img src={previewUrl} alt="Logo" className="h-8 w-8 rounded-inner bg-white object-cover" />
                                             )}
                                             <div className="text-white">
                                                 <p className="text-sm font-bold">{tenant.slug?.replace(/-/g, ' ') || 'Tên sân của bạn'}</p>
-                                                <p className="text-[10px] text-white/70">Giữ sân 15 phút · cọc VietQR chống bom</p>
+                                                <p className="text-xs text-white opacity-70">Giữ sân 15 phút · cọc VietQR chống bom</p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="space-y-2 p-3">
-                                        <div className="flex gap-1.5">
+                                        <div className="grid grid-cols-7 gap-1">
                                             {[1, 2, 3, 4, 5, 6, 7].map((d) => (
                                                 <div
                                                     key={d}
-                                                    className={`min-w-[36px] flex flex-col items-center rounded-lg px-2 py-1.5 text-[10px] ${d === 4 ? 'text-white' : 'border border-border bg-background text-muted-foreground'}`}
+                                                    className={`min-w-0 flex flex-col items-center rounded-inner px-1 py-1.5 text-xs ${d === 4 ? 'text-white' : 'bg-background text-muted-foreground'}`}
                                                     style={d === 4 ? { backgroundColor: pc } : {}}
                                                 >
                                                     <span>{['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][d - 1]}</span>
@@ -213,21 +222,21 @@ export default function Branding({ tenant, settings }) {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="rounded-xl border bg-background p-2">
+                                        <div className="rounded-inner bg-background p-2">
                                             <div className="mb-1.5 flex items-center gap-1.5">
                                                 <div className="h-2 w-2 rounded-full" style={{ backgroundColor: pc }} />
-                                                <p className="text-[10px] font-semibold">Sân 1</p>
+                                                <p className="text-xs font-semibold">Sân 1</p>
                                             </div>
                                             <div className="flex gap-1">
-                                                <div className="h-6 w-12 rounded border border-border bg-background" />
-                                                <div className="h-6 w-12 rounded border border-amber-200 bg-amber-50" />
-                                                <div className="h-6 w-12 rounded" style={{ backgroundColor: pc, opacity: 0.8 }} />
+                                                <div className="h-6 w-12 rounded-slot bg-background" />
+                                                <div className="h-6 w-12 rounded-slot" style={{ backgroundColor: pc, opacity: 0.1 }} />
+                                                <div className="h-6 w-12 rounded-slot" style={{ backgroundColor: pc, opacity: 0.8 }} />
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <p className="mt-3 text-center text-xs text-muted-foreground">
+                                <p className="mt-3 text-xs text-muted-foreground">
                                     Đây là giao diện trang đặt sân mà khách hàng của bạn sẽ thấy.
                                 </p>
                             </CardContent>

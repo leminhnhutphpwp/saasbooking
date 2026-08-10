@@ -1,0 +1,13 @@
+/* Canonical design-kit tokens. App consumption is through resources/css/app.css. */
+:root {
+  --plane: #E7E9E7; --shell: #F5F6F5; --surface: #FFFFFF; --sunk: #F1F3F1; --line: #E9ECE9;
+  --ink: #14181A; --ink-soft: #566159; --ink-mute: #8C978F; --ink-invert: #FFFFFF;
+  --turf-900: #0B3D22; --turf-700: #147244; --turf-600: #17A45C; --turf-300: #A5D9BB; --turf-100: #E4F4EA;
+  --chalk-500: #CFE94F; --chalk-100: #F4FADD; --pitch-900: #0C2419; --pitch-700: #163A28; --pitch-line: #24503A;
+  --ok: #17A45C; --warn: #B8791C; --danger: #C2453A;
+  --r-shell: 32px; --r-card: 24px; --r-inner: 16px; --r-slot: 10px; --r-well: 12px; --r-pill: 999px;
+  --e-flat: 0 1px 2px rgba(12,36,25,.03); --e-card: 0 1px 2px rgba(12,36,25,.03), 0 10px 28px -14px rgba(12,36,25,.10); --e-float: 0 2px 4px rgba(12,36,25,.04), 0 18px 40px -18px rgba(12,36,25,.16); --e-shell: 0 24px 64px -32px rgba(12,36,25,.22);
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+  --font-ui: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif; --font-num: "Space Grotesk", var(--font-ui);
+  --ease: cubic-bezier(.32,.72,0,1); --dur-fast: 140ms; --dur-base: 260ms; --dur-slow: 520ms;
+}

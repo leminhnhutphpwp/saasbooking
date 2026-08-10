@@ -116,14 +116,15 @@ class ReportController extends Controller
             ->join('bookings', 'bookings.customer_id', '=', 'customers.id')
             ->where('bookings.status', BookingStatus::Confirmed)
             ->whereHas('bookings.slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
-            ->select('customers.id', 'customers.name', 'customers.phone',
+            ->select('customers.id', 'customers.uuid', 'customers.name', 'customers.phone',
                 DB::raw('COUNT(bookings.id) as booking_count'),
                 DB::raw('SUM(bookings.total_amount) as total_spent'))
-            ->groupBy('customers.id', 'customers.name', 'customers.phone')
+            ->groupBy('customers.id', 'customers.uuid', 'customers.name', 'customers.phone')
             ->orderByDesc('booking_count')
             ->take(10)
             ->get()
             ->map(fn ($c) => [
+                'id' => $c->uuid,
                 'name' => $c->name,
                 'phone' => $c->phone,
                 'booking_count' => (int) $c->booking_count,

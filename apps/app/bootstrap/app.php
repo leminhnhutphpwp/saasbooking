@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // Implicit bindings query tenant-scoped tables, so establish the RLS transaction first.
+        $middleware->prependToPriorityList(SubstituteBindings::class, ResolveWorkingTenant::class);
+        $middleware->prependToPriorityList(SubstituteBindings::class, ApplyRlsTenantContext::class);
 
         // Security (#3): the L11+ api group ships without throttling. Add the general 'api'
         // limiter (defined in AppServiceProvider) so every /api route is rate-limited by default;

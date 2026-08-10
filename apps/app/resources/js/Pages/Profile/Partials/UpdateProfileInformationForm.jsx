@@ -27,11 +27,11 @@ export default function UpdateProfileInformation({
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-semibold text-ink">
                     Thông tin hồ sơ
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-ink-soft">
                     Cập nhật thông tin hồ sơ và địa chỉ email của tài khoản.
                 </p>
             </header>
@@ -71,20 +71,20 @@ export default function UpdateProfileInformation({
 
                 {mustVerifyEmail && user.email_verified_at === null && (
                     <div>
-                        <p className="mt-2 text-sm text-gray-800">
+                        <p className="mt-2 text-sm text-ink-soft">
                             Địa chỉ email của bạn chưa được xác minh.
                             <Link
                                 href={route('verification.send')}
                                 method="post"
                                 as="button"
-                                className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                className="text-turf-700 underline underline-offset-4 hover:text-ink"
                             >
                                 Nhấn vào đây để gửi lại email xác minh.
                             </Link>
                         </p>
 
                         {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
+                            <div className="mt-2 text-sm font-medium text-turf-700">
                                 Liên kết xác minh mới đã được gửi đến địa chỉ
                                 email của bạn.
                             </div>
@@ -97,12 +97,12 @@ export default function UpdateProfileInformation({
 
                     <Transition
                         show={recentlySuccessful}
-                        enter="transition ease-in-out"
+                        enter="transition-opacity"
                         enterFrom="opacity-0"
-                        leave="transition ease-in-out"
+                        leave="transition-opacity"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                             Đã lưu.
                         </p>
                     </Transition>

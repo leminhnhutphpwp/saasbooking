@@ -8,6 +8,7 @@ import { StatusBadge } from '@/Components/StatusBadge';
 import { Button } from '@/Components/ui/button';
 import { Card } from '@/Components/ui/card';
 import { Input } from '@/Components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { formatDateTime, formatVND } from '@/lib/format';
 import { CalendarDays, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
@@ -60,7 +61,7 @@ export default function Index({ bookings, courts, filters = {} }) {
             <PageContainer>
                 <PageHeader title="Đơn đặt sân" description={`${bookings?.total ?? 0} đơn trong hệ thống`} />
 
-                <form onSubmit={(event) => { event.preventDefault(); navigate(); }} className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
+                <form onSubmit={(event) => { event.preventDefault(); navigate(); }} className="manager-panel grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-5">
                     <div className="relative sm:col-span-2">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Mã đơn, tên hoặc số điện thoại" className="pl-9" aria-label="Tìm đơn đặt sân" />
@@ -82,20 +83,47 @@ export default function Index({ bookings, courts, filters = {} }) {
                 </form>
 
                 {data.length === 0 ? (
-                    <Card><EmptyState icon={CalendarDays} title="Chưa có đơn đặt sân" description={hasFilters ? 'Không có đơn nào phù hợp với bộ lọc hiện tại.' : 'Đơn từ trang đặt sân và nhân viên tạo sẽ xuất hiện tại đây.'} action={hasFilters && <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button>} /></Card>
+                    <Card><EmptyState icon={CalendarDays} title="Chưa có đơn đặt sân" description={hasFilters ? 'Không có đơn nào phù hợp với bộ lọc hiện tại.' : 'Đơn từ trang đặt sân và nhân viên tạo sẽ xuất hiện tại đây.'} action={hasFilters ? <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button> : <Button asChild><Link href={route('manager.calendar.index')}>Mở lịch đặt</Link></Button>} /></Card>
                 ) : (
-                    <Card className="overflow-hidden">
-                        <div className="divide-y">
+                    <Card>
+                        <div className="hidden overflow-x-auto p-3 md:block">
+                            <Table aria-label="Danh sách đơn đặt sân">
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Đơn đặt sân</TableHead>
+                                        <TableHead>Khách hàng</TableHead>
+                                        <TableHead>Lịch đặt</TableHead>
+                                        <TableHead>Trạng thái</TableHead>
+                                        <TableHead className="text-right">Tổng tiền</TableHead>
+                                        <TableHead className="text-right">Tiền cọc</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.map((booking) => {
+                                        const slot = firstSlot(booking);
+                                        return <TableRow key={booking.uuid}>
+                                            <TableCell><Link href={route('manager.bookings.show', booking.uuid)} className="font-mono font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">{booking.code}</Link></TableCell>
+                                            <TableCell><p className="font-semibold text-foreground">{booking.customer?.name || 'Khách chưa đặt tên'}</p><p className="text-xs text-muted-foreground">{booking.customer?.phone}</p></TableCell>
+                                            <TableCell>{slot ? <><p className="font-medium text-foreground">{slot.court?.name}</p><p className="text-xs text-muted-foreground">{formatDateTime(slot.start_at)}-{formatDateTime(slot.end_at).split(' · ')[0]}</p></> : 'Chưa có lịch'}</TableCell>
+                                            <TableCell><StatusBadge type="booking" value={booking.status} /></TableCell>
+                                            <TableCell className="num text-right font-semibold text-foreground">{formatVND(booking.total_amount)}</TableCell>
+                                            <TableCell className="num text-right font-semibold text-foreground">{formatVND(booking.deposit_amount)}</TableCell>
+                                        </TableRow>;
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        <div className="divide-y md:hidden">
                             {data.map((booking) => {
                                 const slot = firstSlot(booking);
-                                return <Link key={booking.uuid} href={route('manager.bookings.show', booking.uuid)} className="block p-4 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                return <Link key={booking.uuid} href={route('manager.bookings.show', booking.uuid)} className="block p-5 transition-colors hover:bg-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="min-w-0 space-y-1">
                                             <div className="flex flex-wrap items-center gap-2"><span className="font-mono text-sm font-semibold">{booking.code}</span><StatusBadge type="booking" value={booking.status} /></div>
                                             <p className="font-medium">{booking.customer?.name || 'Khách chưa đặt tên'} <span className="font-normal text-muted-foreground">· {booking.customer?.phone}</span></p>
                                             {slot && <p className="text-sm text-muted-foreground">{slot.court?.name} · {formatDateTime(slot.start_at)}-{formatDateTime(slot.end_at).split(' · ')[0]}</p>}
                                         </div>
-                                        <div className="text-left sm:text-right"><p className="font-semibold">{formatVND(booking.total_amount)}</p><p className="text-sm text-muted-foreground">Cọc {formatVND(booking.deposit_amount)}</p></div>
+                                        <div className="text-left sm:text-right"><p className="num font-semibold">{formatVND(booking.total_amount)}</p><p className="num text-sm text-muted-foreground">Cọc {formatVND(booking.deposit_amount)}</p></div>
                                     </div>
                                 </Link>;
                             })}

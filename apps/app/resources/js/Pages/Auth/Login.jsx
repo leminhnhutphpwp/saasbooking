@@ -1,10 +1,10 @@
 import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
+import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Button } from '@/Components/ui/button';
 import { Mail, Lock } from 'lucide-react';
 
 export default function Login({ status, canResetPassword }) {
@@ -26,12 +26,12 @@ export default function Login({ status, canResetPassword }) {
             <Head title="Đăng nhập" />
 
             <div className="space-y-1 text-center">
-                <h2 className="text-lg font-semibold text-foreground">Đăng nhập</h2>
-                <p className="text-sm text-muted-foreground">Chào mừng bạn quay trở lại</p>
+                <h2 className="text-lg font-semibold text-ink">Đăng nhập</h2>
+                <p className="text-sm text-ink-soft">Chào mừng bạn quay trở lại</p>
             </div>
 
             {status && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <div className="rounded-inner bg-turf-100 p-3 text-sm text-turf-700">
                     {status}
                 </div>
             )}
@@ -40,13 +40,13 @@ export default function Login({ status, canResetPassword }) {
                 <div className="space-y-2">
                     <InputLabel htmlFor="email" value="Email" />
                     <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-mute" />
                         <TextInput
                             id="email"
                             type="email"
                             name="email"
                             value={data.email}
-                            className="h-10 w-full pl-9"
+                            className="pl-9"
                             autoComplete="username"
                             isFocused={true}
                             onChange={(e) => setData('email', e.target.value)}
@@ -61,20 +61,20 @@ export default function Login({ status, canResetPassword }) {
                         {canResetPassword && (
                             <Link
                                 href={route('password.request')}
-                                className="text-xs font-medium text-primary hover:underline"
+                                className="text-xs font-medium text-turf-700 underline-offset-4 hover:underline"
                             >
                                 Quên mật khẩu?
                             </Link>
                         )}
                     </div>
                     <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-mute" />
                         <TextInput
                             id="password"
                             type="password"
                             name="password"
                             value={data.password}
-                            className="h-10 w-full pl-9"
+                            className="pl-9"
                             autoComplete="current-password"
                             onChange={(e) => setData('password', e.target.value)}
                         />
@@ -89,14 +89,14 @@ export default function Login({ status, canResetPassword }) {
                         checked={data.remember}
                         onChange={(e) => setData('remember', e.target.checked)}
                     />
-                    <label htmlFor="remember" className="ms-2 cursor-pointer select-none text-sm text-muted-foreground">
+                    <label htmlFor="remember" className="ms-2 cursor-pointer select-none text-sm text-ink-soft">
                         Ghi nhớ đăng nhập
                     </label>
                 </div>
 
-                <Button type="submit" disabled={processing} className="h-10 w-full font-medium">
+                <PrimaryButton type="submit" disabled={processing} className="w-full">
                     {processing ? 'Đang đăng nhập...' : 'Đăng nhập'}
-                </Button>
+                </PrimaryButton>
             </form>
         </GuestLayout>
     );

@@ -7,7 +7,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 test('public booking remains usable on a mobile viewport', async ({ page }) => {
     await page.goto(`/book/${tenant}`);
 
-    const court = page.locator('.court-card').first();
+    const court = page.getByRole('button', { name: /Sân A/ });
     await expect(court).toBeVisible();
 
     const box = await court.boundingBox();

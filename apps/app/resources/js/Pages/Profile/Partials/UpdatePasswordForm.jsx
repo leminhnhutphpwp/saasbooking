@@ -47,11 +47,11 @@ export default function UpdatePasswordForm({ className = '' }) {
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="text-lg font-semibold text-ink">
                     Cập nhật mật khẩu
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-ink-soft">
                     Sử dụng mật khẩu dài, ngẫu nhiên để bảo vệ tài khoản.
                 </p>
             </header>
@@ -125,12 +125,12 @@ export default function UpdatePasswordForm({ className = '' }) {
 
                     <Transition
                         show={recentlySuccessful}
-                        enter="transition ease-in-out"
+                        enter="transition-opacity"
                         enterFrom="opacity-0"
-                        leave="transition ease-in-out"
+                        leave="transition-opacity"
                         leaveTo="opacity-0"
                     >
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                             Đã lưu.
                         </p>
                     </Transition>

@@ -8,15 +8,15 @@ export default function Edit({ mustVerifyEmail, status }) {
     return (
         <ManagerLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl font-semibold leading-tight text-ink">
                     Hồ sơ
                 </h2>
             }
         >
             <Head title="Hồ sơ" />
 
-            <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+            <div className="mx-auto max-w-4xl space-y-6 p-3 sm:p-6">
+                <div className="rounded-card bg-surface p-6 shadow-card">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
@@ -24,11 +24,11 @@ export default function Edit({ mustVerifyEmail, status }) {
                     />
                 </div>
 
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+                <div className="rounded-card bg-surface p-6 shadow-card">
                     <UpdatePasswordForm className="max-w-xl" />
                 </div>
 
-                <div className="rounded-lg border bg-card p-4 sm:p-8">
+                <div className="rounded-card bg-surface p-6 shadow-card">
                     <DeleteUserForm className="max-w-xl" />
                 </div>
             </div>

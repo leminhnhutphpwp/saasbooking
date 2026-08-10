@@ -1,10 +1,7 @@
 import { cn } from '@/lib/utils';
 
 /**
- * Empty-list placeholder v2: icon in a tinted circle + title + hint +
- * optional example text + optional primary action.
- *
- * Centered with a sensible min-height so it looks intentional, not a bare box.
+ * Empty-list placeholder with one plain instruction and an optional action.
  *
  * Usage:
  *   <EmptyState icon={CalendarDays} title="Chưa có lịch nào"
@@ -23,13 +20,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex min-h-[280px] flex-col items-center justify-center px-6 py-12 text-center',
+        'flex min-h-56 flex-col items-start justify-center px-6 py-10 text-left',
         className,
       )}
     >
       {Icon && (
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/80 text-muted-foreground">
-          <Icon className="h-8 w-8" />
+          <div className="ui-well mb-4 flex h-10 w-10 items-center justify-center">
+            <Icon className="h-5 w-5" />
         </div>
       )}
       {title && (
@@ -38,11 +35,6 @@ export function EmptyState({
       {description && (
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           {description}
-        </p>
-      )}
-      {example && (
-        <p className="mt-2 max-w-sm rounded-lg bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">
-          {example}
         </p>
       )}
       {action && <div className="mt-6">{action}</div>}

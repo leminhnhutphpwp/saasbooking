@@ -49,6 +49,8 @@ class CourtController extends Controller
             ->through(fn (Court $court) => [
                 'uuid' => $court->uuid,
                 'name' => $court->name,
+                'opening_rules_url' => route('manager.courts.opening-rules.index', $court),
+                'pricing_rules_url' => route('manager.courts.pricing-rules.index', $court),
                 'court_type' => $court->court_type->value,
                 'court_type_label' => $court->court_type->label(),
                 'status' => $court->status->value,

@@ -1,88 +1,66 @@
 import { Link, usePage } from '@inertiajs/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import { MoreHorizontal } from 'lucide-react';
 import { AppTopbar } from '@/Components/AppTopbar';
-import {
-    Sidebar,
-    SidebarContent,
-    SidebarFooter,
-    SidebarGroup,
-    SidebarGroupContent,
-    SidebarGroupLabel,
-    SidebarHeader,
-    SidebarInset,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
-    SidebarProvider,
-    SidebarTrigger,
-} from '@/Components/ui/sidebar';
 import { managerNav } from '@/managerNav';
 
 export default function ManagerLayout({ children }) {
     const { flash } = usePage().props;
+    const [moreOpen, setMoreOpen] = useState(false);
 
     useEffect(() => {
         if (flash?.success) toast.success(flash.success);
         if (flash?.error) toast.error(flash.error);
     }, [flash?.success, flash?.error]);
 
+    const moveRailFocus = (event) => {
+        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+
+        const controls = [...event.currentTarget.querySelectorAll('[data-rail-control]')].filter((control) => control.offsetParent !== null);
+        const current = controls.indexOf(document.activeElement);
+        if (current < 0) return;
+
+        event.preventDefault();
+        const forward = event.key === 'ArrowDown' || event.key === 'ArrowRight';
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? controls.length - 1 : (current + (forward ? 1 : -1) + controls.length) % controls.length;
+        controls[next].focus();
+    };
+
     return (
-        <SidebarProvider>
-            <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-                <SidebarHeader className="border-b border-sidebar-border">
-                    <Link
-                        href={route('manager.home')}
-                        className="flex items-center gap-3 px-3 py-4"
-                    >
-                        <img src="/logo-transparent.png" alt="Wavise" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
-                        <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                            <span className="text-base font-bold leading-tight text-foreground">SÂN</span>
-                            <span className="text-[10px] leading-tight text-muted-foreground">Court Management</span>
-                        </div>
-                    </Link>
-                </SidebarHeader>
-
-                <SidebarContent className="px-2 py-4">
-                    {managerNav.map((group) => (
-                        <SidebarGroup key={group.title} className="mb-4">
-                            <SidebarGroupLabel className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 group-data-[collapsible=icon]:hidden">
-                                {group.title}
-                            </SidebarGroupLabel>
-                            <SidebarGroupContent>
-                                <SidebarMenu className="gap-1">
-                                    {group.items.map((item) => (
-                                        <SidebarMenuItem key={item.href}>
-                                            <SidebarMenuButton
-                                                asChild
-                                                isActive={route().current(item.href + '*')}
-                                                tooltip={item.title}
-                                                className="rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-muted hover:text-foreground data-[active=true]:bg-accent data-[active=true]:font-semibold data-[active=true]:text-accent-foreground"
-                                            >
-                                                <Link href={route(item.href)}>
-                                                    <item.icon className="h-4 w-4 shrink-0" />
-                                                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>
-                                    ))}
-                                </SidebarMenu>
-                            </SidebarGroupContent>
-                        </SidebarGroup>
-                    ))}
-                </SidebarContent>
-
-                <SidebarFooter className="border-t border-sidebar-border p-3">
-                    <SidebarTrigger className="mx-auto h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" />
-                </SidebarFooter>
-            </Sidebar>
-
-            <SidebarInset className="flex flex-col">
+        <div className="manager-plane">
+            <div className="manager-shell !max-w-none">
                 <AppTopbar />
-                <main className="flex-1 overflow-auto">{children}</main>
-            </SidebarInset>
+                <div className="manager-body">
+                    <nav className="manager-rail" aria-label="Điều hướng quản lý" onKeyDown={moveRailFocus}>
+                        <Link href={route('manager.home')} className="manager-rail-logo" aria-label="Trang chủ SÂN">
+                            <span>S</span>
+                        </Link>
+                        {managerNav.map((group) => (
+                            <div className="manager-rail-group" key={group.title} role="group" aria-label={group.title}>
+                                {group.items.map((item) => {
+                                    const active = route().current(item.href + '*');
+                                    return <Link key={item.href} href={route(item.href)} data-rail-control className={`manager-rail-link ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.title} title={item.title}>
+                                        <item.icon />
+                                    </Link>;
+                                })}
+                            </div>
+                        ))}
+                        <button type="button" data-rail-control className="manager-rail-more" aria-label="Mở thêm điểm đến" aria-expanded={moreOpen} aria-controls="manager-rail-overflow" onClick={() => setMoreOpen((open) => !open)}>
+                            <MoreHorizontal />
+                        </button>
+                        <div id="manager-rail-overflow" className={`manager-rail-overflow ${moreOpen ? 'is-open' : ''}`} aria-label="Điểm đến khác">
+                            {managerNav.slice(1).flatMap((group) => group.items).map((item) => {
+                                const active = route().current(item.href + '*');
+                                return <Link key={item.href} href={route(item.href)} data-rail-control className={`manager-rail-link ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined} aria-label={item.title} title={item.title} onClick={() => setMoreOpen(false)}><item.icon /></Link>;
+                            })}
+                        </div>
+                    </nav>
+                    <main className="manager-main">{children}</main>
+                </div>
+            </div>
 
             <Toaster richColors position="top-right" />
-        </SidebarProvider>
+        </div>
     );
 }

@@ -22,13 +22,13 @@ export default function ConfirmPassword() {
         <GuestLayout>
             <Head title="Xác nhận mật khẩu" />
 
-            <div className="mb-4 text-sm text-gray-600">
+            <div className="mb-4 text-sm text-ink-soft">
                 Đây là khu vực bảo mật. Vui lòng xác nhận mật khẩu trước khi
                 tiếp tục.
             </div>
 
-            <form onSubmit={submit}>
-                <div className="mt-4">
+            <form onSubmit={submit} className="space-y-4">
+                <div>
                     <InputLabel htmlFor="password" value="Mật khẩu" />
 
                     <TextInput
@@ -36,7 +36,7 @@ export default function ConfirmPassword() {
                         type="password"
                         name="password"
                         value={data.password}
-                        className="mt-1 block w-full"
+                        className="mt-1 block"
                         isFocused={true}
                         onChange={(e) => setData('password', e.target.value)}
                     />
@@ -44,8 +44,8 @@ export default function ConfirmPassword() {
                     <InputError message={errors.password} className="mt-2" />
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
-                    <PrimaryButton className="ms-4" disabled={processing}>
+                <div className="flex justify-end">
+                    <PrimaryButton disabled={processing}>
                         Xác nhận
                     </PrimaryButton>
                 </div>

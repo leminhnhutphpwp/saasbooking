@@ -9,7 +9,7 @@ test.describe('public booking', () => {
         await expect(page.getByRole('heading', { level: 1 })).toContainText('Sân Pickleball MVP');
         await expect(page.getByRole('dialog')).toHaveCount(0);
 
-        const court = page.locator('.court-card').first();
+        const court = page.getByRole('button', { name: /Sân A/ });
         await expect(court).toBeVisible();
         await court.click();
 
@@ -17,8 +17,8 @@ test.describe('public booking', () => {
         await expect(sheet).toBeVisible();
         await expect(sheet.getByText(/\d+ khung giờ trống/)).toBeVisible();
 
-        await sheet.locator('.slot-pill').first().click();
-        await expect(sheet.getByText('TÓM TẮT ĐẶT SÂN')).toBeVisible();
+        await sheet.getByRole('button', { name: /\d{2}:\d{2}/ }).first().click();
+        await expect(sheet.getByText('Tóm tắt đặt sân')).toBeVisible();
         await expect(sheet.getByPlaceholder('Họ tên (ít nhất 2 ký tự)')).toBeVisible();
         await expect(sheet.getByPlaceholder('Số điện thoại (VD: 0912345678)')).toBeVisible();
     });
@@ -26,13 +26,13 @@ test.describe('public booking', () => {
     test('traps focus and restores it to the selected court when dismissed', async ({ page }) => {
         await page.goto(`/book/${tenant}`);
 
-        const court = page.locator('.court-card').first();
+        const court = page.getByRole('button', { name: /Sân A/ });
         await court.focus();
         await court.press('Enter');
 
         const sheet = page.getByRole('dialog', { name: /Sân/ });
         const close = sheet.getByLabel('Đóng chọn sân');
-        const lastSlot = sheet.locator('.slot-pill').last();
+        const lastSlot = sheet.getByRole('button', { name: /\d{2}:\d{2}/ }).last();
         await expect(close).toBeFocused();
 
         await close.press('Shift+Tab');
@@ -48,22 +48,22 @@ test.describe('public booking', () => {
 
     test('shows the selected court and time in the order summary', async ({ page }) => {
         await page.goto(`/book/${tenant}`);
-        const court = page.locator('.court-card').first();
+        const court = page.getByRole('button', { name: /Sân A/ });
         await court.click();
 
         const sheet = page.getByRole('dialog', { name: /Sân/ });
-        await sheet.locator('.slot-pill').first().click();
+        await sheet.getByRole('button', { name: /\d{2}:\d{2}/ }).first().click();
 
-        await expect(sheet.getByText('TÓM TẮT ĐẶT SÂN')).toBeVisible();
+        await expect(sheet.getByText('Tóm tắt đặt sân')).toBeVisible();
         await expect(sheet.getByRole('button', { name: 'Giữ chỗ' })).toBeVisible();
     });
 
     test('renders the server-provided VietQR after a hold', async ({ page }) => {
         await page.goto(`/book/${tenant}`);
-        await page.locator('.court-card').first().click();
+        await page.getByRole('button', { name: /Sân A/ }).click();
 
         const sheet = page.getByRole('dialog', { name: /Sân/ });
-        await sheet.locator('.slot-pill').first().click();
+        await sheet.getByRole('button', { name: /\d{2}:\d{2}/ }).first().click();
         await sheet.getByPlaceholder('Họ tên (ít nhất 2 ký tự)').fill('Khách kiểm thử QR');
         await sheet.getByPlaceholder('Số điện thoại (VD: 0912345678)').fill('0912345678');
         await sheet.getByRole('button', { name: 'Giữ chỗ' }).click();

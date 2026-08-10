@@ -170,6 +170,33 @@ class CourtManagementTest extends TestCase
                 ->has('courtStatuses', 3));
     }
 
+    public function test_owner_can_open_catalog_action_routes_for_a_listed_court(): void
+    {
+        $tenant = $this->venue('venue-a');
+        $court = $this->court($tenant, 'Sân 1');
+        $owner = $this->owner($tenant);
+
+        $this->actingAs($owner)
+            ->get(route('manager.courts.index'))
+            ->assertInertia(fn ($page) => $page
+                ->where('courts.data.0.opening_rules_url', route('manager.courts.opening-rules.index', $court))
+                ->where('courts.data.0.pricing_rules_url', route('manager.courts.pricing-rules.index', $court)));
+
+        $this->actingAs($owner)
+            ->get(route('manager.courts.opening-rules.index', $court))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Manager/Courts/OpeningRules')
+                ->where('court.uuid', $court->uuid));
+
+        $this->actingAs($owner)
+            ->get(route('manager.courts.pricing-rules.index', $court))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Manager/Courts/PricingRules')
+                ->where('court.uuid', $court->uuid));
+    }
+
     public function test_bulk_status_updates_only_selected_own_courts(): void
     {
         $tenant = $this->venue('venue-a');

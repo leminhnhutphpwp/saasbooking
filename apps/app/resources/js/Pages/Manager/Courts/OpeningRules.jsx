@@ -128,7 +128,7 @@ export default function OpeningRules({ court, rules }) {
                 />
 
                 {form.errors.open_local && (
-                    <div className="flex items-start gap-2 rounded-xl border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div className="manager-alert items-start p-3 text-sm">
                         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                         <div>
                             <p className="font-medium">Trùng khung giờ</p>
@@ -140,10 +140,7 @@ export default function OpeningRules({ court, rules }) {
                 {rules.length === 0 ? (
                     <Card>
                         <EmptyState
-                            icon={Clock}
-                            title="Chưa có giờ mở cửa nào"
-                            description="Thiết lập khung giờ mở cửa cho sân theo từng ngày trong tuần."
-                            example="VD: T2–T6 mở 06:00–22:00, T7–CN mở 07:00–20:00"
+                            title="Thiết lập giờ mở cửa cho sân theo từng ngày trong tuần."
                             action={
                                 <Button onClick={openAdd} className="gap-2">
                                     <Plus className="h-4 w-4" />
@@ -154,7 +151,7 @@ export default function OpeningRules({ court, rules }) {
                     </Card>
                 ) : (
                     <>
-                        <div className="grid grid-cols-2 overflow-hidden rounded-2xl border bg-card shadow-sm sm:grid-cols-4">
+                        <div className="manager-panel grid grid-cols-2 overflow-hidden sm:grid-cols-4">
                             {[
                                 ['Mở sớm nhất', earliestOpen ?? '—'],
                                 ['Đóng muộn nhất', latestClose ?? '—'],
@@ -168,42 +165,39 @@ export default function OpeningRules({ court, rules }) {
                             ))}
                         </div>
 
-                        <Card className="overflow-hidden">
-                            <div className="flex flex-col gap-3 border-b bg-muted/20 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+                        <Card className="overflow-hidden" aria-label="Lịch giờ mở cửa theo từng ngày trong tuần. Mỗi thanh hiển thị khoảng thời gian sân nhận đặt.">
+                            <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <CalendarDays className="h-5 w-5 text-primary" />
+                                        <CalendarDays className="h-5 w-5 text-muted-foreground" />
                                         <h2 className="font-semibold text-foreground">Nhịp vận hành trong tuần</h2>
                                     </div>
                                     <p className="mt-1 text-sm text-muted-foreground">Mỗi thanh biểu diễn thời gian sân nhận đặt trong một ngày.</p>
-                                </div>
-                                <div className="hidden w-[calc(100%-7rem)] justify-between pl-3 font-mono text-[10px] text-muted-foreground sm:flex">
-                                    {['00:00', '06:00', '12:00', '18:00', '24:00'].map((time) => <span key={time}>{time}</span>)}
                                 </div>
                             </div>
 
                             <div className="divide-y">
                                 {[1, 2, 3, 4, 5, 6, 7].map((day) => (
-                                    <div key={day} className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-3 px-4 py-3 sm:grid-cols-[6rem_minmax(0,1fr)] sm:px-5">
-                                        <div className="pt-1">
+                                    <div key={day} className="flex gap-3 px-4 py-3 sm:px-5">
+                                        <div className="w-20 shrink-0 pt-1 sm:w-24">
                                             <p className="text-sm font-semibold text-foreground">{DAY_FULL[day]}</p>
                                             <p className="text-xs text-muted-foreground">{rulesByDay[day].length > 0 ? `${rulesByDay[day].length} khung` : 'Đóng cửa'}</p>
                                         </div>
-                                        <div className="space-y-1.5">
+                                        <div className="min-w-0 flex-1 space-y-1.5">
                                             {rulesByDay[day].length === 0 ? (
-                                                <div className="mt-1 h-8 rounded-lg border border-dashed bg-muted/20" />
+                                                <div className="mt-1 h-8 rounded-slot border border-dashed bg-muted" />
                                             ) : rulesByDay[day].map((rule) => {
                                                 const left = (toMinutes(rule.open_local) / 1440) * 100;
                                                 const width = ((toMinutes(rule.close_local) - toMinutes(rule.open_local)) / 1440) * 100;
                                                 return (
-                                                    <div key={rule.id} className="relative h-8 overflow-hidden rounded-lg bg-muted/50">
+                                                    <div key={rule.id} className="relative h-8 overflow-hidden rounded-slot bg-muted">
                                                         <Button
                                                             type="button"
                                                             size="sm"
                                                             onClick={() => openEdit(rule)}
-                                                            className="absolute inset-y-0 h-8 min-w-16 rounded-lg px-1.5 font-mono text-[10px] shadow-sm sm:min-w-20 sm:px-2 sm:text-[11px]"
+                                                            className="absolute inset-y-0 min-w-16 rounded-slot px-2 font-num text-xs shadow-flat sm:min-w-20"
                                                             style={{ left: `${left}%`, width: `${width}%` }}
-                                                            title={`${rule.open_local}–${rule.close_local}`}
+                                                            aria-label={`Sửa khung giờ ${rule.open_local} đến ${rule.close_local} vào ${DAY_FULL[day]}`}
                                                         >
                                                             {rule.open_local}–{rule.close_local}
                                                         </Button>
@@ -226,10 +220,10 @@ export default function OpeningRules({ court, rules }) {
                             </div>
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                 {sortedRules.map((rule) => (
-                                    <Card key={rule.id} className="group p-4 transition-colors hover:bg-muted/20">
+                                    <Card key={rule.id} className="group p-6 transition-colors hover:bg-muted">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0">
-                                                <p className="font-mono text-lg font-bold text-primary">{rule.open_local}–{rule.close_local}</p>
+                                                <p className="font-mono text-lg font-bold text-foreground">{rule.open_local}–{rule.close_local}</p>
                                                 <p className="mt-1 truncate text-sm font-medium text-foreground">{dayLabel(rule.weekday)}</p>
                                             </div>
                                             <div className="flex items-center gap-1">
@@ -240,7 +234,7 @@ export default function OpeningRules({ court, rules }) {
                                             </div>
                                         </div>
                                         <div className="mt-4 flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
-                                            <Info className="h-3.5 w-3.5 text-primary" />
+                                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
                                             {rule.effective_from && <>Từ {rule.effective_from}</>}
                                             {rule.effective_to && <> đến {rule.effective_to}</>}
                                             {!rule.effective_from && !rule.effective_to && 'Áp dụng vô thời hạn'}
@@ -270,9 +264,9 @@ export default function OpeningRules({ court, rules }) {
                         <DialogTitle>{editingId ? 'Sửa khung giờ' : 'Thêm khung giờ mở cửa'}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={submit} className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label>Ngày trong tuần</Label>
+                        <fieldset className="space-y-2">
+                            <legend className="text-sm font-medium">Ngày trong tuần</legend>
+                            <div className="flex justify-end">
                                 <Button type="button" variant="ghost" size="sm" onClick={selectAllDays} className="h-auto text-xs">
                                     Chọn tất cả
                                 </Button>
@@ -283,10 +277,11 @@ export default function OpeningRules({ court, rules }) {
                                         key={d}
                                         type="button"
                                         onClick={() => toggleDay(d)}
-                                        className={`rounded-lg border px-3 py-2 text-sm font-medium transition-all ${
+                                        aria-pressed={form.data.weekday.includes(d)}
+                                        className={`rounded-pill px-3 py-2 text-sm font-medium transition-colors ${
                                             form.data.weekday.includes(d)
-                                                ? 'border-primary bg-primary text-primary-foreground shadow-sm'
-                                                : 'border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                                ? 'bg-primary text-primary-foreground shadow-flat'
+                                                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                     >
                                         {DAY_LABELS[d]}
@@ -294,7 +289,7 @@ export default function OpeningRules({ court, rules }) {
                                 ))}
                             </div>
                             {form.errors.weekday && <p className="text-sm text-destructive">{form.errors.weekday}</p>}
-                        </div>
+                        </fieldset>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
