@@ -41,3 +41,40 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:8000 PLAYWRIGHT_TENANT=pickleball-mvp npm r
 For an authenticated manager smoke test against a different non-production fixture, set `PLAYWRIGHT_MANAGER_EMAIL` and `PLAYWRIGHT_MANAGER_PASSWORD`. Never supply production credentials.
 
 Failure traces and screenshots are written to `/tmp/san-playwright-results` by default so test output does not dirty the repository. Set `PLAYWRIGHT_OUTPUT_DIR` to retain them elsewhere.
+
+## Manager workflow tests
+
+Three additional spec files cover authenticated Manager workflows:
+
+| File | Workflows covered |
+|---|---|
+| `manager-calendar-bookings-series.spec.js` | Calendar date navigation, walk-in dialog, booked-slot detail, duration selector; Bookings filtering, quick dates, detail actions; Series end/cancel dialogs |
+| `manager-courts-customers-refunds.spec.js` | Courts list, opening/pricing rules navigation, create dialog; Customers search, pagination, detail history; Refunds list, booking-code navigation, mark-done dialog; Reconcile unmatched list, manual match dialog |
+| `manager-settings.spec.js` | Venue Profile form edit/cancel; Branding form, logo removal, color reset |
+
+### Preflight
+
+Before running Manager E2E tests, ensure:
+
+1. **Docker stack is running**: `docker compose up -d` from the repository root.
+2. **Migrations applied**: `docker compose exec -T app php artisan migrate --force`.
+3. **DemoSeeder executed**: `docker compose exec -T app php artisan db:seed --class=DemoSeeder --force`. This creates the demo tenant (`pickleball-mvp`) and the demo owner (`owner@pickleball.vn` / `password`).
+4. **`.env.testing` or environment variables**: the tests read `PLAYWRIGHT_MANAGER_EMAIL` and `PLAYWRIGHT_MANAGER_PASSWORD` (defaults: `owner@pickleball.vn` / `password`). Set `PLAYWRIGHT_BASE_URL` if the app is not at `http://127.0.0.1:8000`.
+
+### Run Manager tests only
+
+```bash
+npm run test:e2e -- tests/e2e/manager-calendar-bookings-series.spec.js
+npm run test:e2e -- tests/e2e/manager-courts-customers-refunds.spec.js
+npm run test:e2e -- tests/e2e/manager-settings.spec.js
+```
+
+### Viewing traces and screenshots on failure
+
+Traces and screenshots are written to `/tmp/san-playwright-results/` (or `PLAYWRIGHT_OUTPUT_DIR`). Open a trace with:
+
+```bash
+npx playwright show-trace /tmp/san-playwright-results/<test-name>/trace.zip
+```
+
+Screenshots are named after the failing test and saved as PNG in the same directory.

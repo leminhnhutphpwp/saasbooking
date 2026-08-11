@@ -17,11 +17,13 @@ use App\Models\PricingRule;
 use App\Models\Refund;
 use App\Models\Tenant;
 use App\Models\TenantBankConfig;
+use App\Models\User;
 use App\Services\Booking\BookingService;
 use App\Services\Payment\PaymentService;
 use App\Services\Payment\ReconcileService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ReconcileTest extends TestCase
@@ -38,6 +40,10 @@ class ReconcileTest extends TestCase
     {
         parent::setUp();
 
+        foreach (['super_admin', 'owner', 'staff'] as $role) {
+            Role::create(['name' => $role, 'guard_name' => 'web']);
+        }
+
         $this->tenant = Tenant::create(['name' => 'V', 'slug' => 'v', 'timezone' => 'Asia/Ho_Chi_Minh', 'status' => 'active']);
         $this->court = Court::create(['tenant_id' => $this->tenant->id, 'name' => 'Sân 1', 'court_type' => 'pickleball', 'status' => 'active']);
         $this->customer = Customer::create(['tenant_id' => $this->tenant->id, 'phone' => '0900000009', 'name' => 'A']);
@@ -51,6 +57,14 @@ class ReconcileTest extends TestCase
             'bank_bin' => '970422', 'account_number' => '0123', 'account_name' => 'CHU SAN',
             'webhook_secret' => 'secret-token', 'active' => true,
         ]);
+    }
+
+    private function owner(Tenant $t): User
+    {
+        $u = User::factory()->create(['tenant_id' => $t->id]);
+        $u->assignRole('owner');
+
+        return $u;
     }
 
     /** @return array{0: Booking, 1: Payment} */
@@ -249,5 +263,58 @@ class ReconcileTest extends TestCase
         $this->assertSame(BookingStatus::Confirmed, $booking->fresh()->status);
         $this->assertSame(PaymentStatus::Matched, $payment->fresh()->status);
         $this->assertSame('TX-REC', $payment->fresh()->bank_txn_id);
+    }
+
+    public function test_unmatched_page_returns_candidates_with_customer_and_slot_context(): void
+    {
+        [$booking, $payment] = $this->holdAndInit();
+
+        $this->actingAs($this->owner($this->tenant))
+            ->get('/manager/reconcile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Manager/Reconcile/Unmatched')
+                ->has('candidates', 1)
+                ->where('candidates.0.uuid', $booking->uuid)
+                ->where('candidates.0.code', $booking->code)
+                ->where('candidates.0.customer_name', 'A')
+                ->where('candidates.0.customer_phone', '0900000009')
+                ->where('candidates.0.expected_deposit', 60_000)
+                ->has('candidates.0.slot_summary', 1));
+    }
+
+    public function test_candidates_excludes_bookings_without_awaiting_payment(): void
+    {
+        $booking = app(BookingService::class)->createHold($this->tenant, [
+            'customer_id' => $this->customer->id,
+            'channel' => 'zalo',
+            'payment_mode' => 'deposit',
+            'slots' => [[
+                'court_id' => $this->court->id,
+                'start_at' => CarbonImmutable::parse('2026-07-21 18:00', 'Asia/Ho_Chi_Minh'),
+                'end_at' => CarbonImmutable::parse('2026-07-21 19:00', 'Asia/Ho_Chi_Minh'),
+            ]],
+        ]);
+
+        $this->actingAs($this->owner($this->tenant))
+            ->get('/manager/reconcile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Manager/Reconcile/Unmatched')
+                ->has('candidates', 0));
+    }
+
+    public function test_candidates_slot_summary_contains_iso_timestamps(): void
+    {
+        [$booking, $payment] = $this->holdAndInit();
+
+        $this->actingAs($this->owner($this->tenant))
+            ->get('/manager/reconcile')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Manager/Reconcile/Unmatched')
+                ->has('candidates', 1)
+                ->has('candidates.0.slot_summary.0.start_at')
+                ->has('candidates.0.slot_summary.0.end_at'));
     }
 }

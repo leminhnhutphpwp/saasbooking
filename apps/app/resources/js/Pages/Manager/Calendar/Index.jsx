@@ -5,6 +5,8 @@ import { EmptyState } from '@/Components/EmptyState';
 import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { StatusBadge } from '@/Components/StatusBadge';
+import CalendarBookingItem from '@/Components/CalendarBookingItem';
+import CustomerSearch from '@/Components/CustomerSearch';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -25,39 +27,17 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/Components/ui/tooltip';
 import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react';
 
-const DAY_START = 5;
-const DAY_END = 23;
-const TOTAL_MIN = (DAY_END - DAY_START) * 60;
 const SLOT_HEIGHT = 44;
-
-const STATUS_TINT = {
-    confirmed: { bg: 'bg-turf-100', border: 'var(--turf-600)', text: 'text-turf-700', label: 'Đã xác nhận' },
-    pending_deposit: { bg: 'bg-sunk', border: 'var(--ink-mute)', text: 'text-ink-mute', label: 'Chờ cọc' },
-    cancelled: { bg: 'bg-sunk', border: 'var(--ink-mute)', text: 'text-ink-mute', label: 'Đã hủy' },
-    expired: { bg: 'bg-sunk', border: 'var(--ink-mute)', text: 'text-ink-mute line-through', label: 'Hết hạn' },
-    completed: { bg: 'bg-turf-100', border: 'var(--turf-600)', text: 'text-turf-700', label: 'Đã hoàn tất' },
-    no_show: { bg: 'bg-surface', border: 'var(--danger)', text: 'text-destructive', label: 'Bom sân' },
-};
-
-function pct(minutes) {
-    return ((minutes - DAY_START * 60) / TOTAL_MIN * 100).toFixed(3);
-}
-
-function hhmm(iso) {
-    return iso.slice(11, 16);
-}
 
 function toMinutes(timeStr) {
     const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
+}
+
+function formatTime(minutes) {
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 function vietnamNow() {
@@ -92,18 +72,16 @@ function formatDateHeader(dateStr) {
     return `${weekday} · ${date}`;
 }
 
-export default function Index({ date, bookings, courts, timeSlots }) {
+export default function Index({ date, courts, availability, duration }) {
     const [open, setOpen] = useState(false);
     const [nowPos, setNowPos] = useState(null);
+    const [selectedDuration, setSelectedDuration] = useState(String(duration));
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
 
     useEffect(() => {
         const tick = () => {
             const { minutes } = vietnamNow();
-            if (minutes >= DAY_START * 60 && minutes < DAY_END * 60) {
-                setNowPos(pct(minutes));
-            } else {
-                setNowPos(null);
-            }
+            setNowPos(minutes);
         };
         tick();
         const id = setInterval(tick, 60000);
@@ -115,7 +93,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         phone: '',
         court_id: String(courts[0]?.id ?? ''),
         time: '18:00',
-        duration: '60',
+        duration: String(duration),
     });
 
     const { fieldErrors, updateField, isFormValid, validateAll } = useFieldValidation(form, {
@@ -124,7 +102,12 @@ export default function Index({ date, bookings, courts, timeSlots }) {
     });
 
     const changeDate = (d) => {
-        router.get('/manager/calendar', { date: d }, { preserveState: true, preserveScroll: true });
+        router.get('/manager/calendar', { date: d, duration: selectedDuration }, { preserveState: true, preserveScroll: true });
+    };
+
+    const changeDuration = (d) => {
+        setSelectedDuration(d);
+        router.get('/manager/calendar', { date, duration: d }, { preserveState: true, preserveScroll: true });
     };
 
     const goDay = (offset) => {
@@ -141,8 +124,9 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         form.setData('time', time);
         form.setData('name', '');
         form.setData('phone', '');
-        form.setData('duration', '60');
+        form.setData('duration', selectedDuration);
         form.clearErrors();
+        setSelectedCustomer(null);
         setOpen(true);
     };
 
@@ -153,23 +137,39 @@ export default function Index({ date, bookings, courts, timeSlots }) {
         const endMin = h * 60 + m + Number(form.data.duration);
         const end = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
         form.transform((d) => ({
-            name: d.name, phone: d.phone, court_id: d.court_id,
-            start_at: `${date} ${d.time}:00`, end_at: `${date} ${end}:00`,
+            customer_id: selectedCustomer?.id ?? null,
+            name: selectedCustomer ? null : d.name,
+            phone: selectedCustomer ? null : d.phone,
+            court_id: d.court_id,
+            start_at: `${date} ${d.time}:00`,
+            end_at: `${date} ${end}:00`,
         })).post('/manager/calendar/walk-in', {
-            onSuccess: () => { setOpen(false); form.reset(); },
+            onSuccess: () => { setOpen(false); form.reset(); setSelectedCustomer(null); },
         });
     };
 
-    const bookingsByCourt = {};
-    courts.forEach((c) => { bookingsByCourt[c.id] = []; });
-    bookings.forEach((b) => {
-        if (bookingsByCourt[b.court_id]) {
-            bookingsByCourt[b.court_id].push(b);
-        }
-    });
-
     const todayStr = vietnamNow().date;
     const isToday = date === todayStr;
+
+    const getCourtAvailability = (court) => {
+        return availability[court.uuid] || { opening_windows: [], free_intervals: [], booked_slots: [] };
+    };
+
+    const getCourtTimeRange = (court) => {
+        const { opening_windows } = getCourtAvailability(court);
+        if (opening_windows.length === 0) return { start: 360, end: 1380 };
+        let minStart = 1440;
+        let maxEnd = 0;
+        opening_windows.forEach((w) => {
+            const start = toMinutes(w.open);
+            const end = toMinutes(w.close);
+            if (start < minStart) minStart = start;
+            if (end > maxEnd) maxEnd = end;
+        });
+        return { start: minStart, end: maxEnd };
+    };
+
+    const totalBookings = Object.values(availability).reduce((sum, a) => sum + a.booked_slots.length, 0);
 
     return (
         <ManagerLayout>
@@ -179,7 +179,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <PageHeader
                         title={formatDateHeader(date)}
-                        description={`${bookings.length} lịch đặt · ${courts.length} sân`}
+                        description={`${totalBookings} lịch đặt · ${courts.length} sân`}
                     />
                     <div className="flex w-full items-center gap-2 sm:w-auto">
                         <Button variant="outline" size="icon" onClick={() => goDay(-1)} aria-label="Ngày trước">
@@ -197,6 +197,14 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                 Hôm nay
                             </Button>
                         )}
+                        <Select value={selectedDuration} onValueChange={changeDuration}>
+                            <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="60">60 phút</SelectItem>
+                                <SelectItem value="90">90 phút</SelectItem>
+                                <SelectItem value="120">120 phút</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
@@ -206,128 +214,115 @@ export default function Index({ date, bookings, courts, timeSlots }) {
 
                 {courts.length > 0 && (
                     <>
+                    {/* Desktop grid */}
                     <div className="hidden overflow-x-auto md:block">
                         <div
                             className="grid min-w-max"
                             style={{
-                                gridTemplateColumns: `72px repeat(${courts.length}, minmax(180px, 1fr))`,
+                                gridTemplateColumns: `72px repeat(${courts.length}, minmax(200px, 1fr))`,
                             }}
                         >
+                            {/* Header row */}
                             <div className="sticky top-0 z-10 flex h-11 items-center justify-center border-b border-border bg-sunk">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </div>
                             {courts.map((court) => (
                                 <div
-                                    key={court.id}
+                                    key={court.uuid}
                                     className="sticky top-0 z-10 flex h-11 items-center justify-center border-b border-l border-border bg-sunk px-2 text-sm font-semibold"
                                 >
                                     {court.name}
                                 </div>
                             ))}
 
-                            <div className="relative col-start-1 row-start-2">
-                                {timeSlots.map((slot) => (
-                                    <div
-                                        key={slot}
-                                        className="flex h-11 items-start justify-end pr-2 text-xs leading-none text-muted-foreground"
-                                    >
-                                        {slot.endsWith(':00') ? slot : ''}
+                            {/* Time labels column (first court only) */}
+                            {courts.map((court, idx) => {
+                                const { start, end } = getCourtTimeRange(court);
+                                const totalMin = end - start;
+                                const slotCount = Math.ceil(totalMin / 30);
+                                return (
+                                    <div key={`time-${court.uuid}`} className={`relative ${idx === 0 ? 'col-start-1 row-start-2' : 'hidden'}`}>
+                                        {Array.from({ length: slotCount }, (_, i) => {
+                                            const min = start + i * 30;
+                                            const time = formatTime(min);
+                                            return (
+                                                <div
+                                                    key={time}
+                                                    className="flex h-11 items-start justify-end pr-2 text-xs leading-none text-muted-foreground"
+                                                >
+                                                    {min % 60 === 0 ? time : ''}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })}
 
+                            {/* Court columns with slots */}
                             {courts.map((court) => {
-                                const dayBookings = bookingsByCourt[court.id] ?? [];
+                                const { opening_windows, free_intervals, booked_slots } = getCourtAvailability(court);
+                                const { start, end } = getCourtTimeRange(court);
+                                const totalMin = end - start;
+                                const slotCount = Math.ceil(totalMin / 30);
+
+                                const pct = (minutes) => ((minutes - start) / totalMin * 100).toFixed(3);
+
                                 return (
                                     <div
-                                        key={court.id}
+                                        key={court.uuid}
                                         className="relative border-l border-border"
-                                        style={{ height: timeSlots.length * SLOT_HEIGHT }}
+                                        style={{ height: slotCount * SLOT_HEIGHT }}
                                     >
-                                        {timeSlots.map((slot, i) => (
-                                            <div
-                                                key={slot}
-                                                className={`h-11 border-b border-border ${i % 2 === 0 ? 'bg-sunk' : ''}`}
-                                            />
-                                        ))}
-
-                                        {isToday && nowPos && (
-                                            <div
-                                                className="absolute left-0 right-0 z-20 border-t-2 border-primary"
-                                                style={{ top: `${nowPos}%` }}
-                                            >
-                                                <div className="-mt-2 ml-1 h-3 w-3 rounded-full bg-primary" />
-                                            </div>
-                                        )}
-
-                                        {dayBookings.map((b) => {
-                                            const startMin = toMinutes(hhmm(b.start));
-                                            const endMin = toMinutes(hhmm(b.end));
-                                            const top = pct(startMin);
-                                            const heightPct = Math.max(0, pct(endMin) - pct(startMin));
-                                            const tint = STATUS_TINT[b.status] ?? STATUS_TINT.confirmed;
-
+                                        {/* Time grid rows */}
+                                        {Array.from({ length: slotCount }, (_, i) => {
+                                            const min = start + i * 30;
+                                            const inWindow = opening_windows.some((w) => {
+                                                const wStart = toMinutes(w.open);
+                                                const wEnd = toMinutes(w.close);
+                                                return min >= wStart && min < wEnd;
+                                            });
                                             return (
-                                                <TooltipProvider key={`${b.code}-${b.start}`}>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <Link
-                                                                href={route('manager.bookings.index', { search: b.code })}
-                                                                aria-label={`${b.customer || 'Khách chưa đặt tên'}, ${hhmm(b.start)} đến ${hhmm(b.end)}, ${b.court}`}
-                                                                className={`absolute left-0.5 right-0.5 z-10 block overflow-hidden rounded-inner border-l-2 px-2 py-1 text-left text-xs leading-tight shadow-flat transition-colors hover:bg-turf-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${tint.bg}`}
-                                                                style={{ top: `${top}%`, height: `${heightPct}%`, borderLeftColor: tint.border }}
-                                                            >
-                                                                <div className={`truncate font-semibold ${tint.text}`}>
-                                                                    {b.customer}
-                                                                </div>
-                                                                <div className="truncate text-muted-foreground">
-                                                                    {hhmm(b.start)}–{hhmm(b.end)}
-                                                                </div>
-                                                                <span className="sr-only">{tint.label}</span>
-                                                            </Link>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="right" className="space-y-1">
-                                                            <p className="font-semibold">{b.customer}</p>
-                                                            <p className="text-xs">{b.phone}</p>
-                                                            <p className="text-xs">
-                                                                {hhmm(b.start)}–{hhmm(b.end)} · {b.court}
-                                                            </p>
-                                                            <StatusBadge type="booking" value={b.status} />
-                                                            <p className="font-mono text-xs opacity-60">{b.code}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                                <div
+                                                    key={min}
+                                                    className={`h-11 border-b border-border/40 ${
+                                                        !inWindow
+                                                            ? 'opacity-20 pointer-events-none bg-sunk'
+                                                            : ''
+                                                    }`}
+                                                />
                                             );
                                         })}
 
-                                        {timeSlots.map((slot) => {
-                                            const slotMin = toMinutes(slot);
-                                            const slotEndMin = slotMin + 30;
-                                            const hasBooking = dayBookings.some((b) => {
-                                                const bStart = toMinutes(hhmm(b.start));
-                                                const bEnd = toMinutes(hhmm(b.end));
-                                                return bStart < slotEndMin && bEnd > slotMin;
-                                            });
-                                            if (hasBooking) return null;
+                                        {/* Now indicator */}
+                                        {isToday && nowPos >= start && nowPos < end && (
+                                            <div
+                                                className="absolute left-0 right-0 z-20 border-t-2 border-destructive"
+                                                style={{ top: `${pct(nowPos)}%` }}
+                                            >
+                                                <div className="-mt-1.5 ml-0.5 h-3 w-3 rounded-full bg-destructive animate-pulse" />
+                                            </div>
+                                        )}
+
+                                        {/* Booked slots */}
+                                        {booked_slots.map((b) => {
+                                            const startMin = toMinutes(b.start);
+                                            const endMin = toMinutes(b.end);
+                                            const top = pct(startMin);
+                                            const heightPct = Math.max(0, pct(endMin) - pct(startMin));
+                                            const heightPx = Math.max(24, (endMin - startMin) / 30 * SLOT_HEIGHT);
+
                                             return (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    key={`empty-${slot}`}
-                                                    aria-label={`Đặt hộ tại ${court.name}, ${slot}`}
-                                                    className="absolute left-0 right-0 z-0 h-auto cursor-pointer px-1 opacity-60 hover:bg-turf-100 hover:opacity-100"
-                                                    style={{
-                                                        top: `${pct(slotMin)}%`,
-                                                        height: `${pct(slotMin + 30) - pct(slotMin)}%`,
-                                                    }}
-                                                    onClick={() => openWalkIn(court.id, slot)}
+                                                <div
+                                                    key={`${b.uuid}-${b.start}`}
+                                                    className="absolute left-0 right-0 z-10"
+                                                    style={{ top: `${top}%`, height: `${heightPct}%` }}
                                                 >
-                                                    <div className="flex h-full items-center justify-center gap-1 text-xs font-medium text-turf-700">
-                                                        <Plus className="h-3 w-3" />
-                                                        {court.prices?.[slot] != null && formatVND(court.prices[slot])}
-                                                    </div>
-                                                </Button>
+                                                    <CalendarBookingItem
+                                                        booking={b}
+                                                        courtName={court.name}
+                                                        heightPx={heightPx}
+                                                    />
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -335,26 +330,71 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                             })}
                         </div>
                     </div>
+
+                    {/* Mobile view */}
                     <div className="space-y-4 md:hidden" aria-label="Lịch đặt theo sân">
                         {courts.map((court) => {
-                            const dayBookings = bookingsByCourt[court.id] ?? [];
-                            return <section key={court.id} className="manager-panel p-6" aria-labelledby={`court-${court.id}`}>
-                                <div className="flex items-center justify-between gap-3"><h2 id={`court-${court.id}`} className="font-semibold text-foreground">{court.name}</h2><span className="text-xs text-muted-foreground">{dayBookings.length} lịch đặt</span></div>
-                                {dayBookings.length > 0 ? <ul className="mt-4 space-y-2">{dayBookings.map((booking) => <li key={`${booking.code}-${booking.start}`}><Link href={route('manager.bookings.index', { search: booking.code })} className="manager-well block p-3 transition-colors hover:bg-turf-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"><div className="flex items-start justify-between gap-3"><div><p className="font-medium text-foreground">{booking.customer || 'Khách chưa đặt tên'}</p><p className="mt-1 text-xs tabular-nums text-muted-foreground">{hhmm(booking.start)}-{hhmm(booking.end)} · {booking.phone}</p></div><StatusBadge type="booking" value={booking.status} /></div></Link></li>)}</ul> : <p className="mt-4 text-sm text-muted-foreground">Chưa có lịch đặt tại sân này.</p>}
-                                <div className="mt-5"><h3 className="manager-label text-muted-foreground">Khung giờ trống</h3><div className="mt-3 grid grid-cols-3 gap-2">{timeSlots.map((slot) => {
-                                    const slotMin = toMinutes(slot);
-                                    const slotEndMin = slotMin + 30;
-                                    const hasBooking = dayBookings.some((booking) => toMinutes(hhmm(booking.start)) < slotEndMin && toMinutes(hhmm(booking.end)) > slotMin);
-                                    if (hasBooking) return null;
-                                    return <Button key={slot} type="button" variant="secondary" size="sm" className="min-w-0 px-2 tabular-nums" onClick={() => openWalkIn(court.id, slot)} aria-label={`Đặt hộ tại ${court.name}, ${slot}`}>{slot}</Button>;
-                                })}</div></div>
-                            </section>;
+                            const { opening_windows, free_intervals, booked_slots } = getCourtAvailability(court);
+                            return (
+                                <section key={court.uuid} className="manager-panel p-5" aria-labelledby={`court-${court.uuid}`}>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h2 id={`court-${court.uuid}`} className="font-semibold text-foreground">{court.name}</h2>
+                                        <span className="text-xs text-muted-foreground">{booked_slots.length} lịch đặt</span>
+                                    </div>
+
+                                    {booked_slots.length > 0 ? (
+                                        <ul className="mt-4 space-y-2">
+                                            {booked_slots.map((booking) => (
+                                                <li key={`${booking.uuid}-${booking.start}`}>
+                                                    <Link
+                                                        href={`/manager/bookings/${booking.uuid}`}
+                                                        className="manager-well block p-3 transition-colors hover:bg-turf-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                                                    >
+                                                        <div className="flex items-start justify-between gap-3">
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-medium text-foreground truncate">{booking.customer || 'Chưa có tên'}</p>
+                                                                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                                                                    <span className="tabular-nums">{booking.start}–{booking.end}</span>
+                                                                    {booking.code && <span className="tabular-nums text-ink-mute">#{booking.code}</span>}
+                                                                    {booking.amount != null && <span className="tabular-nums font-medium text-ink-soft">{formatVND(booking.amount)}</span>}
+                                                                </div>
+                                                            </div>
+                                                            <StatusBadge type="booking" value={booking.status} />
+                                                        </div>
+                                                    </Link>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="mt-4 text-sm text-muted-foreground">Chưa có lịch đặt tại sân này.</p>
+                                    )}
+
+                                    <div className="mt-5">
+                                        <h3 className="manager-label text-muted-foreground">Khung giờ trống</h3>
+                                        <div className="mt-3 grid grid-cols-3 gap-2">
+                                            {free_intervals.map((interval) => (
+                                                <Button
+                                                    key={interval.start}
+                                                    type="button"
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="min-w-0 px-2 tabular-nums"
+                                                    onClick={() => openWalkIn(court.id, interval.start)}
+                                                    aria-label={`Đặt hộ tại ${court.name}, ${interval.start}`}
+                                                >
+                                                    {interval.start}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </section>
+                            );
                         })}
                     </div>
                     </>
                 )}
 
-                {courts.length > 0 && bookings.length === 0 && (
+                {courts.length > 0 && totalBookings === 0 && (
                     <div className="manager-panel"><EmptyState icon={Clock} title="Chưa có lịch đặt nào" description="Chọn một khung giờ trống để đặt hộ khách vãng lai." action={<Button onClick={() => openWalkIn(courts[0].id, '18:00')}>Đặt hộ khách</Button>} /></div>
                 )}
             </PageContainer>
@@ -362,7 +402,7 @@ export default function Index({ date, bookings, courts, timeSlots }) {
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Đặt hộ khách vãng lai</DialogTitle>
+                        <DialogTitle>Đặt hộ khách</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={submit} className="space-y-4">
                         <div className="space-y-2">
@@ -391,21 +431,36 @@ export default function Index({ date, bookings, courts, timeSlots }) {
                                 </Select>
                             </div>
                         </div>
+
+                        {/* Customer: search existing or enter new */}
                         <div className="space-y-2">
-                            <Label htmlFor="name">Tên khách</Label>
-                            <Input id="name" placeholder="Nguyễn Văn A" value={form.data.name} onChange={(e) => updateField('name', e.target.value)} />
-                            {(fieldErrors.name || form.errors.name) && <p className="text-sm text-destructive">{fieldErrors.name || form.errors.name}</p>}
+                            <Label>Khách hàng</Label>
+                            <CustomerSearch
+                                onSelect={(c) => setSelectedCustomer(c)}
+                                onClear={() => setSelectedCustomer(null)}
+                            />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Số điện thoại</Label>
-                            <Input id="phone" type="tel" placeholder="0901 234 567" value={form.data.phone} onChange={(e) => updateField('phone', e.target.value)} />
-                            {(fieldErrors.phone || form.errors.phone) && <p className="text-sm text-destructive">{fieldErrors.phone || form.errors.phone}</p>}
-                        </div>
-                        {(form.errors.start_at || form.errors.court_id) && (
-                            <p className="text-sm text-destructive">{form.errors.start_at ?? form.errors.court_id}</p>
+
+                        {!selectedCustomer && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="name">Tên khách mới</Label>
+                                    <Input id="name" placeholder="Nguyễn Văn A" value={form.data.name} onChange={(e) => updateField('name', e.target.value)} />
+                                    {(fieldErrors.name || form.errors.name) && <p className="text-sm text-destructive">{fieldErrors.name || form.errors.name}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">Số điện thoại</Label>
+                                    <Input id="phone" type="tel" placeholder="0901 234 567" value={form.data.phone} onChange={(e) => updateField('phone', e.target.value)} />
+                                    {(fieldErrors.phone || form.errors.phone) && <p className="text-sm text-destructive">{fieldErrors.phone || form.errors.phone}</p>}
+                                </div>
+                            </>
+                        )}
+
+                        {(form.errors.start_at || form.errors.court_id || form.errors.customer_id) && (
+                            <p className="text-sm text-destructive">{form.errors.start_at ?? form.errors.court_id ?? form.errors.customer_id}</p>
                         )}
                         <DialogFooter>
-                            <Button type="submit" disabled={form.processing || !isFormValid} className="w-full sm:w-auto">
+                            <Button type="submit" disabled={form.processing} className="w-full sm:w-auto">
                                 Xác nhận đặt
                             </Button>
                         </DialogFooter>

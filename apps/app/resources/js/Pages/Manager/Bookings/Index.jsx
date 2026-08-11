@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import ManagerLayout from '@/Layouts/ManagerLayout';
 import { EmptyState } from '@/Components/EmptyState';
 import { PageContainer } from '@/Components/PageContainer';
@@ -26,6 +26,32 @@ function firstSlot(booking) {
     return booking.slots?.[0];
 }
 
+function toISODate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getToday() { return toISODate(new Date()); }
+
+function getTomorrow() {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return toISODate(d);
+}
+
+function formatShortDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(d.getTime())) return iso;
+    const weekdays = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const wd = weekdays[d.getDay()];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${wd} ${day}/${month}`;
+}
+
 export default function Index({ bookings, courts, filters = {} }) {
     const data = bookings?.data ?? [];
     const [search, setSearch] = useState(filters.search ?? '');
@@ -33,6 +59,9 @@ export default function Index({ bookings, courts, filters = {} }) {
     const [dateTo, setDateTo] = useState(filters.date_to ?? '');
     const [courtId, setCourtId] = useState(filters.court_id ? String(filters.court_id) : 'all');
     const [status, setStatus] = useState(filters.status ?? 'all');
+
+    const today = getToday();
+    const tomorrow = getTomorrow();
 
     const navigate = (page = 1, overrides = {}) => {
         const params = {
@@ -54,12 +83,50 @@ export default function Index({ bookings, courts, filters = {} }) {
         navigate(1, { search: '', dateFrom: '', dateTo: '', courtId: 'all', status: 'all' });
     };
     const hasFilters = search || dateFrom || dateTo || courtId !== 'all' || status !== 'all';
+    const isToday = dateFrom === today && dateTo === today;
+    const isTomorrow = dateFrom === tomorrow && dateTo === tomorrow;
+
+    const setQuickDate = (iso) => {
+        setDateFrom(iso);
+        setDateTo(iso);
+        navigate(1, { dateFrom: iso, dateTo: iso });
+    };
+
+    const filterSummary = useMemo(() => {
+        if (!hasFilters) return null;
+        const parts = [];
+        if (courtId !== 'all') {
+            const court = courts.find((c) => String(c.id) === courtId);
+            if (court) parts.push(court.name);
+        }
+        if (status !== 'all') {
+            const found = statuses.find(([v]) => v === status);
+            if (found) parts.push(found[1]);
+        }
+        if (dateFrom || dateTo) {
+            if (dateFrom === dateTo) {
+                if (dateFrom === today) parts.push('Hôm nay');
+                else if (dateFrom === tomorrow) parts.push('Ngày mai');
+                else parts.push(formatShortDate(dateFrom));
+            } else {
+                parts.push(`${formatShortDate(dateFrom)} – ${formatShortDate(dateTo)}`);
+            }
+        }
+        if (search) parts.push(`"${search}"`);
+        return parts.length ? `Đang lọc: ${parts.join(' · ')}` : null;
+    }, [hasFilters, courtId, status, dateFrom, dateTo, search, courts, today, tomorrow]);
 
     return (
         <ManagerLayout>
             <Head title="Đơn đặt sân" />
             <PageContainer>
                 <PageHeader title="Đơn đặt sân" description={`${bookings?.total ?? 0} đơn trong hệ thống`} />
+
+                <div className="flex flex-wrap gap-2 px-6 pt-4">
+                    <button type="button" onClick={() => setQuickDate(today)} className={`rounded-full px-4 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isToday ? 'bg-turf-600 text-white' : 'bg-sunk text-ink hover:bg-turf-100'}`}>Hôm nay</button>
+                    <button type="button" onClick={() => setQuickDate(tomorrow)} className={`rounded-full px-4 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${isTomorrow ? 'bg-turf-600 text-white' : 'bg-sunk text-ink hover:bg-turf-100'}`}>Ngày mai</button>
+                    {hasFilters && <button type="button" onClick={clearFilters} className="rounded-full bg-sunk px-4 py-2 text-sm text-ink transition-colors hover:bg-turf-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">Xóa bộ lọc</button>}
+                </div>
 
                 <form onSubmit={(event) => { event.preventDefault(); navigate(); }} className="manager-panel grid gap-3 p-6 sm:grid-cols-2 lg:grid-cols-5">
                     <div className="relative sm:col-span-2">
@@ -81,6 +148,8 @@ export default function Index({ bookings, courts, filters = {} }) {
                         <SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>{statuses.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
                     </Select>
                 </form>
+
+                {filterSummary && <p className="px-6 pb-2 text-sm text-ink-soft">{filterSummary}</p>}
 
                 {data.length === 0 ? (
                     <Card><EmptyState icon={CalendarDays} title="Chưa có đơn đặt sân" description={hasFilters ? 'Không có đơn nào phù hợp với bộ lọc hiện tại.' : 'Đơn từ trang đặt sân và nhân viên tạo sẽ xuất hiện tại đây.'} action={hasFilters ? <Button variant="outline" onClick={clearFilters}>Xóa bộ lọc</Button> : <Button asChild><Link href={route('manager.calendar.index')}>Mở lịch đặt</Link></Button>} /></Card>

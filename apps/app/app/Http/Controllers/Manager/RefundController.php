@@ -30,7 +30,7 @@ class RefundController extends Controller
         $refunds = Refund::query()
             ->where('tenant_id', $tenantId)
             ->where('status', RefundStatus::Requested)
-            ->with('payment.booking.customer')
+            ->with('payment.booking.customer', 'payment.booking.slots')
             ->orderBy('requested_at')
             ->get()
             ->map(fn (Refund $r) => [
@@ -40,6 +40,14 @@ class RefundController extends Controller
                 'code' => $r->payment?->booking?->code,
                 'phone' => $r->payment?->booking?->customer?->phone,
                 'requested_at' => $r->requested_at?->toIso8601String(),
+                'booking_code' => $r->payment?->booking?->code,
+                'booking_uuid' => $r->payment?->booking?->uuid,
+                'customer_name' => $r->payment?->booking?->customer?->name,
+                'customer_phone' => $r->payment?->booking?->customer?->phone,
+                'slot_summary' => $r->payment?->booking?->slots->map(fn ($slot) => [
+                    'start_at' => $slot->start_at->toIso8601String(),
+                    'end_at' => $slot->end_at->toIso8601String(),
+                ])->toArray() ?? [],
             ]);
 
         return Inertia::render('Manager/Refunds/Index', ['refunds' => $refunds]);

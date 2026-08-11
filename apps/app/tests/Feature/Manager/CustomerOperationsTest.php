@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Manager;
 
+use App\Enums\BookingChannel;
+use App\Enums\BookingStatus;
+use App\Enums\HoldStatus;
+use App\Enums\PaymentMode;
+use App\Models\Booking;
+use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Services\CustomerService;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -238,5 +246,153 @@ class CustomerOperationsTest extends TestCase
                 'name' => 'Hacked',
             ])
             ->assertForbidden();
+    }
+
+    // ── Search + pagination (HTTP) ──────────────────────────────────
+
+    public function test_search_by_normalized_phone_http(): void
+    {
+        $t = $this->venue('venue-a');
+        Customer::create(['tenant_id' => $t->id, 'phone' => '+84912345678', 'name' => 'Minh']);
+        Customer::create(['tenant_id' => $t->id, 'phone' => '+84999999999', 'name' => 'Khác']);
+
+        $res = $this->actingAs($this->owner($t))
+            ->get('/manager/customers?q=0912345678')
+            ->assertOk();
+
+        $res->assertInertia(fn ($page) => $page
+            ->has('customers', 1)
+            ->where('customers.0.name', 'Minh')
+            ->where('filters.q', '0912345678')
+            ->has('pagination')
+        );
+    }
+
+    public function test_search_by_name_ilike_http(): void
+    {
+        $t = $this->venue('venue-a');
+        Customer::create(['tenant_id' => $t->id, 'phone' => '+84911111111', 'name' => 'Nguyễn Văn Minh']);
+        Customer::create(['tenant_id' => $t->id, 'phone' => '+84922222222', 'name' => 'Trần Thị Khác']);
+
+        $res = $this->actingAs($this->owner($t))
+            ->get('/manager/customers?q=minh')
+            ->assertOk();
+
+        $res->assertInertia(fn ($page) => $page
+            ->has('customers', 1)
+            ->where('customers.0.name', 'Nguyễn Văn Minh')
+            ->where('filters.q', 'minh')
+        );
+    }
+
+    public function test_paginated_filtered_results(): void
+    {
+        $t = $this->venue('venue-a');
+        for ($i = 0; $i < 25; $i++) {
+            Customer::create([
+                'tenant_id' => $t->id,
+                'phone' => '+84'.str_pad((string) (900000000 + $i), 10, '0', STR_PAD_LEFT),
+                'name' => 'Minh '.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        $res = $this->actingAs($this->owner($t))
+            ->get('/manager/customers?q=minh&page=2')
+            ->assertOk();
+
+        $res->assertInertia(fn ($page) => $page
+            ->has('customers', 5)
+            ->where('pagination.current_page', 2)
+            ->where('pagination.last_page', 2)
+            ->where('pagination.total', 25)
+        );
+    }
+
+    public function test_preserved_query_string_in_pagination(): void
+    {
+        $t = $this->venue('venue-a');
+        for ($i = 0; $i < 25; $i++) {
+            Customer::create([
+                'tenant_id' => $t->id,
+                'phone' => '+84'.str_pad((string) (900000000 + $i), 10, '0', STR_PAD_LEFT),
+                'name' => 'Minh '.str_pad((string) $i, 2, '0', STR_PAD_LEFT),
+            ]);
+        }
+
+        $res = $this->actingAs($this->owner($t))
+            ->get('/manager/customers?q=minh')
+            ->assertOk();
+
+        $res->assertInertia(fn ($page) => $page
+            ->where('filters.q', 'minh')
+            ->where('pagination.current_page', 1)
+            ->where('pagination.last_page', 2)
+            ->where('pagination.total', 25)
+        );
+    }
+
+    // ── History pagination ───────────────────────────────────────────
+
+    private function createBookingWithSlot(Tenant $t, Court $court, Customer $customer, string $code, int $daysOffset): Booking
+    {
+        $start = CarbonImmutable::now()->addDays($daysOffset)->setHour(18)->setMinute(0)->setSecond(0);
+        $end = $start->addMinutes(90);
+
+        $booking = Booking::forceCreate([
+            'uuid' => (string) Str::uuid(),
+            'tenant_id' => $t->id,
+            'code' => $code,
+            'customer_id' => $customer->id,
+            'status' => BookingStatus::Confirmed,
+            'channel' => BookingChannel::OwnerManual,
+            'total_amount' => 100_000,
+            'deposit_amount' => 100_000,
+            'payment_mode' => PaymentMode::Cash,
+            'cancel_policy_snapshot' => ['refund_before_hours' => 24, 'refund_pct' => 100],
+        ]);
+
+        \DB::table('booking_slots')->insert([
+            'tenant_id' => $t->id,
+            'booking_id' => $booking->id,
+            'court_id' => $court->id,
+            'start_at' => $start,
+            'end_at' => $end,
+            'price_snapshot' => 100_000,
+            'hold_status' => HoldStatus::Committed,
+        ]);
+
+        return $booking;
+    }
+
+    public function test_history_pagination(): void
+    {
+        $t = $this->venue('venue-a');
+        $court = Court::create(['tenant_id' => $t->id, 'name' => 'Sân 1', 'court_type' => 'pickleball', 'status' => 'active']);
+        $customer = Customer::create(['tenant_id' => $t->id, 'phone' => '+84912345678', 'name' => 'Khách']);
+
+        for ($i = 0; $i < 15; $i++) {
+            $this->createBookingWithSlot($t, $court, $customer, 'SAN-'.str_pad((string) $i, 4, '0', STR_PAD_LEFT), $i + 1);
+        }
+
+        $res = $this->actingAs($this->owner($t))
+            ->get("/manager/customers/{$customer->uuid}")
+            ->assertOk();
+
+        $res->assertInertia(fn ($page) => $page
+            ->has('bookings', 10)
+            ->where('pagination.current_page', 1)
+            ->where('pagination.last_page', 2)
+            ->where('pagination.total', 15)
+            ->where('pagination.per_page', 10)
+        );
+
+        $res2 = $this->actingAs($this->owner($t))
+            ->get("/manager/customers/{$customer->uuid}?page=2")
+            ->assertOk();
+
+        $res2->assertInertia(fn ($page) => $page
+            ->has('bookings', 5)
+            ->where('pagination.current_page', 2)
+        );
     }
 }

@@ -4,13 +4,14 @@ import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import { Card, CardContent } from '@/Components/ui/card';
 import { formatVND } from '@/lib/format';
-import { Banknote, MapPin, Phone, Mail, Globe, MessageCircle, Save } from 'lucide-react';
+import { Banknote, MapPin, Phone, Mail, Globe, MessageCircle, Save, RotateCcw } from 'lucide-react';
 
 export default function VenueProfile({ tenant }) {
-    const form = useForm({
+    const initialValues = {
         address: tenant.address ?? '',
         phone: tenant.phone ?? '',
         email: tenant.email ?? '',
@@ -26,11 +27,18 @@ export default function VenueProfile({ tenant }) {
             facebook: tenant.settings?.social?.facebook ?? '',
             instagram: tenant.settings?.social?.instagram ?? '',
         },
-    });
+    };
+
+    const form = useForm(initialValues);
 
     const submit = (e) => {
         e.preventDefault();
-        form.post('/manager/venue', { preserveScroll: true });
+        form.post(route('manager.venue.update'), { preserveScroll: true });
+    };
+
+    const handleCancel = () => {
+        form.reset();
+        form.clearErrors();
     };
 
     return (
@@ -45,7 +53,6 @@ export default function VenueProfile({ tenant }) {
 
                 <form onSubmit={submit} className="grid grid-cols-1 gap-6 xl:grid-cols-3">
                     <div className="space-y-6 xl:col-span-2">
-                        {/* Contact Info */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
@@ -56,17 +63,17 @@ export default function VenueProfile({ tenant }) {
                                 </div>
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div>
-                                        <label htmlFor="venue-phone" className="mb-1.5 block text-sm font-medium">Số điện thoại</label>
+                                        <Label htmlFor="venue-phone">Số điện thoại</Label>
                                         <Input id="venue-phone" type="tel" placeholder="0901234567" value={form.data.phone} onChange={(e) => form.setData('phone', e.target.value)} />
                                         {form.errors.phone && <p className="mt-1 text-sm text-destructive">{form.errors.phone}</p>}
                                     </div>
                                     <div>
-                                        <label htmlFor="venue-email" className="mb-1.5 block text-sm font-medium">Email</label>
+                                        <Label htmlFor="venue-email">Email</Label>
                                         <Input id="venue-email" type="email" placeholder="info@san.vn" value={form.data.email} onChange={(e) => form.setData('email', e.target.value)} />
                                         {form.errors.email && <p className="mt-1 text-sm text-destructive">{form.errors.email}</p>}
                                     </div>
                                     <div className="sm:col-span-2">
-                                        <label htmlFor="venue-website" className="mb-1.5 block text-sm font-medium">Website</label>
+                                        <Label htmlFor="venue-website">Website</Label>
                                         <Input id="venue-website" type="url" placeholder="https://san.vn" value={form.data.website} onChange={(e) => form.setData('website', e.target.value)} />
                                         {form.errors.website && <p className="mt-1 text-sm text-destructive">{form.errors.website}</p>}
                                     </div>
@@ -74,7 +81,6 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        {/* Address & Geo */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
@@ -85,18 +91,18 @@ export default function VenueProfile({ tenant }) {
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label htmlFor="venue-address" className="mb-1.5 block text-sm font-medium">Địa chỉ</label>
+                                        <Label htmlFor="venue-address">Địa chỉ</Label>
                                         <Input id="venue-address" placeholder="123 Nguyễn Huệ, Quận 1, TP.HCM" value={form.data.address} onChange={(e) => form.setData('address', e.target.value)} />
                                         {form.errors.address && <p className="mt-1 text-sm text-destructive">{form.errors.address}</p>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label htmlFor="venue-lat" className="mb-1.5 block text-sm font-medium">Vĩ độ (Lat)</label>
+                                            <Label htmlFor="venue-lat">Vĩ độ (Lat)</Label>
                                             <Input id="venue-lat" type="number" step="0.0000001" placeholder="10.7769" value={form.data.lat} onChange={(e) => form.setData('lat', e.target.value)} />
                                             {form.errors.lat && <p className="mt-1 text-sm text-destructive">{form.errors.lat}</p>}
                                         </div>
                                         <div>
-                                            <label htmlFor="venue-lng" className="mb-1.5 block text-sm font-medium">Kinh độ (Lng)</label>
+                                            <Label htmlFor="venue-lng">Kinh độ (Lng)</Label>
                                             <Input id="venue-lng" type="number" step="0.0000001" placeholder="106.7009" value={form.data.lng} onChange={(e) => form.setData('lng', e.target.value)} />
                                             {form.errors.lng && <p className="mt-1 text-sm text-destructive">{form.errors.lng}</p>}
                                         </div>
@@ -105,7 +111,6 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        {/* Default Pricing */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
@@ -118,7 +123,7 @@ export default function VenueProfile({ tenant }) {
                                     </div>
                                 </div>
                                 <div>
-                                    <label htmlFor="default-price-per-hour" className="mb-1.5 block text-sm font-medium">Giá mỗi giờ (VNĐ)</label>
+                                    <Label htmlFor="default-price-per-hour">Giá mỗi giờ (VNĐ)</Label>
                                     <Input
                                         id="default-price-per-hour"
                                         type="number"
@@ -143,7 +148,6 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        {/* Social Links */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
@@ -154,17 +158,17 @@ export default function VenueProfile({ tenant }) {
                                 </div>
                                 <div className="space-y-4">
                                     <div>
-                                        <label htmlFor="venue-zalo" className="mb-1.5 block text-sm font-medium">Zalo</label>
+                                        <Label htmlFor="venue-zalo">Zalo</Label>
                                         <Input id="venue-zalo" type="url" placeholder="https://zalo.me/0901234567" value={form.data.social.zalo} onChange={(e) => form.setData('social.zalo', e.target.value)} />
                                         {form.errors['social.zalo'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.zalo']}</p>}
                                     </div>
                                     <div>
-                                        <label htmlFor="venue-facebook" className="mb-1.5 block text-sm font-medium">Facebook</label>
+                                        <Label htmlFor="venue-facebook">Facebook</Label>
                                         <Input id="venue-facebook" type="url" placeholder="https://facebook.com/..." value={form.data.social.facebook} onChange={(e) => form.setData('social.facebook', e.target.value)} />
                                         {form.errors['social.facebook'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.facebook']}</p>}
                                     </div>
                                     <div>
-                                        <label htmlFor="venue-instagram" className="mb-1.5 block text-sm font-medium">Instagram</label>
+                                        <Label htmlFor="venue-instagram">Instagram</Label>
                                         <Input id="venue-instagram" type="url" placeholder="https://instagram.com/..." value={form.data.social.instagram} onChange={(e) => form.setData('social.instagram', e.target.value)} />
                                         {form.errors['social.instagram'] && <p className="mt-1 text-sm text-destructive">{form.errors['social.instagram']}</p>}
                                     </div>
@@ -172,7 +176,6 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        {/* Description */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="mb-4 flex items-center gap-2">
@@ -182,7 +185,7 @@ export default function VenueProfile({ tenant }) {
                                     <h3 className="font-semibold">Giới thiệu</h3>
                                 </div>
                                 <div>
-                                    <label htmlFor="venue-description" className="sr-only">Giới thiệu về cơ sở</label>
+                                    <Label htmlFor="venue-description" className="sr-only">Giới thiệu về cơ sở</Label>
                                     <Textarea id="venue-description" placeholder="Mô tả ngắn gọn về cơ sở của bạn..." rows={3} value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} />
                                     <p className="mt-1.5 text-xs text-muted-foreground">Hiển thị trên trang đặt sân công khai.</p>
                                     {form.errors.description && <p className="mt-1 text-sm text-destructive">{form.errors.description}</p>}
@@ -190,13 +193,18 @@ export default function VenueProfile({ tenant }) {
                             </CardContent>
                         </Card>
 
-                        <Button type="submit" disabled={form.processing} className="w-full gap-2">
-                            <Save className="h-4 w-4" />
-                            {form.processing ? 'Đang lưu...' : 'Lưu thay đổi'}
-                        </Button>
+                        <div className="flex gap-3">
+                            <Button type="submit" disabled={form.processing} className="flex-1 gap-2">
+                                <Save className="h-4 w-4" />
+                                {form.processing ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={form.processing} className="gap-2">
+                                <RotateCcw className="h-4 w-4" />
+                                Hủy
+                            </Button>
+                        </div>
                     </div>
 
-                    {/* Preview */}
                     <div className="xl:col-span-1 xl:sticky xl:top-6 xl:self-start">
                         <Card>
                             <CardContent className="p-6">

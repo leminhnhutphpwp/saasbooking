@@ -23,18 +23,27 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import { formatVND } from '@/lib/format';
-import { RefreshCw, Plus, XCircle } from 'lucide-react';
+import { formatVND, formatDate, formatTime } from '@/lib/format';
+import { RefreshCw, Plus, XCircle, StopCircle } from 'lucide-react';
 
 const WEEKDAY_LABELS = {
     1: 'Thứ Hai', 2: 'Thứ Ba', 3: 'Thứ Tư', 4: 'Thứ Năm',
     5: 'Thứ Sáu', 6: 'Thứ Bảy', 7: 'Chủ Nhật',
 };
 
+const WEEKDAY_SHORT = {
+    1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5',
+    5: 'T6', 6: 'T7', 7: 'CN',
+};
+
 export default function Index({ series, customers, courts, weekdays }) {
     const [open, setOpen] = useState(false);
     const [cancelTarget, setCancelTarget] = useState(null);
+    const [endTarget, setEndTarget] = useState(null);
+    const [occurrenceTarget, setOccurrenceTarget] = useState(null);
     const [cancelProcessing, setCancelProcessing] = useState(false);
+    const [endProcessing, setEndProcessing] = useState(false);
+    const [occurrenceProcessing, setOccurrenceProcessing] = useState(false);
 
     const form = useForm({
         customer_id: '',
@@ -70,6 +79,39 @@ export default function Index({ series, customers, courts, weekdays }) {
             onSuccess: () => setCancelTarget(null),
             onFinish: () => setCancelProcessing(false),
         });
+    };
+
+    const endSeries = () => {
+        if (!endTarget) return;
+
+        setEndProcessing(true);
+        router.post(`/manager/series/${endTarget.uuid}/end`, {}, {
+            preserveScroll: true,
+            onSuccess: () => setEndTarget(null),
+            onFinish: () => setEndProcessing(false),
+        });
+    };
+
+    const cancelOccurrence = () => {
+        if (!occurrenceTarget) return;
+
+        setOccurrenceProcessing(true);
+        router.post(
+            `/manager/series/${occurrenceTarget.series.uuid}/cancel-occurrence/${occurrenceTarget.booking.uuid}`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => setOccurrenceTarget(null),
+                onFinish: () => setOccurrenceProcessing(false),
+            }
+        );
+    };
+
+    const formatOccurrenceDate = (iso) => {
+        const d = new Date(iso);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        return `${day}/${month}`;
     };
 
     return (
@@ -163,8 +205,57 @@ export default function Index({ series, customers, courts, weekdays }) {
                                         <span className="font-medium text-foreground">{s.bookings_count}/{s.sessions_total} buổi</span>
                                     </div>
 
+                                    {s.status === 'active' && s.occurrences && s.occurrences.length > 0 && (
+                                        <div className="mt-4 border-t pt-4">
+                                            <p className="manager-label text-ink-mute mb-3">Các buổi sắp tới</p>
+                                            <div className="space-y-2">
+                                                {s.occurrences.map((occ) => (
+                                                    <div
+                                                        key={occ.uuid}
+                                                        className="flex items-center justify-between gap-2 rounded-md bg-sunk px-3 py-2 text-sm"
+                                                    >
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-medium text-muted-foreground">
+                                                                {WEEKDAY_SHORT[new Date(occ.start_at).getDay() === 0 ? 7 : new Date(occ.start_at).getDay()]}
+                                                            </span>
+                                                            <span className="font-medium">
+                                                                {formatOccurrenceDate(occ.start_at)}
+                                                            </span>
+                                                            <span className="text-muted-foreground">·</span>
+                                                            <span className="font-num text-xs">
+                                                                {formatTime(occ.start_at)}–{formatTime(occ.end_at)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <StatusBadge type="booking" value={occ.status} />
+                                                            {occ.can_cancel && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-auto px-2 py-1 text-xs text-destructive hover:text-destructive"
+                                                                    onClick={() => setOccurrenceTarget({ series: s, booking: occ })}
+                                                                >
+                                                                    Hủy
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {s.status === 'active' && (
-                                        <div className="mt-4 flex justify-end">
+                                        <div className="mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-end">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="gap-1.5"
+                                                onClick={() => setEndTarget(s)}
+                                            >
+                                                <StopCircle className="h-3.5 w-3.5" />
+                                                Kết thúc lịch
+                                            </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -172,7 +263,7 @@ export default function Index({ series, customers, courts, weekdays }) {
                                                 onClick={() => setCancelTarget(s)}
                                             >
                                                 <XCircle className="h-3.5 w-3.5" />
-                                                Hủy
+                                                Hủy lịch
                                             </Button>
                                         </div>
                                     )}
@@ -188,10 +279,33 @@ export default function Index({ series, customers, courts, weekdays }) {
                 onOpenChange={(nextOpen) => !nextOpen && setCancelTarget(null)}
                 onConfirm={cancelSeries}
                 title="Hủy lịch đặt cố định"
-                description={cancelTarget ? `Lịch cố định của ${cancelTarget.customer_name} tại ${cancelTarget.court_name}, ${WEEKDAY_LABELS[cancelTarget.weekday]} hàng tuần sẽ kết thúc. Các buổi đã tạo cần được xử lý theo trạng thái hiện tại.` : ''}
-                confirmLabel="Hủy lịch cố định"
+                description={cancelTarget ? `Toàn bộ lịch chưa hoàn thành của ${cancelTarget.customer_name} tại ${cancelTarget.court_name} sẽ bị hủy. Hành động này không thể hoàn tác.` : ''}
+                confirmLabel="Hủy lịch"
                 processingLabel="Đang hủy…"
                 processing={cancelProcessing}
+            />
+
+            <ConfirmActionDialog
+                open={endTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setEndTarget(null)}
+                onConfirm={endSeries}
+                title="Kết thúc lịch đặt cố định"
+                description={endTarget ? `Lịch của ${endTarget.customer_name} tại ${endTarget.court_name} sẽ ngừng tạo mới từ ngày mai. Các lịch đã xác nhận vẫn giữ nguyên.` : ''}
+                confirmLabel="Kết thúc lịch"
+                processingLabel="Đang xử lý…"
+                processing={endProcessing}
+                variant="neutral"
+            />
+
+            <ConfirmActionDialog
+                open={occurrenceTarget !== null}
+                onOpenChange={(nextOpen) => !nextOpen && setOccurrenceTarget(null)}
+                onConfirm={cancelOccurrence}
+                title="Hủy buổi này"
+                description={occurrenceTarget ? `Buổi ${formatDate(occurrenceTarget.booking.start_at)} lúc ${formatTime(occurrenceTarget.booking.start_at)} của ${occurrenceTarget.series.customer_name} sẽ bị hủy.` : ''}
+                confirmLabel="Hủy buổi"
+                processingLabel="Đang hủy…"
+                processing={occurrenceProcessing}
             />
 
             <Dialog open={open} onOpenChange={setOpen}>

@@ -39,7 +39,7 @@ class SeriesController extends Controller
     {
         $tenantId = WorkingTenant::id($request);
 
-        $seriesList = RecurringSeries::with(['customer', 'court', 'bookings'])
+        $seriesList = RecurringSeries::with(['customer', 'court', 'bookings.slots'])
             ->where('tenant_id', $tenantId)
             ->orderByDesc('created_at')
             ->get()
@@ -61,6 +61,18 @@ class SeriesController extends Controller
                 'sessions_total' => $this->countWeekdaysBetween(
                     $s->weekday, $s->start_date, $s->end_date
                 ),
+                'occurrences' => $s->bookings
+                    ->filter(fn ($b) => $b->slots->first()?->start_at?->gte(now()) ?? false)
+                    ->sortBy(fn ($b) => $b->slots->first()?->start_at)
+                    ->take(10)
+                    ->map(fn ($b) => [
+                        'uuid' => $b->uuid,
+                        'start_at' => $b->slots->first()?->start_at?->toIso8601String(),
+                        'end_at' => $b->slots->first()?->end_at?->toIso8601String(),
+                        'status' => $b->status->value,
+                        'can_cancel' => in_array($b->status, [BookingStatus::PendingDeposit, BookingStatus::Confirmed], true),
+                    ])
+                    ->values(),
             ]);
 
         $customers = Customer::where('tenant_id', $tenantId)

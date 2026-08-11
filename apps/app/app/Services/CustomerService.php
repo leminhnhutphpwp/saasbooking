@@ -129,6 +129,25 @@ class CustomerService
     }
 
     /**
+     * Search customers by normalized phone or name (ILIKE), paginated with query string preserved.
+     */
+    public function searchPaginated(Request $request, string $query, int $perPage = 20): LengthAwarePaginator
+    {
+        $tenantId = (int) $request->attributes->get('workingTenantId');
+        $normalized = $this->normalizePhone($query);
+
+        return Customer::query()
+            ->where('tenant_id', $tenantId)
+            ->where(function ($q) use ($query, $normalized) {
+                $q->where('phone', 'ILIKE', $normalized.'%')
+                    ->orWhere('name', 'ILIKE', '%'.$query.'%');
+            })
+            ->orderBy('name')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
      * Get all customers for a tenant, paginated.
      */
     public function paginate(Request $request, int $perPage = 20): LengthAwarePaginator
@@ -138,6 +157,39 @@ class CustomerService
         return Customer::query()
             ->where('tenant_id', $tenantId)
             ->orderBy('name')
-            ->paginate($perPage);
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Booking-history stats for a customer within the current tenant.
+     *
+     * @return array{total_bookings: int, completed: int, no_shows: int, cancelled: int, upcoming: int}
+     */
+    public function getStats(Customer $customer, int $tenantId): array
+    {
+        $base = $customer->bookings()->where('tenant_id', $tenantId);
+
+        return [
+            'total_bookings' => (clone $base)->count(),
+            'completed' => (clone $base)->where('status', BookingStatus::Confirmed)->count(),
+            'no_shows' => (clone $base)->where('status', BookingStatus::NoShow)->count(),
+            'cancelled' => (clone $base)->where('status', BookingStatus::Cancelled)->count(),
+            'upcoming' => (clone $base)->where('status', BookingStatus::Confirmed)
+                ->whereHas('slots', fn ($sq) => $sq->where('start_at', '>', now()))->count(),
+        ];
+    }
+
+    /**
+     * Paginated booking history for a customer, most-recent first.
+     */
+    public function getHistoryPaginated(Customer $customer, int $tenantId, int $perPage = 10): LengthAwarePaginator
+    {
+        return $customer->bookings()
+            ->where('tenant_id', $tenantId)
+            ->with('slots.court')
+            ->orderByDesc('created_at')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 }

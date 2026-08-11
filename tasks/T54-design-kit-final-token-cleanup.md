@@ -1,7 +1,7 @@
 ---
 id: T54
 title: Design-kit final token cleanup
-status: in-review
+status: done
 owner: "OpenCode"
 priority: P1
 depends_on: [T47]

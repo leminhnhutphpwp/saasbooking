@@ -8,6 +8,7 @@ import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Badge } from '@/Components/ui/badge';
 import { Card } from '@/Components/ui/card';
 import {
@@ -17,7 +18,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/Components/ui/dialog';
-import { Trash2, Plus, AlertCircle, Clock, CalendarDays, Info } from 'lucide-react';
+import { Trash2, Plus, AlertCircle, CalendarDays, Info } from 'lucide-react';
 
 const DAY_LABELS = { 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7', 7: 'CN' };
 const DAY_FULL = { 1: 'Thứ 2', 2: 'Thứ 3', 3: 'Thứ 4', 4: 'Thứ 5', 5: 'Thứ 6', 6: 'Thứ 7', 7: 'Chủ Nhật' };
@@ -66,11 +67,31 @@ export default function OpeningRules({ court, rules }) {
         setOpen(true);
     };
 
+    const validate = () => {
+        const errors = {};
+        if (form.data.weekday.length === 0) {
+            errors.weekday = 'Chọn ít nhất một ngày trong tuần.';
+        }
+        if (form.data.open_local && form.data.close_local && form.data.open_local >= form.data.close_local) {
+            errors.close_local = 'Giờ đóng phải sau giờ mở.';
+        }
+        if (form.data.effective_from && form.data.effective_to && form.data.effective_to < form.data.effective_from) {
+            errors.effective_to = 'Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.';
+        }
+        return errors;
+    };
+
     const submit = (e) => {
         e.preventDefault();
+        const errors = validate();
+        if (Object.keys(errors).length > 0) {
+            Object.entries(errors).forEach(([key, msg]) => form.setError(key, msg));
+            return;
+        }
+
         const url = editingId
-            ? `/manager/courts/${court.uuid}/opening-rules/${editingId}`
-            : `/manager/courts/${court.uuid}/opening-rules`;
+            ? route('manager.courts.opening-rules.update', [court.uuid, editingId])
+            : route('manager.courts.opening-rules.store', court.uuid);
         const method = editingId ? 'put' : 'post';
 
         form[method](url, {
@@ -83,7 +104,7 @@ export default function OpeningRules({ court, rules }) {
         if (!deleteTarget) return;
 
         setDeleteProcessing(true);
-        router.delete(`/manager/courts/${court.uuid}/opening-rules/${deleteTarget.id}`, {
+        router.delete(route('manager.courts.opening-rules.destroy', [court.uuid, deleteTarget.id]), {
             preserveScroll: true,
             onSuccess: () => setDeleteTarget(null),
             onFinish: () => setDeleteProcessing(false),
@@ -271,21 +292,16 @@ export default function OpeningRules({ court, rules }) {
                                     Chọn tất cả
                                 </Button>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-4 gap-3 sm:grid-cols-7">
                                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        onClick={() => toggleDay(d)}
-                                        aria-pressed={form.data.weekday.includes(d)}
-                                        className={`rounded-pill px-3 py-2 text-sm font-medium transition-colors ${
-                                            form.data.weekday.includes(d)
-                                                ? 'bg-primary text-primary-foreground shadow-flat'
-                                                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                                        }`}
-                                    >
-                                        {DAY_LABELS[d]}
-                                    </button>
+                                    <div key={d} className="flex items-center gap-2">
+                                        <Checkbox
+                                            id={`weekday-${d}`}
+                                            checked={form.data.weekday.includes(d)}
+                                            onCheckedChange={() => toggleDay(d)}
+                                        />
+                                        <Label htmlFor={`weekday-${d}`}>{DAY_LABELS[d]}</Label>
+                                    </div>
                                 ))}
                             </div>
                             {form.errors.weekday && <p className="text-sm text-destructive">{form.errors.weekday}</p>}
@@ -313,13 +329,14 @@ export default function OpeningRules({ court, rules }) {
                             <div className="space-y-1.5">
                                 <Label htmlFor="eto">Đến (để trống = vô hạn)</Label>
                                 <Input id="eto" type="date" value={form.data.effective_to} onChange={(e) => form.setData('effective_to', e.target.value)} />
+                                {form.errors.effective_to && <p className="text-sm text-destructive">{form.errors.effective_to}</p>}
                             </div>
                         </div>
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
                             <Button type="submit" disabled={form.processing}>
-                                {editingId ? 'Cập nhật' : 'Thêm'}
+                                {form.processing ? 'Đang lưu...' : (editingId ? 'Cập nhật' : 'Thêm')}
                             </Button>
                         </DialogFooter>
                     </form>

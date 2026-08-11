@@ -5,10 +5,10 @@ import { PageHeader } from '@/Components/PageHeader';
 import { PageContainer } from '@/Components/PageContainer';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { Card, CardContent } from '@/Components/ui/card';
-import { Upload, X, Copy, Check, Image, Palette, ExternalLink, Eye } from 'lucide-react';
+import { Upload, Trash2, Copy, Check, Image, Palette, ExternalLink, Eye, Save, RotateCcw } from 'lucide-react';
 
-// Tenant brand colors are public booking data; they do not style the signed-in app.
 const bookingBrandDefault = () => getComputedStyle(document.documentElement).getPropertyValue('--turf-600').trim();
 
 export default function Branding({ tenant, settings }) {
@@ -16,8 +16,10 @@ export default function Branding({ tenant, settings }) {
     const [copied, setCopied] = useState(false);
     const fileRef = useRef(null);
     const defaultBrandColor = bookingBrandDefault();
+
+    const initialColor = settings?.primary_color ?? defaultBrandColor;
     const form = useForm({
-        primary_color: settings?.primary_color ?? defaultBrandColor,
+        primary_color: initialColor,
         logo: null,
         remove_logo: false,
     });
@@ -58,10 +60,19 @@ export default function Branding({ tenant, settings }) {
         if (form.data.logo) data.append('logo', form.data.logo);
         if (form.data.remove_logo) data.append('remove_logo', '1');
         data.append('_method', 'POST');
-        router.post('/manager/branding', data, {
+        router.post(route('manager.branding.update'), data, {
             preserveScroll: true,
             headers: { 'Content-Type': 'multipart/form-data' },
         });
+    };
+
+    const handleCancel = () => {
+        form.setData('primary_color', initialColor);
+        form.setData('logo', null);
+        form.setData('remove_logo', false);
+        form.clearErrors();
+        setPreviewUrl(settings?.logo_url ?? null);
+        if (fileRef.current) fileRef.current.value = '';
     };
 
     const copyUrl = () => {
@@ -95,14 +106,16 @@ export default function Branding({ tenant, settings }) {
                                         <div className="flex items-center gap-4">
                                             <div className="relative">
                                                 <img src={previewUrl} alt="Logo" className="manager-well h-20 w-auto bg-white object-contain" />
-                                                <button
+                                                <Button
                                                     type="button"
+                                                    variant="destructive"
+                                                    size="icon"
                                                     onClick={removeLogo}
                                                     aria-label="Xóa logo"
-                                                    className="absolute -right-2 -top-2 rounded-pill bg-background p-1 text-destructive shadow-flat transition-colors hover:bg-muted"
+                                                    className="absolute -right-2 -top-2 h-6 w-6 rounded-full shadow-flat"
                                                 >
-                                                    <X className="h-3 w-3" />
-                                                </button>
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
                                             </div>
                                             <div className="text-sm text-muted-foreground">
                                                 <p>Logo hiện tại</p>
@@ -132,16 +145,16 @@ export default function Branding({ tenant, settings }) {
                                     <h3 className="font-semibold">Màu chủ đạo</h3>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <label htmlFor="primary-color-picker" className="sr-only">Chọn màu chủ đạo</label>
-                                    <input
+                                    <Label htmlFor="primary-color-picker" className="sr-only">Chọn màu chủ đạo</Label>
+                                    <Input
                                         id="primary-color-picker"
                                         type="color"
                                         value={pc}
                                         onChange={(e) => form.setData('primary_color', e.target.value)}
-                                        className="h-14 w-14 cursor-pointer rounded-inner border-0 p-0"
+                                        className="h-14 w-14 cursor-pointer p-1"
                                     />
                                     <div className="flex-1">
-                                        <label htmlFor="primary-color" className="sr-only">Mã màu chủ đạo</label>
+                                        <Label htmlFor="primary-color" className="sr-only">Mã màu chủ đạo</Label>
                                         <Input id="primary-color" type="text" value={pc} onChange={(e) => form.setData('primary_color', e.target.value)} placeholder={defaultBrandColor} className="font-mono" />
                                         {form.errors.primary_color && <p className="text-sm text-destructive">{form.errors.primary_color}</p>}
                                     </div>
@@ -159,7 +172,7 @@ export default function Branding({ tenant, settings }) {
                                     <h3 className="font-semibold">URL trang đặt sân</h3>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <label htmlFor="public-booking-url" className="sr-only">URL trang đặt sân</label>
+                                    <Label htmlFor="public-booking-url" className="sr-only">URL trang đặt sân</Label>
                                     <Input id="public-booking-url" type="text" value={publicUrl} readOnly className="font-mono text-sm" />
                                     <Button type="button" variant="outline" onClick={copyUrl} className="shrink-0 gap-2">
                                         {copied ? (
@@ -179,9 +192,16 @@ export default function Branding({ tenant, settings }) {
                             </CardContent>
                         </Card>
 
-                        <Button onClick={submit} disabled={form.processing} className="w-full gap-2">
-                            {form.processing ? 'Đang lưu...' : 'Lưu thay đổi'}
-                        </Button>
+                        <div className="flex gap-3">
+                            <Button onClick={submit} disabled={form.processing} className="flex-1 gap-2">
+                                <Save className="h-4 w-4" />
+                                {form.processing ? 'Đang lưu...' : 'Lưu thay đổi'}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={handleCancel} disabled={form.processing} className="gap-2">
+                                <RotateCcw className="h-4 w-4" />
+                                Hủy
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="xl:col-span-2 xl:sticky xl:top-6 xl:self-start">

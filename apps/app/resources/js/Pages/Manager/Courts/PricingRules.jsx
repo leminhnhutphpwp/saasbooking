@@ -8,6 +8,7 @@ import { ConfirmActionDialog } from '@/Components/ConfirmActionDialog';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Badge } from '@/Components/ui/badge';
 import { Card } from '@/Components/ui/card';
 import {
@@ -96,9 +97,33 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
         setOpen(true);
     };
 
+    const validate = () => {
+        const errors = {};
+        if (form.data.weekday.length === 0) {
+            errors.weekday = 'Chọn ít nhất một ngày trong tuần.';
+        }
+        if (form.data.start_local && form.data.end_local && form.data.start_local >= form.data.end_local) {
+            errors.end_local = 'Giờ kết thúc phải sau giờ bắt đầu.';
+        }
+        const price = Number(form.data.price_per_hour);
+        if (!form.data.price_per_hour || !Number.isInteger(price) || price <= 0) {
+            errors.price_per_hour = 'Giá mỗi giờ phải là số nguyên dương.';
+        }
+        const priority = Number(form.data.priority);
+        if (form.data.priority !== '' && form.data.priority !== '0' && (!Number.isInteger(priority) || priority < 0)) {
+            errors.priority = 'Ưu tiên phải là số nguyên không âm.';
+        }
+        return errors;
+    };
+
     const submit = (e) => {
         e.preventDefault();
-        if (form.data.start_local >= form.data.end_local) return;
+        const errors = validate();
+        if (Object.keys(errors).length > 0) {
+            Object.entries(errors).forEach(([key, msg]) => form.setError(key, msg));
+            return;
+        }
+
         const baseUrl = formScope === 'venue'
             ? '/manager/pricing-rules'
             : `/manager/courts/${court.uuid}/pricing-rules`;
@@ -136,9 +161,6 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
     const earliestStart = sortedRules[0]?.start_local ?? null;
     const latestEnd = activeRules.length > 0
         ? [...activeRules].sort((a, b) => b.end_local.localeCompare(a.end_local))[0].end_local
-        : null;
-    const timeError = form.data.start_local && form.data.end_local && form.data.start_local >= form.data.end_local
-        ? 'Giờ kết thúc phải sau giờ bắt đầu.'
         : null;
 
     return (
@@ -330,21 +352,16 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                     </Button>
                                 </div>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-4 gap-3 sm:grid-cols-7">
                                 {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                                    <button
-                                        key={d}
-                                        type="button"
-                                        onClick={() => toggleDay(d)}
-                                        aria-pressed={form.data.weekday.includes(d)}
-                                        className={`rounded-pill px-3 py-2 text-sm font-medium transition-colors ${
-                                            form.data.weekday.includes(d)
-                                                ? 'bg-primary text-primary-foreground shadow-flat'
-                                                : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                                        }`}
-                                    >
-                                        {DAY_LABELS[d]}
-                                    </button>
+                                    <div key={d} className="flex items-center gap-2">
+                                        <Checkbox
+                                            id={`weekday-${d}`}
+                                            checked={form.data.weekday.includes(d)}
+                                            onCheckedChange={() => toggleDay(d)}
+                                        />
+                                        <Label htmlFor={`weekday-${d}`}>{DAY_LABELS[d]}</Label>
+                                    </div>
                                 ))}
                             </div>
                             {form.errors.weekday && <p className="text-sm text-destructive">{form.errors.weekday}</p>}
@@ -359,7 +376,7 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                             <div className="space-y-1.5">
                                 <Label htmlFor="end">Đến giờ</Label>
                                 <Input id="end" type="time" value={form.data.end_local} onChange={(e) => form.setData('end_local', e.target.value)} />
-                                {(timeError || form.errors.end_local) && <p className="text-sm text-destructive">{timeError || form.errors.end_local}</p>}
+                                {form.errors.end_local && <p className="text-sm text-destructive">{form.errors.end_local}</p>}
                             </div>
                         </div>
 
@@ -386,13 +403,14 @@ export default function PricingRules({ court, rules, venueRules = [], defaultPri
                                 <Label htmlFor="priority">Ưu tiên (cao hơn = ưu tiên hơn)</Label>
                                 <Input id="priority" type="number" min="0" value={form.data.priority} onChange={(e) => form.setData('priority', e.target.value)} placeholder="0" />
                                 <p className="text-xs text-muted-foreground">Mặc định: 0</p>
+                                {form.errors.priority && <p className="text-sm text-destructive">{form.errors.priority}</p>}
                             </div>
                         </div>
 
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
-                            <Button type="submit" disabled={form.processing || Boolean(timeError) || form.data.weekday.length === 0}>
-                                {editingId ? 'Cập nhật' : 'Thêm'}
+                            <Button type="submit" disabled={form.processing}>
+                                {form.processing ? 'Đang lưu...' : (editingId ? 'Cập nhật' : 'Thêm')}
                             </Button>
                         </DialogFooter>
                     </form>

@@ -371,6 +371,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
                 {/* ── Empty states ─────────────────────────────────────────── */}
                 {isEmpty && (
                     <EmptyState
+                        variant="first-use"
                         icon={MapPin}
                         title="Chưa có sân nào"
                         description="Tạo sân đầu tiên để bắt đầu nhận lịch đặt. Mỗi sân có thể thiết lập giờ mở cửa và bảng giá riêng."
@@ -386,7 +387,7 @@ export default function Index({ courts, filters, courtTypes, courtStatuses }) {
 
                 {isNoMatch && (
                     <EmptyState
-                        icon={Search}
+                        variant="filtered"
                         title="Không tìm thấy sân"
                         description="Không có sân nào khớp với bộ lọc hiện tại."
                         action={

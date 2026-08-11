@@ -1,7 +1,7 @@
 ---
 id: T59
 title: RLS tenant context before route binding
-status: in-review
+status: done
 owner: "OpenCode"
 priority: P1
 depends_on: [T58]

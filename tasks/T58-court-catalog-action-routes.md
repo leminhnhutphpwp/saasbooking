@@ -1,7 +1,7 @@
 ---
 id: T58
 title: Court catalog action route 404 fix
-status: in-review
+status: done
 owner: "OpenCode"
 priority: P1
 depends_on: []

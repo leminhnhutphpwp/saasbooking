@@ -10,11 +10,11 @@ use App\Enums\RefundStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingSlot;
-use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Refund;
 use App\Models\Tenant;
+use App\Services\Reporting\OperationalMetricsService;
 use App\Support\WorkingTenant;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
@@ -24,6 +24,8 @@ use Inertia\Response;
 
 class ReportController extends Controller
 {
+    public function __construct(private OperationalMetricsService $metrics) {}
+
     public function index(Request $request): Response
     {
         $tenantId = (int) WorkingTenant::id($request);
@@ -47,24 +49,20 @@ class ReportController extends Controller
             }
         }
 
+        $fromDate = CarbonImmutable::parse($from);
+        $toDate = CarbonImmutable::parse($to);
+
+        if ($fromDate->greaterThan($toDate)) {
+            [$fromDate, $toDate] = [$toDate, $fromDate];
+            $from = $fromDate->toDateString();
+            $to = $toDate->toDateString();
+        }
+
         $dayStart = CarbonImmutable::parse($from.' 00:00:00');
         $dayEnd = CarbonImmutable::parse($to.' 23:59:59');
 
-        // --- Revenue by day (confirmed bookings only) ---
-        $revenueByDay = Booking::query()
-            ->where('bookings.tenant_id', $tenantId)
-            ->where('status', BookingStatus::Confirmed)
-            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
-            ->select(DB::raw('DATE(booking_slots.start_at) as date'), DB::raw('SUM(bookings.total_amount) as total'))
-            ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
-            ->groupBy(DB::raw('DATE(booking_slots.start_at)'))
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date')
-            ->map(fn ($r) => (int) $r->total);
-
-        // --- Summary ---
-        $totalRevenue = (int) $revenueByDay->sum();
+        $revenueByDayMap = $this->metrics->revenueByDay($tenantId, $dayStart, $dayEnd);
+        $totalRevenue = $this->metrics->totalRevenue($tenantId, $dayStart, $dayEnd);
 
         $confirmedBookings = Booking::where('tenant_id', $tenantId)
             ->where('status', BookingStatus::Confirmed)
@@ -98,27 +96,17 @@ class ReportController extends Controller
             ->where('resolved_at', '<=', $dayEnd)
             ->count();
 
-        // --- Occupancy ---
-        $activeCourts = Court::forTenant($tenantId)->where('status', 'active')->count();
-        $dayCount = CarbonImmutable::parse($from)->diffInDays(CarbonImmutable::parse($to)) + 1;
-        $totalMinutes = $activeCourts * 18 * 60 * $dayCount;
+        $occupancy = $this->metrics->occupancy($tenantId, $fromDate, $toDate);
+        $utilization = $this->metrics->utilization($tenantId, $fromDate, $toDate);
 
-        $bookedMinutes = BookingSlot::where('tenant_id', $tenantId)
-            ->where('start_at', '>=', $dayStart)
-            ->where('start_at', '<=', $dayEnd)
-            ->select(DB::raw('COALESCE(SUM(EXTRACT(EPOCH FROM (end_at - start_at)) / 60), 0) as total'))
-            ->value('total');
-
-        $occupancyRate = $totalMinutes > 0 ? (int) round((float) $bookedMinutes / $totalMinutes * 100) : 0;
-
-        // --- Top customers ---
         $topCustomers = Customer::where('customers.tenant_id', $tenantId)
             ->join('bookings', 'bookings.customer_id', '=', 'customers.id')
             ->where('bookings.status', BookingStatus::Confirmed)
             ->whereHas('bookings.slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
             ->select('customers.id', 'customers.uuid', 'customers.name', 'customers.phone',
                 DB::raw('COUNT(bookings.id) as booking_count'),
-                DB::raw('SUM(bookings.total_amount) as total_spent'))
+                DB::raw('SUM(booking_slots.price_snapshot) as total_spent'))
+            ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
             ->groupBy('customers.id', 'customers.uuid', 'customers.name', 'customers.phone')
             ->orderByDesc('booking_count')
             ->take(10)
@@ -131,7 +119,6 @@ class ReportController extends Controller
                 'total_spent' => (int) ($c->total_spent ?? 0),
             ]);
 
-        // --- Fill missing days with 0 ---
         $dateRange = [];
         $cursor = CarbonImmutable::parse($from);
         $end = CarbonImmutable::parse($to);
@@ -142,7 +129,7 @@ class ReportController extends Controller
 
         $revenueByDayFilled = collect($dateRange)->map(fn ($d) => [
             'date' => $d,
-            'total' => $revenueByDay->get($d, 0),
+            'total' => $revenueByDayMap->get($d, 0),
         ]);
 
         return Inertia::render('Manager/Reports/Index', [
@@ -159,11 +146,15 @@ class ReportController extends Controller
                 'refundCount' => $refundCount,
             ],
             'occupancy' => [
-                'rate' => $occupancyRate,
-                'bookedMinutes' => (int) $bookedMinutes,
-                'totalMinutes' => $totalMinutes,
+                'rate' => $occupancy['rate'],
+                'bookedMinutes' => $occupancy['bookedMinutes'],
+                'totalMinutes' => $occupancy['totalMinutes'],
             ],
             'topCustomers' => $topCustomers,
+            'utilization' => [
+                'hourly' => $utilization['hourly'],
+                'coverage' => $utilization['coverage'],
+            ],
         ]);
     }
 }

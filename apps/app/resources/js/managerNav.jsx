@@ -3,7 +3,6 @@ import {
     Building2,
     CalendarDays,
     ClipboardList,
-    Clock,
     Eye,
     LayoutDashboard,
     Palette,
@@ -20,11 +19,17 @@ export const managerNav = [
             { title: 'Lịch đặt sân', href: 'manager.calendar.index', icon: CalendarDays },
             { title: 'Đơn đặt sân', href: 'manager.bookings.index', icon: ClipboardList },
             { title: 'Khách hàng', href: 'manager.customers.index', icon: Users },
+        ],
+    },
+    {
+        title: 'Danh mục',
+        items: [
+            { title: 'Danh sách sân', href: 'manager.courts.index', icon: Building2 },
             { title: 'Đặt cố định', href: 'manager.series.index', icon: Repeat },
         ],
     },
     {
-        title: 'Công cụ',
+        title: 'Tài chính',
         items: [
             { title: 'Hoàn cọc', href: 'manager.refunds.index', icon: RotateCcw },
             { title: 'Đối soát', href: 'manager.reconcile.index', icon: Eye },
@@ -32,9 +37,9 @@ export const managerNav = [
         ],
     },
     {
-        title: 'Tài khoản',
+        title: 'Cài đặt',
         items: [
-            { title: 'Danh sách sân', href: 'manager.courts.index', icon: Building2 },
+            { title: 'Thông tin sân', href: 'manager.venue.edit', icon: Building2 },
             { title: 'Thương hiệu', href: 'manager.branding.edit', icon: Palette },
         ],
     },

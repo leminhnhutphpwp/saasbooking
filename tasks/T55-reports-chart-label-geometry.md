@@ -1,7 +1,7 @@
 ---
 id: T55
 title: Reports chart label geometry
-status: in-review
+status: done
 owner: "OpenCode"
 priority: P1
 depends_on: [T49]

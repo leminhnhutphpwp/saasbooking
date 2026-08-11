@@ -1,7 +1,7 @@
 ---
 id: T57
 title: Manager Series and topbar visual redesign
-status: in-review
+status: done
 owner: "OpenCode"
 priority: P1
 depends_on: [T56]

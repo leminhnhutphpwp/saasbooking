@@ -1,6 +1,5 @@
-import { Link, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { Building2, Check, ChevronDown, LogOut, Plus, User } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
 import Dropdown from '@/Components/Dropdown';
 import { managerNav } from '@/managerNav';
 
@@ -80,63 +79,16 @@ function UserAvatar({ user }) {
 }
 
 export function AppTopbar() {
-    const { props: { auth, workingTenants = [], workingTenantId }, url } = usePage();
+    const { props: { auth, workingTenants = [], workingTenantId } } = usePage();
     const user = auth.user;
-    const tabsRef = useRef(null);
-    const activeLinkRef = useRef(null);
-    const [activePill, setActivePill] = useState(null);
     const allNavigationItems = managerNav.flatMap((group) => group.items);
-    const navigationItems = allNavigationItems.slice(0, 5);
     const activeItem = allNavigationItems.find((item) => route().current(item.href + '*'));
 
-    useLayoutEffect(() => {
-        const updateActivePill = () => {
-            if (!tabsRef.current || !activeLinkRef.current) return;
-
-            const tabs = tabsRef.current.getBoundingClientRect();
-            const active = activeLinkRef.current.getBoundingClientRect();
-            setActivePill({ transform: `translateX(${active.left - tabs.left}px)`, width: active.width });
-        };
-
-        updateActivePill();
-        let mobileScrollFrame;
-        if (window.matchMedia('(max-width: 767px)').matches) {
-            mobileScrollFrame = window.requestAnimationFrame(() => {
-                tabsRef.current.scrollLeft = activeLinkRef.current.offsetLeft + activeLinkRef.current.offsetWidth - tabsRef.current.clientWidth;
-            });
-        }
-        window.addEventListener('resize', updateActivePill);
-        return () => {
-            window.removeEventListener('resize', updateActivePill);
-            if (mobileScrollFrame) window.cancelAnimationFrame(mobileScrollFrame);
-        };
-    }, [url]);
-
-    const moveTopbarFocus = (event) => {
-        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-
-        const links = [...event.currentTarget.querySelectorAll('[data-topbar-link]')];
-        const current = links.indexOf(document.activeElement);
-        if (current < 0) return;
-
-        event.preventDefault();
-        const next = event.key === 'Home' ? 0 : event.key === 'End' ? links.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + links.length) % links.length;
-        links[next].focus();
-    };
-
     return (
-        <header className="manager-topbar sm:grid sm:grid-cols-3">
+        <header className="manager-topbar">
             <div className="hidden min-w-0 items-center sm:flex">
                 <span className="manager-label truncate text-ink-mute">{activeItem?.title ?? 'Quản lý sân'}</span>
             </div>
-            <nav ref={tabsRef} className="manager-topbar-tabs sm:justify-center" aria-label="Điều hướng nhanh" onKeyDown={moveTopbarFocus}>
-                {activePill && <span className="manager-topbar-active-pill" aria-hidden="true" style={activePill} />}
-                {navigationItems.map((item) => {
-                    const active = route().current(item.href + '*');
-                    return <Link key={item.href} href={route(item.href)} ref={active ? activeLinkRef : null} data-topbar-link className={`manager-topbar-tab ${active ? 'is-active' : ''}`} aria-current={active ? 'page' : undefined}>{item.title}</Link>;
-                })}
-            </nav>
-
             <div className="manager-topbar-actions ml-auto sm:ml-0 sm:justify-self-end">
                 <TenantSwitcher tenants={workingTenants} workingTenantId={workingTenantId} />
                 <UserAvatar user={user} />

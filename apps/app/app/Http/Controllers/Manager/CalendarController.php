@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Manager;
 
 use App\Enums\BookingChannel;
+use App\Enums\HoldStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Exceptions\SlotTakenException;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BookingSlot;
 use App\Models\Court;
 use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\Tenant;
+use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
+use App\Services\Catalog\CatalogService;
 use App\Services\Catalog\PricingService;
 use App\Services\CustomerService;
 use App\Support\Messages;
@@ -38,6 +42,8 @@ class CalendarController extends Controller
         private BookingService $bookings,
         private PricingService $pricing,
         private CustomerService $customers,
+        private AvailabilityService $availability,
+        private CatalogService $catalog,
     ) {}
 
     public function index(Request $request): Response
@@ -45,9 +51,6 @@ class CalendarController extends Controller
         $tenantId = (int) WorkingTenant::id($request);
         $tenant = Tenant::findOrFail($tenantId);
 
-        // Wall-as-UTC (single-tz Phase 1): "today" and the day bounds reference the VENUE wall-clock
-        // day (slots are stored naive/wall-clock), never real UTC. An invalid ?date= falls back to
-        // the venue's today instead of 500-ing.
         $venueToday = CarbonImmutable::now($tenant->timezone)->toDateString();
         $dateString = $venueToday;
         if ($request->filled('date')) {
@@ -58,57 +61,77 @@ class CalendarController extends Controller
             }
         }
 
+        $duration = (int) $request->input('duration', 60);
+        if (! in_array($duration, [60, 90, 120], true)) {
+            $duration = 60;
+        }
+
+        $date = CarbonImmutable::parse($dateString);
         $dayStart = CarbonImmutable::parse($dateString.' 00:00:00');
         $dayEnd = $dayStart->addDay();
 
-        $bookings = Booking::query()
-            ->where('tenant_id', $tenantId)
-            ->whereHas('slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<', $dayEnd))
-            ->with(['customer', 'slots.court'])
-            ->get()
-            ->flatMap(fn (Booking $b) => $b->slots->map(fn ($s) => [
-                'code' => $b->code,
-                'status' => $b->status->value,
-                'channel' => $b->channel->value,
-                'court_id' => $s->court_id,
-                'court' => $s->court?->name,
-                'customer' => $b->customer?->name,
-                'phone' => $b->customer?->phone,
-                'start' => $s->start_at->toIso8601String(),
-                'end' => $s->end_at->toIso8601String(),
-            ]))
-            ->sortBy('start')
-            ->values();
+        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')->get(['id', 'uuid', 'name']);
 
-        // Generate time slots 05:00–23:00 (30-min intervals) as the venue's default range.
-        $timeSlots = [];
-        for ($h = 5; $h < 23; $h++) {
-            for ($m = 0; $m < 60; $m += 30) {
-                $timeSlots[] = sprintf('%02d:%02d', $h, $m);
+        $availability = [];
+        foreach ($courts as $court) {
+            $windows = $this->catalog->openingWindows($tenantId, $court->id, $date);
+            $openingWindows = array_map(fn ($w) => ['open' => $w['open'], 'close' => $w['close']], $windows);
+
+            $freeIntervals = [];
+            $searchResults = $this->availability->search($tenantId, $date, null, $duration);
+            foreach ($searchResults as $result) {
+                if ($result['court_id'] === $court->id) {
+                    foreach ($result['free'] as $interval) {
+                        $start = CarbonImmutable::parse($interval['start']);
+                        $end = CarbonImmutable::parse($interval['end']);
+                        $price = null;
+                        try {
+                            $price = $this->pricing->resolve($tenantId, $court->id, $start, $end);
+                        } catch (RuntimeException) {
+                        }
+                        $freeIntervals[] = [
+                            'start' => $start->format('H:i'),
+                            'end' => $end->format('H:i'),
+                            'price' => $price,
+                        ];
+                    }
+                    break;
+                }
             }
+
+            $bookedSlots = BookingSlot::query()
+                ->where('tenant_id', $tenantId)
+                ->where('court_id', $court->id)
+                ->whereIn('hold_status', [HoldStatus::Holding->value, HoldStatus::Committed->value])
+                ->where('start_at', '>=', $dayStart)
+                ->where('start_at', '<', $dayEnd)
+                ->with('booking.customer')
+                ->get()
+                ->map(fn ($slot) => [
+                    'uuid' => $slot->booking->uuid,
+                    'start' => $slot->start_at->format('H:i'),
+                    'end' => $slot->end_at->format('H:i'),
+                    'customer' => $slot->booking->customer?->name,
+                    'status' => $slot->booking->status->value,
+                    'code' => $slot->booking->code,
+                    'amount' => $slot->booking->total_amount,
+                    'channel' => $slot->booking->channel->value,
+                ])
+                ->values()
+                ->all();
+
+            $availability[$court->uuid] = [
+                'opening_windows' => $openingWindows,
+                'free_intervals' => $freeIntervals,
+                'booked_slots' => $bookedSlots,
+            ];
         }
 
-        $courts = Court::forTenant($tenantId)->where('status', 'active')->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(function (Court $court) use ($dateString, $tenantId, $timeSlots) {
-                $prices = [];
-                foreach ($timeSlots as $time) {
-                    $start = CarbonImmutable::parse("{$dateString} {$time}:00");
-                    try {
-                        $prices[$time] = $this->pricing->resolve($tenantId, $court->id, $start, $start->addMinutes(30));
-                    } catch (RuntimeException) {
-                        $prices[$time] = null;
-                    }
-                }
-
-                return ['id' => $court->id, 'name' => $court->name, 'prices' => $prices];
-            });
-
         return Inertia::render('Manager/Calendar/Index', [
+            'courts' => $courts->map(fn ($c) => ['id' => $c->id, 'uuid' => $c->uuid, 'name' => $c->name]),
             'date' => $dateString,
-            'bookings' => $bookings,
-            'courts' => $courts,
-            'timeSlots' => $timeSlots,
+            'availability' => $availability,
+            'duration' => $duration,
         ]);
     }
 
@@ -118,8 +141,9 @@ class CalendarController extends Controller
         $tenant = Tenant::findOrFail($tenantId);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'min:2', 'max:255'],
-            'phone' => ['required', 'string', 'regex:/^(\+?84|0)[2-9]\d{7,8}$/'],
+            'customer_id' => ['nullable', 'integer', Rule::exists('customers', 'id')->where('tenant_id', $tenantId)],
+            'name' => ['required_without:customer_id', 'nullable', 'string', 'min:2', 'max:255'],
+            'phone' => ['required_without:customer_id', 'nullable', 'string', 'regex:/^(\+?84|0)[2-9]\d{7,8}$/'],
             'court_id' => ['required', 'integer', Rule::exists('courts', 'id')->where('tenant_id', $tenantId)],
             'start_at' => ['required', 'date'],
             'end_at' => ['required', 'date', 'after:start_at'],
@@ -128,11 +152,17 @@ class CalendarController extends Controller
             'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
-        $phone = $this->customers->normalizePhone($data['phone']);
-        $customer = Customer::firstOrCreate(
-            ['tenant_id' => $tenantId, 'phone' => $phone],
-            ['name' => $data['name']],
-        );
+        if (! empty($data['customer_id'])) {
+            $customer = Customer::where('id', $data['customer_id'])
+                ->where('tenant_id', $tenantId)
+                ->firstOrFail();
+        } else {
+            $phone = $this->customers->normalizePhone($data['phone']);
+            $customer = Customer::firstOrCreate(
+                ['tenant_id' => $tenantId, 'phone' => $phone],
+                ['name' => $data['name']],
+            );
+        }
 
         try {
             $booking = $this->bookings->createHold($tenant, [

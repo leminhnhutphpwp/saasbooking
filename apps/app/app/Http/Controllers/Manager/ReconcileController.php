@@ -53,23 +53,28 @@ class ReconcileController extends Controller
                 'note' => $t->note,
             ]);
 
-        $pendingBookings = Booking::with(['customer', 'slots'])
+        $candidates = Booking::with(['customer', 'slots'])
             ->where('tenant_id', $tenantId)
             ->where('status', BookingStatus::PendingDeposit)
+            ->whereHas('payments', fn ($q) => $q->where('status', PaymentStatus::Awaiting))
             ->orderByDesc('created_at')
+            ->limit(50)
             ->get()
             ->map(fn (Booking $b) => [
                 'uuid' => $b->uuid,
                 'code' => $b->code,
-                'customer_name' => $b->customer?->name ?? '—',
-                'customer_phone' => $b->customer?->phone ?? '',
-                'deposit_amount' => $b->deposit_amount,
-                'slots' => $b->slots->map(fn ($s) => $s->start_at->format('d/m H:i')),
+                'customer_name' => $b->customer?->name,
+                'customer_phone' => $b->customer?->phone,
+                'expected_deposit' => $b->deposit_amount,
+                'slot_summary' => $b->slots->map(fn ($s) => [
+                    'start_at' => $s->start_at->toIso8601String(),
+                    'end_at' => $s->end_at->toIso8601String(),
+                ])->toArray(),
             ]);
 
         return Inertia::render('Manager/Reconcile/Unmatched', [
             'txns' => $txns,
-            'pendingBookings' => $pendingBookings,
+            'candidates' => $candidates,
         ]);
     }
 

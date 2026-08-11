@@ -108,6 +108,7 @@ Route::middleware(['auth', 'can:access-manager'])->prefix('manager')->name('mana
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 
     // Customer management (phone-first operations).
+    Route::get('/customers/search', [CustomerController::class, 'search'])->name('customers.search');
     Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
     Route::get('/customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');

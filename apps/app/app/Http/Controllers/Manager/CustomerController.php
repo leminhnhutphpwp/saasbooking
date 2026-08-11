@@ -26,36 +26,31 @@ class CustomerController extends Controller
      */
     public function index(Request $request): Response
     {
+        $tenantId = WorkingTenant::id($request);
         $query = $request->string('q', '')->toString();
 
-        if ($query !== '') {
-            $results = $this->customers->search($request, $query);
-            $customers = $results->map(fn (Customer $c) => [
-                'id' => $c->id,
-                'uuid' => $c->uuid,
-                'phone' => $c->phone,
-                'name' => $c->name,
-                'email' => $c->email,
-                'bookings_count' => $c->bookings()->where('tenant_id', WorkingTenant::id($request))->count(),
-            ]);
+        $paginated = $query !== ''
+            ? $this->customers->searchPaginated($request, $query)
+            : $this->customers->paginate($request);
 
-            return Inertia::render('Manager/Customers/Index', [
-                'customers' => $customers,
-                'query' => $query,
-            ]);
-        }
-
-        $paginated = $this->customers->paginate($request);
+        $customers = collect($paginated->items())->map(fn (Customer $c) => [
+            'id' => $c->id,
+            'uuid' => $c->uuid,
+            'phone' => $c->phone,
+            'name' => $c->name,
+            'email' => $c->email,
+            'bookings_count' => $c->bookings()->where('tenant_id', $tenantId)->count(),
+        ]);
 
         return Inertia::render('Manager/Customers/Index', [
-            'customers' => $paginated->items(),
+            'customers' => $customers,
+            'filters' => ['q' => $query],
             'pagination' => [
                 'current_page' => $paginated->currentPage(),
                 'last_page' => $paginated->lastPage(),
                 'per_page' => $paginated->perPage(),
                 'total' => $paginated->total(),
             ],
-            'query' => '',
         ]);
     }
 
@@ -67,18 +62,19 @@ class CustomerController extends Controller
         $tenantId = WorkingTenant::id($request);
         abort_unless($customer->tenant_id === $tenantId, 403);
 
-        $history = $this->customers->getHistory($request, $customer);
+        $stats = $this->customers->getStats($customer, $tenantId);
+        $paginated = $this->customers->getHistoryPaginated($customer, $tenantId);
 
         return Inertia::render('Manager/Customers/Show', [
             'customer' => [
-                'id' => $history['customer']->id,
-                'uuid' => $history['customer']->uuid,
-                'phone' => $history['customer']->phone,
-                'name' => $history['customer']->name,
-                'email' => $history['customer']->email,
+                'id' => $customer->id,
+                'uuid' => $customer->uuid,
+                'phone' => $customer->phone,
+                'name' => $customer->name,
+                'email' => $customer->email,
             ],
-            'stats' => $history['stats'],
-            'bookings' => $history['bookings']->map(fn ($b) => [
+            'stats' => $stats,
+            'bookings' => collect($paginated->items())->map(fn ($b) => [
                 'id' => $b->id,
                 'uuid' => $b->uuid,
                 'code' => $b->code,
@@ -92,7 +88,38 @@ class CustomerController extends Controller
                     'end_at' => $s->end_at->toIso8601String(),
                 ]),
             ]),
+            'pagination' => [
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'total' => $paginated->total(),
+            ],
         ]);
+    }
+
+    /**
+     * Lightweight customer search for combobox/autocomplete (JSON).
+     * Returns up to 8 matches by phone prefix or name.
+     */
+    public function search(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $tenantId = WorkingTenant::id($request);
+        $query = $request->string('q', '')->toString();
+
+        if ($query === '') {
+            return response()->json([]);
+        }
+
+        $customers = $this->customers->search($request, $query, limit: 8)
+            ->map(fn (Customer $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'phone' => $c->phone,
+                'code' => $c->code,
+                'bookings_count' => $c->bookings()->where('tenant_id', $tenantId)->count(),
+            ]);
+
+        return response()->json($customers);
     }
 
     /**

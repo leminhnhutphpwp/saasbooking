@@ -4,11 +4,8 @@
 
 ## Active
 
-- T59 · RLS tenant context before route binding · in-review · `feat/manager-analytics-overhaul`
-- T58 · Court catalog action route 404 fix · in-review · `feat/manager-analytics-overhaul`
-- T54 · Design-kit final token cleanup · in-review · `feat/design-kit-migration`
-- T55 · Reports chart label geometry · in-review · `feat/manager-analytics-overhaul`
-- T57 · Manager Series and topbar visual redesign · in-review · `feat/manager-series-topbar-redesign`
+- T71 · System logic & business-operation audit · claimed · `feat/manager-analytics-overhaul`
+- T60 · Operational metrics correctness · in-review · `feat/operational-metrics`
 
 ## Backlog
 

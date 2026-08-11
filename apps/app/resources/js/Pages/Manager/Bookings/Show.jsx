@@ -30,7 +30,7 @@ export default function Show({ booking }) {
     return <ManagerLayout>
         <Head title={`Đơn ${booking.code}`} />
         <PageContainer>
-            <PageHeader backHref={route('manager.bookings.index')} backLabel="Danh sách đơn" title={`Đơn ${booking.code}`} description={`Tạo lúc ${formatDateTime(booking.created_at)}`} actions={<div className="flex flex-wrap gap-2">{bookingActions.map(([value, label]) => <Button key={value} variant={value === 'cancel' || value === 'no_show' ? 'outline' : 'default'} onClick={() => setTarget(value)}>{label}</Button>)}</div>} />
+            <PageHeader backHref={route('manager.bookings.index')} backLabel="Danh sách đơn" title={`Đơn ${booking.code}`} description={`Tạo lúc ${formatDateTime(booking.created_at)}`} actions={<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{bookingActions.map(([value, label]) => <Button key={value} className="h-11 w-full sm:h-auto sm:w-auto" variant={value === 'cancel' || value === 'no_show' ? 'outline' : 'default'} onClick={() => setTarget(value)}>{label}</Button>)}</div>} />
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="space-y-6 lg:col-span-2">
                     <Card><CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5 text-muted-foreground" />Lịch đặt <StatusBadge type="booking" value={booking.status} /></CardTitle></CardHeader><CardContent className="space-y-3">{booking.slots?.map((slot) => <div key={slot.id} className="manager-well p-4"><p className="font-semibold">{slot.court?.name}</p><p className="mt-1 text-sm text-muted-foreground">{formatDateTime(slot.start_at)} - {formatDateTime(slot.end_at).split(' · ')[0]}</p></div>)}</CardContent></Card>
