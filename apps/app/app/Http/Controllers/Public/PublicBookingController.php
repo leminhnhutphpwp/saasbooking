@@ -18,6 +18,7 @@ use App\Services\Booking\AvailabilityService;
 use App\Services\Booking\BookingService;
 use App\Services\Catalog\CatalogService;
 use App\Services\Catalog\PricingService;
+use App\Services\CustomerService;
 use App\Services\Payment\PaymentService;
 use App\Support\Messages;
 use App\Support\VietQr;
@@ -40,6 +41,7 @@ class PublicBookingController extends Controller
         private PaymentService $payments,
         private PricingService $pricing,
         private CatalogService $catalog,
+        private CustomerService $customers,
     ) {}
 
     public function show(Tenant $tenant, Request $request): Response
@@ -135,8 +137,10 @@ class PublicBookingController extends Controller
         $endAt = CarbonImmutable::parse($data['end_at']);
         $this->assertSlotIsBookable($tenant, $court, $startAt, $endAt);
 
+        // Phone is the customer identity key. Normalize before lookup so the same human booking as
+        // 0912…, 84912… or +84912… stays ONE customer with one booking history.
         $customer = Customer::firstOrCreate(
-            ['tenant_id' => $tenant->id, 'phone' => $data['phone']],
+            ['tenant_id' => $tenant->id, 'phone' => $this->customers->normalizePhone($data['phone'])],
             ['name' => $data['name']],
         );
 

@@ -9,6 +9,7 @@ use App\Models\Customer;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Lightweight customer operations — phone-first, phone-normalized identity.
@@ -20,6 +21,9 @@ class CustomerService
      * Normalize a Vietnamese phone number to E.164-ish format.
      * Strips spaces, dashes, dots, parentheses. Leading 0 → +84.
      * Non-Vietnamese numbers (already +xx) pass through unchanged.
+     *
+     * Identity depends on this being total: every accepted spelling of the same human must
+     * collapse to one string, because unique(tenant_id, phone) is the identity key.
      */
     public function normalizePhone(string $phone): string
     {
@@ -30,9 +34,19 @@ class CustomerService
             return $phone;
         }
 
+        // International access prefix (00 84 …) → +84…
+        if (str_starts_with($phone, '0084')) {
+            return '+'.substr($phone, 2);
+        }
+
         // Vietnamese: leading 0 → +84.
         if (str_starts_with($phone, '0')) {
             return '+84'.substr($phone, 1);
+        }
+
+        // Country code without a plus (84912345678) → +84912345678.
+        if (preg_match('/^84\d{9,10}$/', $phone)) {
+            return '+'.$phone;
         }
 
         // Bare 9-10 digit number (no leading 0) → treat as VN.
@@ -94,6 +108,51 @@ class CustomerService
         ]);
 
         return $customer->fresh();
+    }
+
+    /**
+     * Update the given customer in place. The bound record is the identity being edited — a phone
+     * change must never silently create or hijack a second record, so a number already used by a
+     * different customer in this tenant is rejected as a validation error.
+     *
+     * @param  array{phone?:string, name?:string|null, email?:string|null}  $data
+     */
+    public function updateCustomer(Customer $customer, array $data, int $tenantId): Customer
+    {
+        abort_unless($customer->tenant_id === $tenantId, 403);
+
+        $attributes = [];
+
+        if (array_key_exists('phone', $data) && $data['phone'] !== null) {
+            $normalizedPhone = $this->normalizePhone($data['phone']);
+
+            if ($normalizedPhone !== $customer->phone) {
+                $taken = Customer::where('tenant_id', $tenantId)
+                    ->where('phone', $normalizedPhone)
+                    ->whereKeyNot($customer->getKey())
+                    ->exists();
+
+                if ($taken) {
+                    throw ValidationException::withMessages([
+                        'phone' => 'Số điện thoại này đã thuộc về một khách hàng khác.',
+                    ]);
+                }
+            }
+
+            $attributes['phone'] = $normalizedPhone;
+        }
+
+        foreach (['name', 'email'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $attributes[$field] = $data[$field];
+            }
+        }
+
+        if ($attributes !== []) {
+            $customer->forceFill($attributes)->save();
+        }
+
+        return $customer->refresh();
     }
 
     /**

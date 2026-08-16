@@ -181,15 +181,23 @@ class CalendarController extends Controller
             return back()->with('error', Messages::error('booking', 'slot_taken'));
         }
 
-        // Cash walk-in is settled on the spot → confirm now (no VietQR).
-        DB::transaction(function () use ($booking, $tenantId) {
-            Payment::forceCreate([
-                'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
-                'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
-                'matched_at' => now(),
-            ]);
-            $this->bookings->confirmDeposit($booking);
-        });
+        // Cash walk-in is settled on the spot → confirm now (no VietQR). confirmDeposit re-enters
+        // the exclusion constraint at the commit UPDATE, so a concurrent expire+re-hold can still
+        // steal the range; report it like any other lost slot instead of 500-ing.
+        try {
+            DB::transaction(function () use ($booking, $tenantId) {
+                Payment::forceCreate([
+                    'tenant_id' => $tenantId, 'booking_id' => $booking->id, 'method' => PaymentMethod::Cash,
+                    'amount' => $booking->total_amount, 'status' => PaymentStatus::Matched, 'memo_ref' => $booking->code,
+                    'matched_at' => now(),
+                ]);
+                $this->bookings->confirmDeposit($booking);
+            });
+        } catch (SlotTakenException) {
+            $this->bookings->markPaymentOrphaned($booking);
+
+            return back()->with('error', Messages::error('booking', 'slot_taken'));
+        }
 
         return back()->with('success', Messages::get('booking', 'walkin_created', ['name' => $customer->name]));
     }

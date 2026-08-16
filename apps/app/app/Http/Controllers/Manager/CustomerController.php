@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Services\CustomerService;
 use App\Support\Messages;
 use App\Support\WorkingTenant;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -101,7 +102,7 @@ class CustomerController extends Controller
      * Lightweight customer search for combobox/autocomplete (JSON).
      * Returns up to 8 matches by phone prefix or name.
      */
-    public function search(Request $request): \Illuminate\Http\JsonResponse
+    public function search(Request $request): JsonResponse
     {
         $tenantId = WorkingTenant::id($request);
         $query = $request->string('q', '')->toString();
@@ -144,7 +145,8 @@ class CustomerController extends Controller
     }
 
     /**
-     * Update customer. Phone changes are normalized; duplicates within tenant are merged.
+     * Update customer. Phone changes are normalized; a number already owned by another customer
+     * in this tenant is rejected rather than silently creating or merging a record.
      */
     public function update(Request $request, Customer $customer): RedirectResponse
     {
@@ -159,7 +161,7 @@ class CustomerController extends Controller
             'phone.regex' => 'Số điện thoại không hợp lệ (VD: 0912345678).',
         ]);
 
-        $this->customers->upsert($request, $data);
+        $this->customers->updateCustomer($customer, $data, $tenantId);
 
         return back()->with('success', Messages::get('customer', 'updated'));
     }

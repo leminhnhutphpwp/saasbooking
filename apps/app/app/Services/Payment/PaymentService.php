@@ -15,6 +15,7 @@ use App\Models\Refund;
 use App\Models\TenantBankConfig;
 use App\Support\Messages;
 use App\Support\VietQr;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
@@ -101,28 +102,67 @@ class PaymentService
         ];
     }
 
+    /**
+     * Request a refund against a settled payment. The ledger must conserve: the SUM of all
+     * non-void refunds for a payment can never exceed the immutable payment amount, so the payment
+     * row is locked and prior refunds are summed inside one transaction (docs/11 #11).
+     */
     public function requestRefund(Payment $payment, int $amount, CancelReason $reason): Refund
     {
-        if ($amount <= 0 || $amount > $payment->amount) {
-            throw new RuntimeException('Refund amount must be positive and cannot exceed the matched payment.');
-        }
+        return DB::transaction(function () use ($payment, $amount, $reason): Refund {
+            $locked = Payment::query()
+                ->where('tenant_id', $payment->tenant_id)
+                ->lockForUpdate()
+                ->findOrFail($payment->getKey());
 
-        return Refund::forceCreate([
-            'tenant_id' => $payment->tenant_id,
-            'payment_id' => $payment->id,
-            'amount' => $amount,
-            'reason' => $reason,
-            'method' => RefundMethod::ManualBank,
-            'status' => RefundStatus::Requested,
-        ]);
+            // Money must have actually arrived. An awaiting deposit has collected nothing to return.
+            if (! in_array($locked->status, [PaymentStatus::Matched, PaymentStatus::Orphaned], true)) {
+                throw new RuntimeException("Cannot refund payment [{$locked->id}] in status [{$locked->status->value}].");
+            }
+
+            $alreadyRefunded = (int) Refund::query()
+                ->where('tenant_id', $locked->tenant_id)
+                ->where('payment_id', $locked->id)
+                ->whereIn('status', [RefundStatus::Requested, RefundStatus::Done])
+                ->sum('amount');
+
+            $remaining = (int) $locked->amount - $alreadyRefunded;
+
+            if ($amount <= 0 || $amount > $remaining) {
+                throw new RuntimeException('Refund amount must be positive and cannot exceed the matched payment.');
+            }
+
+            return Refund::forceCreate([
+                'tenant_id' => $locked->tenant_id,
+                'payment_id' => $locked->id,
+                'amount' => $amount,
+                'reason' => $reason,
+                'method' => RefundMethod::ManualBank,
+                'status' => RefundStatus::Requested,
+            ]);
+        });
     }
 
+    /** Settle a requested refund exactly once; a resolved row keeps its original audit trail. */
     public function markRefundDone(Refund $refund, ?int $resolvedBy = null): void
     {
-        $refund->forceFill([
-            'status' => RefundStatus::Done,
-            'resolved_at' => now(),
-            'resolved_by' => $resolvedBy,
-        ])->save();
+        DB::transaction(function () use ($refund, $resolvedBy): void {
+            $locked = Refund::query()
+                ->where('tenant_id', $refund->tenant_id)
+                ->lockForUpdate()
+                ->findOrFail($refund->getKey());
+
+            if ($locked->status !== RefundStatus::Requested) {
+                return;
+            }
+
+            $locked->forceFill([
+                'status' => RefundStatus::Done,
+                'resolved_at' => now(),
+                'resolved_by' => $resolvedBy,
+            ])->save();
+
+            $refund->setRawAttributes($locked->getAttributes(), true);
+        });
     }
 }

@@ -79,6 +79,62 @@ class CustomerOperationsTest extends TestCase
         $this->assertSame('+84912345678', $service->normalizePhone('912345678'));
     }
 
+    public function test_phone_normalization_bare_country_code(): void
+    {
+        $service = app(CustomerService::class);
+
+        // 84912345678 is 11 digits — the same human as 0912345678 and +84912345678.
+        $this->assertSame('+84912345678', $service->normalizePhone('84912345678'));
+        $this->assertSame('+84912345678', $service->normalizePhone('0084912345678'));
+    }
+
+    public function test_update_changes_the_bound_customer_instead_of_creating_another(): void
+    {
+        $t = $this->venue('venue-a');
+        $customer = Customer::create(['tenant_id' => $t->id, 'phone' => '+84912345678', 'name' => 'An']);
+
+        $this->actingAs($this->owner($t))
+            ->put("/manager/customers/{$customer->uuid}", [
+                'phone' => '0987654321',
+                'name' => 'An Updated',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(1, Customer::where('tenant_id', $t->id)->count());
+        $customer->refresh();
+        $this->assertSame('+84987654321', $customer->phone);
+        $this->assertSame('An Updated', $customer->name);
+    }
+
+    public function test_update_without_phone_keeps_the_current_number(): void
+    {
+        $t = $this->venue('venue-a');
+        $customer = Customer::create(['tenant_id' => $t->id, 'phone' => '+84912345678', 'name' => 'An']);
+
+        $this->actingAs($this->owner($t))
+            ->put("/manager/customers/{$customer->uuid}", ['name' => 'Chỉ đổi tên'])
+            ->assertRedirect();
+
+        $customer->refresh();
+        $this->assertSame('+84912345678', $customer->phone);
+        $this->assertSame('Chỉ đổi tên', $customer->name);
+    }
+
+    public function test_update_rejects_a_phone_already_used_by_another_customer(): void
+    {
+        $t = $this->venue('venue-a');
+        $customer = Customer::create(['tenant_id' => $t->id, 'phone' => '+84912345678', 'name' => 'An']);
+        Customer::create(['tenant_id' => $t->id, 'phone' => '+84987654321', 'name' => 'Bình']);
+
+        $this->actingAs($this->owner($t))
+            ->put("/manager/customers/{$customer->uuid}", ['phone' => '0987654321'])
+            ->assertSessionHasErrors('phone');
+
+        $customer->refresh();
+        $this->assertSame('+84912345678', $customer->phone);
+        $this->assertSame(2, Customer::where('tenant_id', $t->id)->count());
+    }
+
     // ── Tenant-scoped search ─────────────────────────────────────────
 
     public function test_search_returns_only_tenant_customers(): void

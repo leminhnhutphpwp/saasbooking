@@ -16,7 +16,6 @@ use App\Models\Customer;
 use App\Models\OpeningRule;
 use App\Models\Tenant;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -295,6 +294,61 @@ class ReportControllerTest extends TestCase
         $response->assertOk();
         $response->assertInertia(fn ($page) => $page
             ->where('summary.totalRevenue', 60_000)
+        );
+    }
+
+    public function test_top_customer_booking_count_not_inflated_by_slots(): void
+    {
+        $t = $this->venue('v-top');
+        $court = $this->court($t);
+        $customer = $this->customer($t, 'Khách top', '0900000001');
+
+        $opening = $this->openingRule($t, $court);
+
+        $make = function (string $code, array $slots) use ($t, $court, $customer) {
+            $booking = Booking::forceCreate([
+                'uuid' => (string) Str::uuid(),
+                'tenant_id' => $t->id,
+                'code' => $code,
+                'customer_id' => $customer->id,
+                'status' => 'confirmed',
+                'channel' => BookingChannel::OwnerManual,
+                'total_amount' => 0,
+                'deposit_amount' => 0,
+                'payment_mode' => PaymentMode::Cash,
+                'cancel_policy_snapshot' => [],
+            ]);
+            foreach ($slots as [$start, $end, $price]) {
+                BookingSlot::create([
+                    'tenant_id' => $t->id,
+                    'booking_id' => $booking->id,
+                    'court_id' => $court->id,
+                    'start_at' => $start,
+                    'end_at' => $end,
+                    'price_snapshot' => $price,
+                    'hold_status' => HoldStatus::Committed,
+                ]);
+            }
+
+            return $booking;
+        };
+
+        // Two bookings: one with 2 slots, one with 1 slot, all on 2026-08-01.
+        $make('SAN-T1', [
+            ['2026-08-01 10:00:00', '2026-08-01 11:00:00', 60_000],
+            ['2026-08-01 11:00:00', '2026-08-01 12:00:00', 60_000],
+        ]);
+        $make('SAN-T2', [
+            ['2026-08-01 14:00:00', '2026-08-01 15:00:00', 60_000],
+        ]);
+
+        $response = $this->actingAs($this->owner($t))
+            ->get('/manager/reports?from=2026-08-01&to=2026-08-01');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->where('topCustomers.0.booking_count', 2)
+            ->where('topCustomers.0.total_spent', 180_000)
         );
     }
 

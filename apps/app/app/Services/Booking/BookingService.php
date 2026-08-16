@@ -17,10 +17,10 @@ use App\Models\BookingSlot;
 use App\Models\Tenant;
 use App\Services\Catalog\PricingService;
 use App\Services\Payment\PaymentService;
+use App\Support\RlsTenantContext;
 use Carbon\CarbonInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -214,15 +214,26 @@ class BookingService
     {
         $expired = 0;
 
-        Booking::query()
-            ->where('status', BookingStatus::PendingDeposit)
-            ->whereNotNull('hold_expires_at')
-            ->where('hold_expires_at', '<', now())
-            ->eachById(function (Booking $booking) use (&$expired) {
-                if ($this->expireStaleHold($booking->id)) {
-                    $expired++;
-                }
+        // `tenants` has no RLS policy, so this enumeration is safe under the runtime role. Each
+        // tenant's work runs inside `RlsTenantContext` so the RLS policy permits that tenant's rows —
+        // a single context-less query returns zero rows under RLS (san_app, NOBYPASSRLS).
+        Tenant::query()->select('id')->eachById(function (Tenant $tenant) use (&$expired) {
+            $expired += RlsTenantContext::run($tenant->id, function (): int {
+                $count = 0;
+
+                Booking::query()
+                    ->where('status', BookingStatus::PendingDeposit)
+                    ->whereNotNull('hold_expires_at')
+                    ->where('hold_expires_at', '<', now())
+                    ->eachById(function (Booking $booking) use (&$count) {
+                        if ($this->expireStaleHold($booking->id)) {
+                            $count++;
+                        }
+                    });
+
+                return $count;
             });
+        });
 
         return $expired;
     }

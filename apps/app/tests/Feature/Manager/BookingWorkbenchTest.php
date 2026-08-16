@@ -10,6 +10,7 @@ use App\Enums\HoldStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentMode;
 use App\Enums\PaymentStatus;
+use App\Exceptions\SlotTakenException;
 use App\Models\Booking;
 use App\Models\Court;
 use App\Models\Customer;
@@ -17,6 +18,7 @@ use App\Models\Payment;
 use App\Models\PricingRule;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Booking\BookingService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -284,6 +286,44 @@ class BookingWorkbenchTest extends TestCase
             ]);
 
         $response->assertSessionHas('error');
+    }
+
+    public function test_store_reports_a_lost_race_at_commit_instead_of_500ing(): void
+    {
+        $t = $this->venue('v1');
+        $owner = $this->owner($t);
+        $court = $this->court($t);
+        $this->pricingRule($t, $court->id);
+
+        $real = app(BookingService::class);
+
+        // Simulate a concurrent expire+re-hold stealing the range between createHold and the
+        // commit UPDATE: confirmDeposit is documented to surface that as SlotTakenException.
+        $this->mock(BookingService::class, function ($mock) use ($real) {
+            $mock->shouldReceive('createHold')->once()
+                ->andReturnUsing(fn (...$args) => $real->createHold(...$args));
+            $mock->shouldReceive('confirmDeposit')->once()->andThrow(new SlotTakenException);
+            $mock->shouldReceive('markPaymentOrphaned')->once()
+                ->andReturnUsing(fn (...$args) => $real->markPaymentOrphaned(...$args));
+        });
+
+        $start = CarbonImmutable::tomorrow()->setHour(15)->setMinute(0);
+
+        $response = $this->actingAs($owner)
+            ->post('/manager/bookings', [
+                'name' => 'Race Loser',
+                'phone' => '0933333333',
+                'court_id' => $court->id,
+                'start_at' => $start->toIso8601String(),
+                'end_at' => $start->addHour()->toIso8601String(),
+                'payment_mode' => 'cash',
+            ]);
+
+        $response->assertSessionHas('error');
+
+        // No half-finished state may survive: no confirmed booking, no cash payment.
+        $this->assertDatabaseMissing('bookings', ['tenant_id' => $t->id, 'status' => BookingStatus::Confirmed->value]);
+        $this->assertDatabaseMissing('payments', ['tenant_id' => $t->id, 'method' => PaymentMethod::Cash->value]);
     }
 
     // ─── Status transition tests ───────────────────────────────────────

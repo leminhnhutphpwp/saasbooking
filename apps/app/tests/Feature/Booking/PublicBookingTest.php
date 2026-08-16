@@ -7,6 +7,7 @@ namespace Tests\Feature\Booking;
 use App\Models\Blackout;
 use App\Models\Booking;
 use App\Models\Court;
+use App\Models\Customer;
 use App\Models\OpeningRule;
 use App\Models\PricingRule;
 use App\Models\Tenant;
@@ -67,9 +68,30 @@ class PublicBookingTest extends TestCase
         ]);
 
         $response->assertRedirect()->assertSessionDoesntHaveErrors();
-        $this->assertDatabaseHas('customers', ['tenant_id' => $this->tenant->id, 'phone' => '0912345678']);
+        $this->assertDatabaseHas('customers', ['tenant_id' => $this->tenant->id, 'phone' => '+84912345678']);
         $this->assertDatabaseHas('bookings', ['tenant_id' => $this->tenant->id, 'status' => 'pending_deposit']);
         $this->assertDatabaseHas('payments', ['tenant_id' => $this->tenant->id, 'method' => 'vietqr', 'status' => 'awaiting']);
+    }
+
+    public function test_hold_reuses_one_customer_across_equivalent_phone_formats(): void
+    {
+        $date = $this->bookingDate();
+        $formats = ['0912345678', '84912345678', '+84912345678'];
+
+        foreach ($formats as $i => $phone) {
+            $hour = 18 + $i;
+            $this->post('/book/venue-a/hold', [
+                'name' => 'Nguyen Van A',
+                'phone' => $phone,
+                'court_id' => $this->court->id,
+                'start_at' => "{$date} {$hour}:00:00",
+                'end_at' => "{$date} ".($hour + 1).':00:00',
+            ])->assertSessionDoesntHaveErrors();
+        }
+
+        // One human, one identity — booking history must not fragment.
+        $this->assertSame(1, Customer::where('tenant_id', $this->tenant->id)->count());
+        $this->assertDatabaseHas('customers', ['tenant_id' => $this->tenant->id, 'phone' => '+84912345678']);
     }
 
     public function test_status_page_shows_qr_and_booking(): void

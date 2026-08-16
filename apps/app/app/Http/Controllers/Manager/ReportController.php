@@ -102,11 +102,14 @@ class ReportController extends Controller
         $topCustomers = Customer::where('customers.tenant_id', $tenantId)
             ->join('bookings', 'bookings.customer_id', '=', 'customers.id')
             ->where('bookings.status', BookingStatus::Confirmed)
-            ->whereHas('bookings.slots', fn ($q) => $q->where('start_at', '>=', $dayStart)->where('start_at', '<=', $dayEnd))
+            ->join('booking_slots', function ($join) use ($dayStart, $dayEnd) {
+                $join->on('booking_slots.booking_id', '=', 'bookings.id')
+                    ->where('booking_slots.start_at', '>=', $dayStart)
+                    ->where('booking_slots.start_at', '<=', $dayEnd);
+            })
             ->select('customers.id', 'customers.uuid', 'customers.name', 'customers.phone',
-                DB::raw('COUNT(bookings.id) as booking_count'),
+                DB::raw('COUNT(DISTINCT bookings.id) as booking_count'),
                 DB::raw('SUM(booking_slots.price_snapshot) as total_spent'))
-            ->join('booking_slots', 'booking_slots.booking_id', '=', 'bookings.id')
             ->groupBy('customers.id', 'customers.uuid', 'customers.name', 'customers.phone')
             ->orderByDesc('booking_count')
             ->take(10)

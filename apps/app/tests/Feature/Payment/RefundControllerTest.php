@@ -16,6 +16,7 @@ use App\Models\PricingRule;
 use App\Models\Refund;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Payment\PaymentService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -149,5 +150,59 @@ class RefundControllerTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Manager/Refunds/Index')
                 ->has('refunds', 0));
+    }
+
+    // ── Refund ledger conservation ───────────────────────────────────
+
+    private function matchedPayment(string $code, int $amount = 60_000, string $status = 'matched'): Payment
+    {
+        $booking = Booking::create([
+            'tenant_id' => $this->tenant->id, 'code' => $code, 'customer_id' => $this->customer->id,
+            'status' => 'cancelled', 'channel' => 'zalo', 'total_amount' => $amount,
+            'deposit_amount' => $amount, 'payment_mode' => 'deposit', 'cancel_policy_snapshot' => [],
+        ]);
+
+        return Payment::create([
+            'tenant_id' => $this->tenant->id, 'booking_id' => $booking->id, 'method' => 'vietqr',
+            'amount' => $amount, 'status' => $status, 'memo_ref' => $code,
+        ]);
+    }
+
+    public function test_refunds_cannot_exceed_the_original_payment_in_total(): void
+    {
+        $payment = $this->matchedPayment('SAN-LEDG1');
+        $service = app(PaymentService::class);
+
+        $service->requestRefund($payment, 40_000, CancelReason::CustomerCancel);
+
+        // 40k already requested — only 20k of headroom remains on a 60k payment.
+        $this->expectException(\RuntimeException::class);
+        $service->requestRefund($payment, 40_000, CancelReason::CustomerCancel);
+    }
+
+    public function test_refund_cannot_be_requested_against_an_unpaid_payment(): void
+    {
+        $payment = $this->matchedPayment('SAN-LEDG2', status: 'awaiting');
+        $service = app(PaymentService::class);
+
+        $this->expectException(\RuntimeException::class);
+        $service->requestRefund($payment, 10_000, CancelReason::CustomerCancel);
+    }
+
+    public function test_mark_refund_done_is_idempotent_and_preserves_the_first_resolution(): void
+    {
+        $payment = $this->matchedPayment('SAN-LEDG3');
+        $service = app(PaymentService::class);
+        $refund = $service->requestRefund($payment, 60_000, CancelReason::CustomerCancel);
+
+        $service->markRefundDone($refund, 11);
+        $refund->refresh();
+        $firstResolvedAt = $refund->resolved_at;
+
+        $service->markRefundDone($refund, 22);
+        $refund->refresh();
+
+        $this->assertSame(11, $refund->resolved_by);
+        $this->assertEquals($firstResolvedAt, $refund->resolved_at);
     }
 }

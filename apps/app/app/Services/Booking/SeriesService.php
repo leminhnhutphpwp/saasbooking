@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Booking;
 
 use App\Enums\BookingChannel;
+use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
 use App\Enums\SeriesStatus;
 use App\Exceptions\SlotTakenException;
 use App\Models\Booking;
+use App\Models\BookingSlot;
 use App\Models\RecurringSeries;
 use App\Models\Tenant;
 use App\Services\Catalog\PricingService;
+use App\Support\RlsTenantContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Weekly fixed bookings (đặt cố định). Price/deposit are snapshotted onto the series; each
@@ -77,17 +81,39 @@ class SeriesService
     {
         $created = 0;
 
-        RecurringSeries::query()
-            ->where('status', SeriesStatus::Active)
-            ->with('tenant')
-            ->each(function (RecurringSeries $series) use (&$created) {
-                if ($series->generated_through
-                    && $series->generated_through->greaterThanOrEqualTo($series->end_date)) {
-                    return; // fully generated
-                }
-                [$generated] = $this->generateHorizon($series->tenant, $series);
-                $created += count($generated);
+        // `tenants` has no RLS policy, so this enumeration is safe under the runtime role. Each
+        // tenant's work runs inside `RlsTenantContext` so the RLS policy (tenant_id = app_current_tenant_id())
+        // permits that tenant's rows — a single context-less query returns zero rows under RLS.
+        Tenant::query()->select('id')->eachById(function (Tenant $tenant) use (&$created) {
+            $created += RlsTenantContext::run($tenant->id, function (): int {
+                $made = 0;
+
+                RecurringSeries::query()
+                    ->where('status', SeriesStatus::Active)
+                    ->with('tenant')
+                    ->eachById(function (RecurringSeries $series) use (&$made) {
+                        if ($series->generated_through
+                            && $series->generated_through->greaterThanOrEqualTo($series->end_date)) {
+                            return; // fully generated
+                        }
+                        [$generated, $conflicts] = $this->generateHorizon($series->tenant, $series);
+                        $made += count($generated);
+
+                        // A conflicted date is a customer-visible missed session, not a no-op. The cursor
+                        // stays behind it (see generateHorizon) so it is retried, but the owner must be
+                        // able to see that it happened.
+                        if ($conflicts !== []) {
+                            Log::warning('Recurring series occurrence conflicted', [
+                                'series_id' => $series->id,
+                                'tenant_id' => $series->tenant_id,
+                                'conflicts' => $conflicts,
+                            ]);
+                        }
+                    });
+
+                return $made;
             });
+        });
 
         return $created;
     }
@@ -114,12 +140,31 @@ class SeriesService
         $generated = [];
         $conflicts = [];
 
+        // Dates already materialised by an earlier run. The cursor parks before the first conflict
+        // so conflicted dates get retried, which means later dates can be revisited — they must not
+        // be booked twice.
+        $existing = BookingSlot::query()
+            ->where('booking_slots.tenant_id', $tenant->id)
+            ->whereIn('booking_slots.booking_id', Booking::query()
+                ->select('id')
+                ->where('tenant_id', $tenant->id)
+                ->where('series_id', $series->id)
+                ->whereNotIn('status', [BookingStatus::Cancelled, BookingStatus::Expired]))
+            ->pluck('start_at')
+            ->map(fn ($startAt) => CarbonImmutable::parse((string) $startAt)->toDateString())
+            ->flip();
+
         for ($cursor = $from; $cursor->lessThanOrEqualTo($to); $cursor = $cursor->addDay()) {
             if ($cursor->dayOfWeekIso !== $series->weekday) {
                 continue;
             }
 
             $day = $cursor->toDateString();
+
+            if ($existing->has($day)) {
+                continue;
+            }
+
             try {
                 $booking = $this->bookings->createHold($tenant, [
                     'customer_id' => $series->customer_id,
@@ -142,7 +187,18 @@ class SeriesService
             }
         }
 
-        $series->update(['generated_through' => $to->toDateString()]);
+        // The cursor may only advance over dates that are actually settled. Parking it before the
+        // FIRST conflict keeps that date reachable on the next run, so a session lost to a
+        // temporary clash is retried once the range frees up instead of being skipped forever.
+        $generatedThrough = $conflicts === []
+            ? $to
+            : CarbonImmutable::parse($conflicts[0])->subDay();
+
+        // Never move the cursor backwards past ground already covered.
+        if ($series->generated_through === null
+            || $generatedThrough->greaterThan(CarbonImmutable::parse($series->generated_through->toDateString()))) {
+            $series->update(['generated_through' => $generatedThrough->toDateString()]);
+        }
 
         return [$generated, $conflicts];
     }

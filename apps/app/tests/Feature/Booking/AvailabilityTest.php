@@ -123,4 +123,27 @@ class AvailabilityTest extends TestCase
         $this->assertStringContainsString('20:00:00', $free[1]['start']);
         $this->assertStringContainsString('22:00:00', $free[1]['end']);
     }
+
+    public function test_search_runs_bounded_queries_regardless_of_court_count(): void
+    {
+        $tenant = Tenant::create(['name' => 'V', 'slug' => 'v', 'timezone' => $this->tz, 'status' => 'active']);
+        $date = CarbonImmutable::parse('2026-07-21', $this->tz);
+
+        for ($i = 1; $i <= 8; $i++) {
+            $court = Court::create(['tenant_id' => $tenant->id, 'name' => "Sân $i", 'court_type' => 'pickleball', 'status' => 'active']);
+            OpeningRule::create([
+                'tenant_id' => $tenant->id, 'court_id' => $court->id,
+                'weekday' => [1, 2, 3, 4, 5, 6, 7], 'open_local' => '18:00:00', 'close_local' => '22:00:00',
+                'tz' => $this->tz, 'effective_from' => $date->subDay()->toDateString(), 'effective_to' => null,
+            ]);
+        }
+
+        // 8 courts must not trigger per-court N+1: courts + opening rules + slots + blackouts = 4.
+        $count = 0;
+        \DB::listen(fn () => $count++);
+
+        app(AvailabilityService::class)->search($tenant->id, $date);
+
+        $this->assertLessThanOrEqual(6, $count, 'search() must not run per-court queries');
+    }
 }

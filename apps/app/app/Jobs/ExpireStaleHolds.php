@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
-use App\Models\Tenant;
 use App\Services\Booking\BookingService;
-use App\Support\RlsTenantContext;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -39,8 +37,8 @@ class ExpireStaleHolds implements ShouldQueue
 
     public function handle(BookingService $bookings): void
     {
-        Tenant::query()->select('id')->eachById(
-            fn (Tenant $tenant) => RlsTenantContext::run($tenant->id, fn () => $bookings->expireStaleHolds()),
-        );
+        // `expireStaleHolds()` enumerates every tenant and sets RLS context per tenant internally,
+        // so it is safe to call directly. (See BookingService / T72.)
+        $bookings->expireStaleHolds();
     }
 }
